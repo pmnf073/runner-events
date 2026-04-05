@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  password   String?  // null for social login users
+  avatar     String?
+  provider   String   @default("local") // "local" | "google" | "facebook"
+  role       String   @default("member") // "admin" | "member"
+  clubs      String   @default("Alverca Urban Runners")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  rsvps      RSVP[]
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  endDate     DateTime?
+  location    String?
+  lat         Float?
+  lng         Float?
+  type        String   // "trail" | "urban" | "race" | "training" | "social" | "meeting"
+  club        String   @default("Alverca Urban Runners")
+  distance    Float?
+  elevation   Int?
+  gpxUrl      String?
+  url         String?
+  imageUrl    String?
+  createdBy   String   @default("system")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rsvps       RSVP[]
+}
+
+model RSVP {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  status    String   // "going" | "maybe" | "not_going"
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}

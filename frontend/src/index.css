@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: #081420;
+  color: #e8ecef;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #1B3A5C;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.calendar-day-header {
+  background: #0D2137;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  background: #0B1A2B;
+  min-height: 100px;
+  padding: 0.5rem;
+}
+
+.calendar-day.other-month {
+  background: #060F1A;
+  color: #1a2a3a;
+}
+
+.calendar-day.today {
+  background: #0F2535;
+  border: 1px solid #CC3333;
+}
+
+.event-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.event-dot.trail { background: #10b981; }
+.event-dot.urban { background: #CC3333; }
+.event-dot.race { background: #CC3333; }
+.event-dot.training { background: #f59e0b; }
+.event-dot.social { background: #E55555; }
+.event-dot.meeting { background: #6b7280; }
+
+@media (max-width: 768px) {
+  .calendar-day {
+    min-height: 60px;
+    padding: 0.25rem;
+  }
+  .calendar-day-header {
+    font-size: 0.625rem;
+  }
+}
