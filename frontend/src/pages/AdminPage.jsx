@@ -187,7 +187,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
               placeholder="https://example.com/event"
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
             <button type="button" onClick={handleUrlExtract} disabled={extracting || !form.url}
-              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-lg text-sm whitespace-nowrap">
+              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-lg text-sm whitespace-nowrap" style={{ color: "#fff" }}>
               {extracting ? "⏳..." : "📷 Extrair"}
             </button>
           </div>
@@ -250,7 +250,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
       </div>
       <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition">Cancelar</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition" style={{ color: "#e8ecef" }}>Cancelar</button>
         <button type="submit" className="bg-primary hover:bg-primary-dark px-6 py-2 rounded-lg text-sm font-medium transition">
           {event ? "Guardar" : "Criar Evento"}
         </button>
@@ -325,7 +325,7 @@ export default function AdminPage({ user }) {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{editing ? "Editar Evento" : "Novo Evento"}</h1>
           <button onClick={() => { setShowForm(false); setEditing(null); }}
-            className="text-gray-400 hover:text-white text-sm">
+            className="text-gray-400 hover:text-white text-sm" style={{ color: "#9ca3af" }}>
             ← Voltar à lista
           </button>
         </div>
@@ -339,7 +339,7 @@ export default function AdminPage({ user }) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">⚙️ Admin - Gerir Eventos</h1>
         <button onClick={() => { setEditing(null); setShowForm(true); }}
-          className="bg-primary hover:bg-primary-dark px-4 py-2 rounded-lg text-sm font-medium transition">
+          className="bg-primary hover:bg-primary-dark px-4 py-2 rounded-lg text-sm font-medium transition" style={{ color: "#fff" }}>
           + Novo Evento
         </button>
       </div>
@@ -348,16 +348,16 @@ export default function AdminPage({ user }) {
 
       <div className="mt-6 space-y-3">
         {events.map((ev) => (
-          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
+          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3" style={{ background: "#0B1A2B", borderColor: "#1B3A5C" }}>
             <div>
               <h3 className="font-medium">{ev.title}</h3>
               <p className="text-sm text-gray-400">{formatEventDate(ev.date)} • {ev.location || "Sem local"} • {ev.type}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setEditing(ev); setShowForm(true); }}
-                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition">Editar</button>
+                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition" style={{ color: "#fff" }}>Editar</button>
               <button onClick={() => handleDelete(ev.id)}
-                className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition">Eliminar</button>
+                className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition" style={{ color: "#f87171" }}>Eliminar</button>
             </div>
           </div>
         ))}
