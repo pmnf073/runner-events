@@ -17,7 +17,7 @@ const EVENT_LABELS = {
   race: "Prova",
   training: "Treino",
   social: "Social",
-  meeting: "Reunião",
+  meeting: "Reuniao",
 };
 
 export default function CalendarPage() {
@@ -45,8 +45,10 @@ export default function CalendarPage() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const monthNames = [
+    "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -68,12 +70,20 @@ export default function CalendarPage() {
 
   function formatDate(dateStr) {
     const d = new Date(dateStr + "T00:00:00");
-    const weekdays = ["Domingo", "Segunda", "Terc\a", "Quarta", "Quinta", "Sexta", "Sábado"];
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
     return {
       day: d.getDate(),
-      weekday: weekdays[d.getDay()],
-      full: `${d.getDate()} de ${monthNames[d.getMonth()]}`,
+      full: `${dd}/${mm}/${yyyy}`,
     };
+  }
+
+  function formatEventTime(isoStr) {
+    const d = new Date(isoStr);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${min}`;
   }
 
   const headerBtn = (active) => ({
@@ -95,11 +105,10 @@ export default function CalendarPage() {
     <div>
       {/* Title + Filter + View toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
-        <h1 style={{ fontSize: 14, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendário de Eventos</h1>
+        <h1 style={{ fontSize: 14, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {/* View toggle */}
           <div style={{ display: "flex", border: "1px solid #1B3A5C", borderRadius: 8, overflow: "hidden" }}>
-            {/* Calendar SVG icon */}
             <button onClick={() => setViewMode("grid")} style={headerBtn(viewMode === "grid")} title="Grelha">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -108,7 +117,7 @@ export default function CalendarPage() {
                 <line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
             </button>
-            <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: "1px solid #1B3A5C" }} title="Lista">☰</button>
+            <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: "1px solid #1B3A5C" }} title="Lista">&#9776;</button>
           </div>
           {/* Filter */}
           <select
@@ -154,7 +163,7 @@ export default function CalendarPage() {
                     return (
                       <Link key={event.id} to={`/event/${event.id}`}
                         style={{ display: "block", fontSize: 12, padding: "4px 8px", borderRadius: 6, borderLeft: `3px solid ${ec.border}`, background: ec.bg, color: ec.text, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <span style={{ fontWeight: 500 }}>{event.title}</span>
+                        <span style={{ fontWeight: 500 }}>{event.title}</span> {formatEventTime(event.date)}
                       </Link>
                     );
                   })}
@@ -178,13 +187,11 @@ export default function CalendarPage() {
               .filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`))
               .map((dateStr) => {
                 const info = formatDate(dateStr);
-                const ec = EVENT_COLORS[events[0]?.type] || EVENT_COLORS.meeting;
                 return (
                   <div key={dateStr} style={{ background: "#0D2137", borderRadius: 12, overflow: "hidden", border: "1px solid #1B3A5C" }}>
-                    {/* Date header */}
-                    <div style={{ padding: "12px 20px", background: "#0F2535", display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: "#CC3333", minWidth: 36, textAlign: "center" }}>{info.day}</span>
-                      <span style={{ fontSize: 13, color: "#9ca3af" }}>{info.weekday}</span>
+                    {/* Date header — dd/mm/yyyy */}
+                    <div key={dateStr} style={{ padding: "12px 20px", background: "#0F2535", display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: "#CC3333", minWidth: 36, textAlign: "center" }}>{info.full}</span>
                     </div>
                     {/* Events */}
                     {groupedEvents[dateStr].map((event) => {
@@ -198,16 +205,20 @@ export default function CalendarPage() {
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
                             <span style={{ fontSize: 15, color: "#e8ecef" }}>{event.title}</span>
                           </div>
-                          <span style={{
-                            fontSize: 11,
-                            padding: "4px 10px",
-                            borderRadius: 20,
-                            background: ec.bg,
-                            color: ec.text,
-                            fontWeight: 500,
-                          }}>
-                            {EVENT_LABELS[event.type] || event.type}
-                          </span>
+                          {/* hh:mm + type badge */}
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <span style={{ fontSize: 13, color: "#9ca3af" }}>{formatEventTime(event.date)}</span>
+                            <span style={{
+                              fontSize: 11,
+                              padding: "4px 10px",
+                              borderRadius: 20,
+                              background: ec.bg,
+                              color: ec.text,
+                              fontWeight: 500,
+                            }}>
+                              {EVENT_LABELS[event.type] || event.type}
+                            </span>
+                          </div>
                         </Link>
                       );
                     })}
