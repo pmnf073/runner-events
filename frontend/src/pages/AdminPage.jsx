@@ -41,28 +41,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
     }
   };
 
-  const toPortugalISO = (localDateTime) => {
-    if (!localDateTime) return null;
-    // datetime-local gives "YYYY-MM-DDTHH:mm" — assume Europe/Lisbon timezone
-    const d = new Date(localDateTime);
-    // Get timezone offset for the given date
-    const l = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Lisbon" }));
-    const r = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
-    const offsetMs = l.getTime() - r.getTime();
-    return new Date(d.getTime() - offsetMs).toISOString();
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const payload = {
-      ...form,
-      date: toPortugalISO(form.date),
-      endDate: form.endDate ? toPortugalISO(form.endDate) : null,
-      distance: form.distance ? parseFloat(form.distance) : null,
-      elevation: form.elevation ? parseInt(form.elevation) : null,
-    };
-    onSubmit(payload);
-  };
+  const handleSubmit = (e) => { e.preventDefault(); onSubmit(form); };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
@@ -179,15 +158,15 @@ export default function AdminPage({ user }) {
       const method = editing ? "PUT" : "POST";
       const url = editing ? `/api/events/${editing.id}` : "/api/events";
       const res = await api(url, { method, body: JSON.stringify(payload) });
-      if (res.ok) { 
-        setShowForm(false); 
-        setEditing(null); 
-        fetchEvents(); 
+      if (res.ok) {
+        setShowForm(false);
+        setEditing(null);
+        fetchEvents();
       } else {
         const error = await res.json();
         alert("Erro ao guardar: " + (error.error || "Erro desconhecido"));
       }
-    } catch (err) { 
+    } catch (err) {
       console.error(err);
       alert("Erro ao guardar: " + err.message);
     }
@@ -215,7 +194,7 @@ export default function AdminPage({ user }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">⚙️ Admin — Gerir Eventos</h1>
+        <h1 className="text-2xl font-bold">⚙️ Admin - Gerir Eventos</h1>
         <button onClick={() => { setEditing(null); setShowForm(true); }}
           className="bg-primary hover:bg-primary-dark px-4 py-2 rounded-lg text-sm font-medium transition">
           + Novo Evento
