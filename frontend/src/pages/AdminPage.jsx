@@ -98,12 +98,14 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
 
   const localToUTC = (localStr) => {
     if (!localStr) return null;
-    // "2026-04-12T09:00" means 09:00 in the user's browser timezone
-    const d = new Date(localStr + ":00");
-    // d now represents 09:00 in local timezone, converted to internal UTC value
-    // Convert back to correct UTC by adding the timezone offset
-    const utcMs = d.getTime() + d.getTimezoneOffset() * 60 * 1000;
-    return new Date(utcMs).toISOString();
+    // localStr = "YYYY-MM-DDTHH:mm" representing time in user's timezone
+    // Parse components and create Date object in local TZ, then get proper UTC
+    const [date, time] = localStr.split('T');
+    const [y, mo, d] = date.split('-').map(Number);
+    const [h, mi] = time.split(':').map(Number);
+    // Create Date in local timezone
+    const local = new Date(y, mo - 1, d, h, mi, 0, 0);
+    return local.toISOString();
   };
 
   const handleSubmit = (e) => {
