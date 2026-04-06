@@ -78,10 +78,16 @@ export default function AdminUsersPage() {
       }
 
       setRejectReason("");
-      fetchData();
+      setEditingUser(null);
+      setActionLoading(null);
+      // Force full refresh of users + stats
+      setUsers([]);
+      setStats({});
+      setTimeout(() => {
+        fetchData();
+      }, 100);
     } catch (e) {
       alert("Erro de ligacao");
-    } finally {
       setActionLoading(null);
     }
   };
@@ -99,7 +105,9 @@ export default function AdminUsersPage() {
         return;
       }
       setEditingUser(null);
-      fetchData();
+      setUsers([]);
+      setStats({});
+      setTimeout(() => fetchData(), 100);
     } catch (e) {
       alert("Erro de ligacao");
     }
@@ -205,7 +213,7 @@ export default function AdminUsersPage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 6 }}>
-                {user._count && !editingUser && user.status === "pending" ? (
+                {!editingUser && user.status === "pending" ? (
                   <>
                     <button
                       onClick={() => handleAction(user.id, "approve")}
