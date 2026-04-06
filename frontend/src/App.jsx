@@ -82,18 +82,20 @@ function App() {
               <Link to="/about" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                 onMouseEnter={e => e.target.style.color = "#36C2CE"}
                 onMouseLeave={e => e.target.style.color = "#9ca3af"}>Sobre</Link>
-              {user?.role === "admin" && (
+              {user && ["admin", "organizer"].includes(user.role) && (
                 <>
                   <Link to="/admin" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
                     onMouseLeave={e => e.target.style.color = "#9ca3af"}>Admin</Link>
-                  <Link to="/admin/users" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
-                    onMouseEnter={e => e.target.style.color = "#36C2CE"}
-                    onMouseLeave={e => e.target.style.color = "#9ca3af"}>Utilizadores</Link>
                   <Link to="/import" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
                     onMouseLeave={e => e.target.style.color = "#9ca3af"}>Importar</Link>
                 </>
+              )}
+              {user?.role === "admin" && (
+                <Link to="/admin/users" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
+                  onMouseEnter={e => e.target.style.color = "#36C2CE"}
+                  onMouseLeave={e => e.target.style.color = "#9ca3af"}>Utilizadores</Link>
               )}
               {user ? (
                 <div style={{ position: "relative" }} data-user-menu>

@@ -33,6 +33,22 @@ async function isAdmin(req, res, next) {
   return res.status(403).json({ error: "Admin access required" });
 }
 
+async function isOrganizerOrAdmin(req, res, next) {
+  // Check DB role first
+  if (req.user && ["admin", "organizer"].includes(req.user.role)) return next();
+  
+  // Fallback: check JWT payload directly
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+      if (["admin", "organizer"].includes(payload.role)) return next();
+    } catch {}
+  }
+  
+  return res.status(403).json({ error: "Admin or Organizer access required" });
+}
+
 router.post("/extract-image", isAdmin, async (req, res) => {
   try {
     const { url } = req.body;
@@ -85,7 +101,7 @@ router.get("/:id", auth, async (req, res) => {
   }
 });
 
-router.post("/", isAdmin, async (req, res) => {
+router.post("/", isOrganizerOrAdmin, async (req, res) => {
   try {
     const { title, description, date, endDate, location, lat, lng, type, club, distance, elevation, gpxUrl, url, imageUrl } = req.body;
     
@@ -111,7 +127,7 @@ router.post("/", isAdmin, async (req, res) => {
   }
 });
 
-router.put("/:id", isAdmin, async (req, res) => {
+router.put("/:id", isOrganizerOrAdmin, async (req, res) => {
   try {
     const { title, description, date, endDate, location, lat, lng, type, club, distance, elevation, gpxUrl, url, imageUrl } = req.body;
     
