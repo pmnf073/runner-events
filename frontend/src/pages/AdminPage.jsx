@@ -41,7 +41,28 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
     }
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); onSubmit(form); };
+  const toPortugalISO = (localDateTime) => {
+    if (!localDateTime) return null;
+    // datetime-local gives "YYYY-MM-DDTHH:mm" — assume Europe/Lisbon timezone
+    const d = new Date(localDateTime);
+    // Get timezone offset for the given date
+    const l = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Lisbon" }));
+    const r = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
+    const offsetMs = l.getTime() - r.getTime();
+    return new Date(d.getTime() - offsetMs).toISOString();
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      date: toPortugalISO(form.date),
+      endDate: form.endDate ? toPortugalISO(form.endDate) : null,
+      distance: form.distance ? parseFloat(form.distance) : null,
+      elevation: form.elevation ? parseInt(form.elevation) : null,
+    };
+    onSubmit(payload);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
