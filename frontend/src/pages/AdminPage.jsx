@@ -127,24 +127,26 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
     onSubmit(payload);
   };
 
+  // Form input styles with theme-aware colors
+  const formInput = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", fontSize: 14, color: "var(--text-primary)", outline: "none", boxSizing: "border-box" };
+  const formLabel = { display: "block", fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
-      <h3 className="text-lg font-bold">{event ? "Editar Evento" : "Novo Evento"}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, background: "var(--bg-card)", borderRadius: 12, border: `1px solid var(--border-subtle)`, padding: 24 }}>
+      <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>{event ? "Editar Evento" : "Novo Evento"}</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Título *</label>
-          <input type="text" value={form.title} onChange={(e) => handleChange("title", e.target.value)} required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          <label style={formLabel}>Título *</label>
+          <input type="text" value={form.title} onChange={(e) => handleChange("title", e.target.value)} required style={formInput} />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Tipo</label>
-          <select value={form.type} onChange={(e) => handleChange("type", e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+          <label style={formLabel}>Tipo</label>
+          <select value={form.type} onChange={(e) => handleChange("type", e.target.value)} style={formInput}>
             {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Data e hora *</label>
+          <label style={formLabel}>Data e hora *</label>
           <DatePicker
             selected={formToDate(form.date)}
             onChange={(d) => handleChange("date", dateToForm(d))}
@@ -154,13 +156,13 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
             dateFormat="dd/MM/yyyy HH:mm"
             placeholderText="dd/mm/aaaa hh:mm"
             required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white cursor-pointer"
+            style={{ ...formInput, cursor: "pointer" }}
             calendarClassName="bg-gray-900 border border-gray-700 rounded-lg"
             popperClassName="z-50"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Data fim (opcional)</label>
+          <label style={formLabel}>Data fim (opcional)</label>
           <DatePicker
             selected={formToDate(form.endDate)}
             onChange={(d) => handleChange("endDate", d ? dateToForm(d) : "")}
@@ -170,49 +172,46 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
             dateFormat="dd/MM/yyyy HH:mm"
             placeholderText="dd/mm/aaaa hh:mm"
             isClearable
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white cursor-pointer"
+            style={{ ...formInput, cursor: "pointer" }}
             calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
             popperClassName="z-50"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Localização</label>
-          <input type="text" value={form.location} onChange={(e) => handleChange("location", e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          <label style={formLabel}>Localização</label>
+          <input type="text" value={form.location} onChange={(e) => handleChange("location", e.target.value)} style={formInput} />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">URL do Evento</label>
-          <div className="flex gap-2">
+          <label style={formLabel}>URL do Evento</label>
+          <div style={{ display: "flex", gap: 8 }}>
             <input type="url" value={form.url || ""} onChange={(e) => handleChange("url", e.target.value)}
-              placeholder="https://example.com/event"
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+              placeholder="https://example.com/event" style={{ ...formInput, flex: 1 }} />
             <button type="button" onClick={handleUrlExtract} disabled={extracting || !form.url}
-              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 rounded-lg text-sm whitespace-nowrap" style={{ color: "#fff" }}>
+              style={{ background: "#374151", color: "#fff", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 14, cursor: extracting || !form.url ? "not-allowed" : "pointer", opacity: extracting || !form.url ? 0.5 : 1, whiteSpace: "nowrap", transition: "background 0.2s" }}
+              onMouseEnter={e => { if (!extracting && form.url) e.target.style.background = "#4b5563"; }}
+              onMouseLeave={e => e.target.style.background = "#374151" }>
               {extracting ? "⏳..." : "📷 Extrair"}
             </button>
           </div>
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Imagem do Evento</label>
+          <label style={formLabel}>Imagem do Evento</label>
           <input type="url" value={form.imageUrl || ""} onChange={(e) => handleChange("imageUrl", e.target.value)}
-            placeholder="https://example.com/image.jpg"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            placeholder="https://example.com/image.jpg" style={formInput} />
           {form.imageUrl && (
-            <div className="mt-2">
-              <img src={form.imageUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" onError={(e) => e.target.style.display = "none"} />
+            <div style={{ marginTop: 8 }}>
+              <img src={form.imageUrl} alt="Preview" style={{ width: "100%", height: 128, objectFit: "cover", borderRadius: 8 }} onError={(e) => e.target.style.display = "none"} />
             </div>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Distância (km)</label>
-            <input type="number" step="0.1" value={form.distance || ""} onChange={(e) => handleChange("distance", e.target.value || null)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <label style={formLabel}>Distância (km)</label>
+            <input type="number" step="0.1" value={form.distance || ""} onChange={(e) => handleChange("distance", e.target.value || null)} style={formInput} />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Elevação (m)</label>
-            <input type="number" value={form.elevation || ""} onChange={(e) => handleChange("elevation", e.target.value || null)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            <label style={formLabel}>Elevação (m)</label>
+            <input type="number" value={form.elevation || ""} onChange={(e) => handleChange("elevation", e.target.value || null)} style={formInput} />
           </div>
         </div>
       </div>
@@ -245,15 +244,15 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
       </style>
 
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Descrição</label>
+        <label style={formLabel}>Descrição</label>
         <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={2}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          style={{ ...formInput, minHeight: 60, resize: "vertical" }} />
       </div>
-      <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded transition" style={{ color: "#e8ecef", background: "#1f2937" }}
+      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+        <button type="button" onClick={onCancel} style={{ padding: "8px 16px", fontSize: 14, borderRadius: 8, color: "#e8ecef", background: "#1f2937", border: "none", cursor: "pointer", transition: "background 0.2s" }}
           onMouseEnter={e => e.target.style.background = "#374151"}
           onMouseLeave={e => e.target.style.background = "#1f2937"}>Cancelar</button>
-        <button type="submit" className="px-6 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#CC3333", color: "#fff" }}
+        <button type="submit" style={{ padding: "8px 24px", fontSize: 14, borderRadius: 8, fontWeight: 500, background: "#CC3333", color: "#fff", border: "none", cursor: "pointer", transition: "background 0.2s" }}
           onMouseEnter={e => e.target.style.background = "#be0000"}
           onMouseLeave={e => e.target.style.background = "#CC3333"}>
           {event ? "Guardar" : "Criar Evento"}
