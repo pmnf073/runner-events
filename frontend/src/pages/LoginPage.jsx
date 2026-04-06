@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTheme } from "../ThemeContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
 
 export default function LoginPage({ setUser }) {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +53,7 @@ export default function LoginPage({ setUser }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
       <div style={{ background: V("--bg-header"), borderRadius: 16, border: `1px solid ${V("--border-subtle")}`, padding: 40, width: "100%", maxWidth: 420, transition: "background 0.3s ease" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <img src="/logo.png" alt="AUR" style={{ height: 64, width: "auto", margin: "0 auto 16px", display: "block" }} />
+          <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 64, width: "auto", margin: "0 auto 16px", display: "block" }} />
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#CC3333", margin: "0 0 4px" }}>Alverca Urban Runners</h1>
           <p style={{ fontSize: 14, color: V("--text-muted"), marginTop: 8 }}>Inicia sessao para confirmar presenca nos eventos</p>
         </div>
