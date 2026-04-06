@@ -22,7 +22,11 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
   // Convert "YYYY-MM-DDTHH:mm" from datetime-local to Date object
-  const parseLocalDate = (val) => val ? new Date(val) : null;
+  const parseLocalDate = (val) => {
+    if (!val) return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  };
   // Convert Date object to "YYYY-MM-DDTHH:mm" for storage
   const formatLocalDate = (d) => {
     if (!d || isNaN(d.getTime())) return "";
