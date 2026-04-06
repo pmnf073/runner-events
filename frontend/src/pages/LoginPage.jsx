@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
+const V = (name) => `var(${name})`;
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
@@ -48,34 +49,34 @@ export default function LoginPage({ setUser }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-      <div style={{ background: "#0D2137", borderRadius: 16, border: "1px solid #1B3A5C", padding: 40, width: "100%", maxWidth: 420 }}>
+      <div style={{ background: V("--bg-header"), borderRadius: 16, border: `1px solid ${V("--border-subtle")}`, padding: 40, width: "100%", maxWidth: 420, transition: "background 0.3s ease" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img src="/logo.png" alt="AUR" style={{ height: 64, width: "auto", margin: "0 auto 16px", display: "block" }} />
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#CC3333", margin: "0 0 4px" }}>Alverca Urban Runners</h1>
-          <p style={{ fontSize: 14, color: "#6b7280", marginTop: 8 }}>Inicia sessao para confirmar presenca nos eventos</p>
+          <p style={{ fontSize: 14, color: V("--text-muted"), marginTop: 8 }}>Inicia sessao para confirmar presenca nos eventos</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div>
-            <label style={{ display: "block", fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Email</label>
+            <label style={{ display: "block", fontSize: 13, color: V("--text-muted"), marginBottom: 6 }}>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="email@exemplo.com"
-              style={{ width: "100%", background: "#0D1520", border: "1px solid #1B3A5C", borderRadius: 8, padding: "12px 14px", fontSize: 14, color: "#e8ecef", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 8, padding: "12px 14px", fontSize: 14, color: V("--text-primary"), outline: "none", boxSizing: "border-box" }}
             />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Password</label>
+            <label style={{ display: "block", fontSize: 13, color: V("--text-muted"), marginBottom: 6 }}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-              style={{ width: "100%", background: "#0D1520", border: "1px solid #1B3A5C", borderRadius: 8, padding: "12px 14px", fontSize: 14, color: "#e8ecef", outline: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 8, padding: "12px 14px", fontSize: 14, color: V("--text-primary"), outline: "none", boxSizing: "border-box" }}
             />
           </div>
 
@@ -94,16 +95,16 @@ export default function LoginPage({ setUser }) {
         </form>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0" }}>
-          <div style={{ flex: 1, height: 1, background: "#1B3A5C" }} />
-          <span style={{ fontSize: 12, color: "#6b7280" }}>ou</span>
-          <div style={{ flex: 1, height: 1, background: "#1B3A5C" }} />
+          <div style={{ flex: 1, height: 1, background: V("--border-subtle") }} />
+          <span style={{ fontSize: 12, color: V("--text-muted") }}>ou</span>
+          <div style={{ flex: 1, height: 1, background: V("--border-subtle") }} />
         </div>
 
         <div style={{ opacity: 0.4, textAlign: "center" }}>
-          <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Google e Facebook em breve</p>
+          <p style={{ fontSize: 12, color: V("--text-muted"), margin: 0 }}>Google e Facebook em breve</p>
         </div>
 
-        <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", marginTop: 20 }}>
+        <p style={{ fontSize: 13, color: V("--text-secondary"), textAlign: "center", marginTop: 20 }}>
           Nao tens conta?{" "}
           <Link to="/register" style={{ color: "#CC3333", textDecoration: "none" }}>
             Criar conta
@@ -113,10 +114,10 @@ export default function LoginPage({ setUser }) {
         {/* Pending Dialog */}
         {pendingDialog && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
-            <div style={{ background: "#0D2137", borderRadius: 12, padding: 24, maxWidth: 400, width: "100%" }}>
+            <div style={{ background: V("--bg-header"), borderRadius: 12, padding: 24, maxWidth: 400, width: "100%" }}>
               <div style={{ fontSize: 48, textAlign: "center", marginBottom: 12 }}>⏳</div>
-              <h2 style={{ fontSize: 20, color: "#fff", textAlign: "center", marginBottom: 8 }}>A tua conta esta pendente</h2>
-              <p style={{ fontSize: 14, color: "#9ca3af", textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
+              <h2 style={{ fontSize: 20, color: V("--text-heading"), textAlign: "center", marginBottom: 8 }}>A tua conta esta pendente</h2>
+              <p style={{ fontSize: 14, color: V("--text-secondary"), textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
                 O teu pedido de registo sera revisto por um administrador. Receberas uma notificacao quando a conta for ativada.
               </p>
               <button
