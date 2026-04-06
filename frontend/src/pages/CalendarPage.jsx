@@ -40,7 +40,7 @@ export default function CalendarPage() {
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -58,7 +58,6 @@ export default function CalendarPage() {
     return events.filter((e) => e.date.startsWith(dateStr));
   };
 
-  // Group events by date for list view
   const groupedEvents = events.reduce((acc, event) => {
     const dateKey = event.date.split("T")[0];
     if (!acc[dateKey]) acc[dateKey] = [];
@@ -86,13 +85,15 @@ export default function CalendarPage() {
     return `${hh}:${min}`;
   }
 
+  const cssVar = (name) => `var(${name})`;
+
   const headerBtn = (active) => ({
     padding: "8px 14px",
     fontSize: 18,
     borderRadius: 6,
-    border: "1px solid #1B3A5C",
-    background: active ? "#CC3333" : "#0D2137",
-    color: active ? "#fff" : "#9ca3af",
+    border: `1px solid ${cssVar("--border-subtle")}`,
+    background: active ? "#CC3333" : cssVar("--bg-header"),
+    color: active ? "#fff" : cssVar("--text-secondary"),
     cursor: "pointer",
     fontWeight: 500,
     lineHeight: 1,
@@ -105,10 +106,9 @@ export default function CalendarPage() {
     <div>
       {/* Title + Filter + View toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
-        <h1 style={{ fontSize: 14, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
+        <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* View toggle */}
-          <div style={{ display: "flex", border: "1px solid #1B3A5C", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, overflow: "hidden" }}>
             <button onClick={() => setViewMode("grid")} style={headerBtn(viewMode === "grid")} title="Grelha">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -117,13 +117,12 @@ export default function CalendarPage() {
                 <line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
             </button>
-            <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: "1px solid #1B3A5C" }} title="Lista">&#9776;</button>
+            <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: `1px solid ${cssVar("--border-subtle")}` }} title="Lista">&#9776;</button>
           </div>
-          {/* Filter */}
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 8, padding: "8px 12px", fontSize: 14, color: "#e8ecef", cursor: "pointer" }}
+            style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px", fontSize: 14, color: cssVar("--text-primary"), cursor: "pointer" }}
           >
             <option value="all">Todos os tipos</option>
             {Object.entries(EVENT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -134,15 +133,15 @@ export default function CalendarPage() {
       {/* Month navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <button onClick={prevMonth}
-          style={{ background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 8, padding: "8px 16px", fontSize: 18, color: "#e8ecef", cursor: "pointer" }}>&larr;</button>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: "#e8ecef" }}>{monthNames[month]} {year}</h2>
+          style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 18, color: cssVar("--text-primary"), cursor: "pointer" }}>&larr;</button>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: cssVar("--text-primary") }}>{monthNames[month]} {year}</h2>
         <button onClick={nextMonth}
-          style={{ background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 8, padding: "8px 16px", fontSize: 18, color: "#e8ecef", cursor: "pointer" }}>&rarr;</button>
+          style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 18, color: cssVar("--text-primary"), cursor: "pointer" }}>&rarr;</button>
       </div>
 
       {/* GRID VIEW */}
       {viewMode === "grid" && (
-        <div className="calendar-grid" style={{ border: "1px solid #1B3A5C" }}>
+        <div className="calendar-grid" style={{ border: `1px solid ${cssVar("--border-subtle")}` }}>
           {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((d) => (
             <div key={d} className="calendar-day-header">{d}</div>
           ))}
@@ -156,7 +155,7 @@ export default function CalendarPage() {
             const dayEvents = getEventsForDay(day);
             return (
               <div key={day} className="calendar-day">
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : "#9ca3af" }}>{day}</div>
+                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : cssVar("--text-secondary") }}>{day}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {dayEvents.slice(0, 3).map((event) => {
                     const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
@@ -168,7 +167,7 @@ export default function CalendarPage() {
                     );
                   })}
                   {dayEvents.length > 3 && (
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>+{dayEvents.length - 3} mais</div>
+                    <div style={{ fontSize: 12, color: cssVar("--text-muted") }}>+{dayEvents.length - 3} mais</div>
                   )}
                 </div>
               </div>
@@ -181,33 +180,30 @@ export default function CalendarPage() {
       {viewMode === "list" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {sortedDates.filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`)).length === 0 ? (
-            <div style={{ textAlign: "center", padding: 48, color: "#6b7280" }}>Sem eventos este mes</div>
+            <div style={{ textAlign: "center", padding: 48, color: cssVar("--text-muted") }}>Sem eventos este mes</div>
           ) : (
             sortedDates
               .filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`))
               .map((dateStr) => {
                 const info = formatDate(dateStr);
                 return (
-                  <div key={dateStr} style={{ background: "#0D2137", borderRadius: 12, overflow: "hidden", border: "1px solid #1B3A5C" }}>
-                    {/* Date header — dd/mm/yyyy */}
-                    <div key={dateStr} style={{ padding: "12px 20px", background: "#0F2535", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div key={dateStr} style={{ background: cssVar("--bg-card"), borderRadius: 12, overflow: "hidden", border: `1px solid ${cssVar("--border-subtle")}` }}>
+                    <div style={{ padding: "12px 20px", background: cssVar("--calendar-today-bg"), display: "flex", alignItems: "center", gap: 12 }}>
                       <span style={{ fontSize: 28, fontWeight: 700, color: "#CC3333", minWidth: 36, textAlign: "center" }}>{info.full}</span>
                     </div>
-                    {/* Events */}
                     {groupedEvents[dateStr].map((event) => {
                       const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
                       return (
                         <Link key={event.id} to={`/event/${event.id}`}
-                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 14px 72px", textDecoration: "none", borderBottom: "1px solid #1B3A5C", transition: "background 0.2s" }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#132540"}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 14px 72px", textDecoration: "none", borderBottom: `1px solid ${cssVar("--border-subtle")}`, transition: "background 0.2s" }}
+                          onMouseEnter={e => e.currentTarget.style.background = cssVar("--hover-bg")}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
-                            <span style={{ fontSize: 15, color: "#e8ecef" }}>{event.title}</span>
+                            <span style={{ fontSize: 15, color: cssVar("--text-primary") }}>{event.title}</span>
                           </div>
-                          {/* hh:mm + type badge */}
                           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: "#9ca3af" }}>{formatEventTime(event.date)}</span>
+                            <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
                             <span style={{
                               fontSize: 11,
                               padding: "4px 10px",
@@ -232,15 +228,15 @@ export default function CalendarPage() {
       {/* Loading overlay */}
       {loading && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div style={{ background: "#0D2137", borderRadius: 12, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <div style={{ background: cssVar("--bg-header"), borderRadius: 12, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             <div className="animate-spin" style={{ width: 32, height: 32, borderRadius: "50%", borderTop: "2px solid #CC3333" }}></div>
-            <span style={{ fontSize: 14, color: "#9ca3af" }}>Carregando eventos...</span>
+            <span style={{ fontSize: 14, color: cssVar("--text-secondary") }}>Carregando eventos...</span>
           </div>
         </div>
       )}
 
       {/* Legend */}
-      <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: "#6b7280" }}>
+      <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: cssVar("--text-muted") }}>
         {Object.entries(EVENT_LABELS).map(([k, v]) => (
           <div key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span className={`event-dot ${k}`} /> {v}
