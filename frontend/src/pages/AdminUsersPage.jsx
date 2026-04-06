@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
+const V = (name) => `var(${name})`;
 
 const STATUS_COLORS = {
   pending: { bg: "rgba(234,179,8,0.15)", text: "#eab308" },
@@ -54,7 +55,7 @@ export default function AdminUsersPage() {
     if (roleFilter !== "all" && u.role !== roleFilter) return false;
     if (search) {
       const s = search.toLowerCase();
-      return u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.phone || "").includes(s);
+      return (u.name || "").toLowerCase().includes(s) || (u.email || "").toLowerCase().includes(s) || (u.phone || "").includes(s);
     }
     return true;
   });
@@ -64,19 +65,14 @@ export default function AdminUsersPage() {
     try {
       const body = { action };
       if (reason) body.reason = reason;
-
       const res = await fetch(`${API_URL}/api/admin/users/${userId}/registration`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(body),
+        method: "PUT", headers, body: JSON.stringify(body),
       });
-
       if (!res.ok) {
         const err = await res.json();
         alert(err.error || "Erro ao processar");
         return;
       }
-
       setRejectId(null);
       setRejectReason("");
       setActionLoading(null);
@@ -90,9 +86,7 @@ export default function AdminUsersPage() {
   const doSaveEdit = async (userId) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(editForm),
+        method: "PUT", headers, body: JSON.stringify(editForm),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -110,8 +104,7 @@ export default function AdminUsersPage() {
     setActionLoading(userId);
     try {
       const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-        method: "DELETE",
-        headers,
+        method: "DELETE", headers,
       });
       if (!res.ok) {
         const err = await res.json();
@@ -129,21 +122,22 @@ export default function AdminUsersPage() {
   const openEdit = (user) => {
     setEditId(user.id);
     setEditForm({
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      phone: user.phone || "",
-      altContact: user.altContact || "",
-      address: user.address || "",
-      dob: user.dob ? user.dob.split("T")[0] : "",
+      name: user.name, email: user.email, role: user.role, status: user.status,
+      phone: user.phone || "", altContact: user.altContact || "",
+      address: user.address || "", dob: user.dob ? user.dob.split("T")[0] : "",
       notes: user.notes || "",
     });
   };
 
+  const inputStyle = { width: "100%", padding: "8px 10px", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 6, color: V("--text-primary"), fontSize: 13, outline: "none", boxSizing: "border-box" };
+  const selectStyle = { padding: "8px 10px", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 6, color: V("--text-primary"), fontSize: 13, outline: "none" };
+  const labelStyle = { fontSize: 11, color: V("--text-secondary"), marginBottom: 2, display: "block" };
+  const actionBtn = { padding: "6px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 14, fontWeight: 600 };
+  const badgeStyle = (c) => ({ padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: c.bg, color: c.text, textTransform: "uppercase" });
+
   return (
     <div style={{ padding: "20px 0" }}>
-      <h1 style={{ fontSize: 18, color: "#fff", margin: "0 0 20px" }}>Gestao de Utilizadores</h1>
+      <h1 style={{ fontSize: 18, color: V("--text-heading"), margin: "0 0 20px" }}>Gestao de Utilizadores</h1>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12, marginBottom: 20 }}>
@@ -151,11 +145,11 @@ export default function AdminUsersPage() {
           { label: "Total", val: stats.total || 0, color: "#60a5fa" },
           { label: "Pendentes", val: stats.pending || 0, color: "#eab308" },
           { label: "Ativos", val: stats.active || 0, color: "#22c55e" },
-          { label: "Inativos", val: stats.inactive || 0, color: "#9ca3af" },
+          { label: "Inativos", val: stats.inactive || 0, color: V("--text-secondary") },
         ].map((s) => (
-          <div key={s.label} style={{ background: "#0D2137", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+          <div key={s.label} style={{ background: V("--bg-card"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}`, padding: "12px 16px", textAlign: "center" }}>
             <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.val}</div>
-            <div style={{ fontSize: 12, color: "#9ca3af" }}>{s.label}</div>
+            <div style={{ fontSize: 12, color: V("--text-secondary") }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -166,7 +160,7 @@ export default function AdminUsersPage() {
           placeholder="Pesquisar nome, email, telefone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: "8px 12px", background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 6, color: "#fff", fontSize: 14, flex: "1 1 200px", outline: "none" }}
+          style={{ padding: "8px 12px", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 6, color: V("--text-primary"), fontSize: 14, flex: "1 1 200px", outline: "none" }}
         />
         <select value={filter} onChange={(e) => setFilter(e.target.value)} style={selectStyle}>
           <option value="all">Todos Status</option>
@@ -184,28 +178,23 @@ export default function AdminUsersPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: 40 }}>A carregar...</p>
+        <p style={{ color: V("--text-secondary"), textAlign: "center", padding: 40 }}>A carregar...</p>
       ) : filtered.length === 0 ? (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: 40 }}>Sem resultados.</p>
+        <p style={{ color: V("--text-secondary"), textAlign: "center", padding: 40 }}>Sem resultados.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((user) => (
-            <div key={user.id} style={{ background: "#0D2137", borderRadius: 8, padding: "12px 16px" }}>
-              {/* User row */}
+            <div key={user.id} style={{ background: V("--bg-card"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}`, padding: "12px 16px" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: "50%", background: "#1B3A5C",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 600, color: "#e5e7eb", flexShrink: 0
-                }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: V("--border-subtle"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, color: V("--text-primary"), flexShrink: 0 }}>
                   {user.avatar
                     ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                    : user.name.charAt(0).toUpperCase()}
+                    : (user.name || "U").charAt(0).toUpperCase()}
                 </div>
 
                 <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "#fff", marginBottom: 2 }}>{user.name}</div>
-                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: V("--text-heading"), marginBottom: 2 }}>{user.name}</div>
+                  <div style={{ fontSize: 12, color: V("--text-secondary") }}>
                     {user.email}{user.phone ? ` · ${user.phone}` : ""}
                   </div>
                   {user._count?.rsvps > 0 && (
@@ -214,35 +203,27 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <span style={badge(ROLE_COLORS[user.role] || ROLE_COLORS.member)}>{user.role}</span>
-                  <span style={badge(STATUS_COLORS[user.status] || STATUS_COLORS.pending)}>{user.status}</span>
+                  <span style={badgeStyle(ROLE_COLORS[user.role] || ROLE_COLORS.member)}>{user.role}</span>
+                  <span style={badgeStyle(STATUS_COLORS[user.status] || STATUS_COLORS.pending)}>{user.status}</span>
                 </div>
 
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   {user.status === "pending" || user.status === "inactive" ? (
-                    <button onClick={() => doAction(user.id, "approve")} disabled={actionLoading === user.id} title="Ativar" style={{ ...actionBtn, background: "#22c55e", color: "#fff" }}>
-                      ✅
-                    </button>
+                    <button onClick={() => doAction(user.id, "approve")} disabled={actionLoading === user.id} title="Ativar" style={{ ...actionBtn, background: "#22c55e", color: "#fff" }}>✅</button>
                   ) : null}
                   {user.status === "active" ? (
-                    <button onClick={() => { doAction(user.id, "reject"); }} disabled={actionLoading === user.id} title="Desativar" style={{ ...actionBtn, background: "#6b7280", color: "#fff" }}>
-                      ⏸
-                    </button>
+                    <button onClick={() => { setRejectId(user.id); }} disabled={actionLoading === user.id} title="Desativar" style={{ ...actionBtn, background: "#6b7280", color: "#fff" }}>⏸</button>
                   ) : null}
-                  <button onClick={() => { if (editId === user.id) setEditId(null); else openEdit(user); }} title="Editar" style={{ ...actionBtn, background: "#1B3A5C", color: "#e5e7eb" }}>
-                    ✏️
-                  </button>
+                  <button onClick={() => { if (editId === user.id) setEditId(null); else openEdit(user); }} title="Editar" style={{ ...actionBtn, background: V("--border-subtle"), color: V("--text-primary") }}>✏️</button>
                   {user.status === "pending" ? (
-                    <button onClick={() => { if (confirm(`Eliminar ${user.name}? Esta acao nao pode ser desfeita.`)) doDelete(user.id); }} disabled={actionLoading === user.id} title="Eliminar" style={{ ...actionBtn, background: "#ef4444", color: "#fff" }}>
-                      🗑️
-                    </button>
+                    <button onClick={() => { if (confirm(`Eliminar ${user.name}? Esta acao nao pode ser desfeita.`)) doDelete(user.id); }} disabled={actionLoading === user.id} title="Eliminar" style={{ ...actionBtn, background: "#ef4444", color: "#fff" }}>🗑️</button>
                   ) : null}
                 </div>
               </div>
 
               {/* Reject panel */}
               {rejectId === user.id && (
-                <div style={{ background: "#111827", borderRadius: 8, padding: 16, marginTop: 12 }}>
+                <div style={{ background: V("--bg-input"), borderRadius: 8, padding: 16, marginTop: 12 }}>
                   <p style={{ color: "#f87171", fontSize: 14, margin: "0 0 8px" }}>Desativar utilizador — {user.name}</p>
                   <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo (opcional)" style={{ ...inputStyle, marginBottom: 8 }} />
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -254,53 +235,17 @@ export default function AdminUsersPage() {
 
               {/* Edit panel */}
               {editId === user.id && (
-                <div style={{ background: "#111827", borderRadius: 8, padding: 16, marginTop: 12, display: "grid", gap: "8px" }}>
+                <div style={{ background: V("--bg-input"), borderRadius: 8, padding: 16, marginTop: 12, display: "grid", gap: "8px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div>
-                      <label style={labelStyle}>Nome</label>
-                      <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Email</label>
-                      <input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Role</label>
-                      <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} style={selectStyle}>
-                        <option value="member">Membro</option>
-                        <option value="organizer">Organizador</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Status</label>
-                      <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} style={selectStyle}>
-                        <option value="pending">Pendente</option>
-                        <option value="active">Ativo</option>
-                        <option value="inactive">Inativo</option>
-                        <option value="banned">Banido</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Telefone</label>
-                      <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Contacto Alternativo</label>
-                      <input value={editForm.altContact} onChange={(e) => setEditForm({ ...editForm, altContact: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div style={{ gridColumn: "span 2" }}>
-                      <label style={labelStyle}>Morada</label>
-                      <input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Data de Nascimento</label>
-                      <input type="date" value={editForm.dob} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })} style={{ ...inputStyle }} />
-                    </div>
-                    <div style={{ gridColumn: "span 2" }}>
-                      <label style={labelStyle}>Notas</label>
-                      <textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} />
-                    </div>
+                    <div><label style={labelStyle}>Nome</label><input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Email</label><input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Role</label><select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} style={selectStyle}><option value="member">Membro</option><option value="organizer">Organizador</option><option value="admin">Admin</option></select></div>
+                    <div><label style={labelStyle}>Status</label><select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} style={selectStyle}><option value="pending">Pendente</option><option value="active">Ativo</option><option value="inactive">Inativo</option><option value="banned">Banido</option></select></div>
+                    <div><label style={labelStyle}>Telefone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Contacto Alternativo</label><input value={editForm.altContact} onChange={(e) => setEditForm({ ...editForm, altContact: e.target.value })} style={inputStyle} /></div>
+                    <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Morada</label><input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Data de Nascimento</label><input type="date" value={editForm.dob} onChange={(e) => setEditForm({ ...editForm, dob: e.target.value })} style={inputStyle} /></div>
+                    <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Notas</label><textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} /></div>
                   </div>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
                     <button onClick={() => setEditId(null)} style={{ ...actionBtn, background: "#374151", color: "#e5e7eb" }}>Cancelar</button>
@@ -315,9 +260,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
-const inputStyle = { width: "100%", padding: "8px 10px", background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 6, color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" };
-const selectStyle = { padding: "8px 10px", background: "#0D2137", border: "1px solid #1B3A5C", borderRadius: 6, color: "#fff", fontSize: 13, outline: "none" };
-const labelStyle = { fontSize: 11, color: "#9ca3af", marginBottom: 2, display: "block" };
-const actionBtn = { padding: "6px 12px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 14, fontWeight: 600 };
-const badge = (color) => ({ padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: color.bg, color: color.text, textTransform: "uppercase" });
