@@ -355,9 +355,9 @@ export default function AdminPage({ user }) {
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setEditing(ev); setShowForm(true); }}
-                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition">Editar</button>
+                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "var(--bg-header)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}>Editar</button>
               <button onClick={() => handleDelete(ev.id)}
-                className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition">Eliminar</button>
+                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#7f1d1d", color: "#f87171" }}>Eliminar</button>
             </div>
           </div>
         ))}

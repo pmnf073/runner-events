@@ -140,6 +140,15 @@ body {
 .event-dot.social { background: #E55555; }
 .event-dot.meeting { background: #6b7280; }
 
+/* ── Light theme: button text always white ── */
+:root.light button,
+:root.light .bg-gray-800:hover,
+:root.light .hover\:bg-gray-700:hover,
+:root.light .bg-red-900\/50,
+:root.light .hover\:bg-red-900:hover {
+  color: #fff !important;
+}
+
 @media (max-width: 768px) {
   .calendar-day {
     min-height: 60px;
