@@ -213,23 +213,39 @@ export default function AdminUsersPage() {
 
               {/* Actions */}
               <div style={{ display: "flex", gap: 6 }}>
-                {!editingUser && user.status === "pending" ? (
+                {!editingUser && (user.status === "pending" || user.status === "inactive") && (
                   <>
                     <button
                       onClick={() => handleAction(user.id, "approve")}
                       disabled={actionLoading}
+                      title={user.status === "pending" ? "Aprovar conta" : "Ativar conta"}
                       style={{ ...actionBtn, background: "#22c55e", color: "#fff" }}>
                       ✅
                     </button>
-                    <button
-                      onClick={() => {
-                        setRejectReason("");
-                        setEditingUser({ ...user, action: "reject" });
-                      }}
-                      disabled={actionLoading}
-                      style={{ ...actionBtn, background: "#ef4444", color: "#fff" }}>
-                      ❌
-                    </button>
+                    {user.status === "pending" && (
+                      <button
+                        onClick={() => {
+                          setRejectReason("");
+                          setEditingUser({ ...user, action: "reject" });
+                        }}
+                        disabled={actionLoading}
+                        title="Rejeitar conta"
+                        style={{ ...actionBtn, background: "#ef4444", color: "#fff" }}>
+                        ❌
+                      </button>
+                    )}
+                    {user.status === "inactive" && (
+                      <button
+                        onClick={() => {
+                          setRejectReason("");
+                          setEditingUser({ ...user, action: "reject" });
+                        }}
+                        disabled={actionLoading}
+                        title="Desativar conta"
+                        style={{ ...actionBtn, background: "#6b7280", color: "#fff" }}>
+                        ⏸
+                      </button>
+                    )}
                   </>
                 ) : (
                   <button

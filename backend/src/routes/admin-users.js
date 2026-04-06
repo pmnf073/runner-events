@@ -139,7 +139,20 @@ router.put("/users/:id/registration", requireAdmin, async (req, res) => {
     });
 
     if (!registration) {
-      return res.status(404).json({ error: "No pending registration found" });
+      // No pending registration - just update user status directly
+      if (action === "approve") {
+        await prisma.user.update({
+          where: { id: req.params.id },
+          data: { status: "active" },
+        });
+        return res.json({ ok: true, action, note: "User activated directly" });
+      } else {
+        await prisma.user.update({
+          where: { id: req.params.id },
+          data: { status: "inactive" },
+        });
+        return res.json({ ok: true, action, note: "User deactivated directly" });
+      }
     }
 
     const updateData = {};
