@@ -4,7 +4,10 @@ import CalendarPage from "./pages/CalendarPage";
 import EventPage from "./pages/EventPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 import AboutPage from "./pages/AboutPage";
+import RegisterPage from "./pages/RegisterPage";
+import RegisterSuccessPage from "./pages/RegisterSuccessPage";
 import ImportPage from "./pages/ImportPage";
 
 function api(path, options = {}) {
@@ -75,6 +78,9 @@ function App() {
                   <Link to="/admin" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
                     onMouseLeave={e => e.target.style.color = "#9ca3af"}>Admin</Link>
+                  <Link to="/admin/users" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
+                    onMouseEnter={e => e.target.style.color = "#36C2CE"}
+                    onMouseLeave={e => e.target.style.color = "#9ca3af"}>Utilizadores</Link>
                   <Link to="/import" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
                     onMouseLeave={e => e.target.style.color = "#9ca3af"}>Importar</Link>
@@ -128,7 +134,10 @@ function App() {
             <Route path="/" element={<CalendarPage />} />
             <Route path="/event/:id" element={<EventPage />} />
             <Route path="/login" element={<LoginPage setUser={setUser} />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register-success" element={<RegisterSuccessPage />} />
             <Route path="/admin" element={<AdminPage user={user} />} />
+            <Route path="/admin/users" element={<AdminUsersPage user={user} />} />
             <Route path="/import" element={<ImportPage user={user} />} />
             <Route path="/about" element={<AboutPage />} />
           </Routes>

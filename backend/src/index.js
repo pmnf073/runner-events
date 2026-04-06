@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 import rsvpRoutes from "./routes/rsvps.js";
 import importRoutes from "./routes/import.js";
+import adminUsersRoutes from "./routes/admin-users.js";
 
 dotenv.config();
 
@@ -49,7 +50,8 @@ passport.deserializeUser(async (id, done) => {
 app.use("/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/rsvps", rsvpRoutes);
-app.use("/api", importRoutes);
+app.use("/api/import", importRoutes);
+app.use("/api/admin", adminUsersRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));

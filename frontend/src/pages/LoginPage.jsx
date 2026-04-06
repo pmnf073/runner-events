@@ -1,23 +1,35 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function LoginPage({ setUser }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingDialog, setPendingDialog] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/auth/login", {
+      const res = await fetch(`/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
+      if (res.status === 403 && data.status === "pending") {
+        return setPendingDialog({ visible: true, email });
+      }
+      if (res.status === 403 && data.status === "banned") {
+        return setError("A tua conta foi banida. Contacta o administrador.");
+      }
+      if (res.status === 403 && data.status === "inactive") {
+        return setError("A tua conta esta desativada. Contacta o administrador.");
+      }
       if (res.ok && data.token) {
         localStorage.setItem("token", data.token);
         setUser(data.user);
@@ -88,6 +100,32 @@ export default function LoginPage({ setUser }) {
         <div style={{ opacity: 0.4, textAlign: "center" }}>
           <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Google e Facebook em breve</p>
         </div>
+
+        <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", marginTop: 20 }}>
+          Nao tens conta?{" "}
+          <Link to="/register" style={{ color: "#CC3333", textDecoration: "none" }}>
+            Criar conta
+          </Link>
+        </p>
+
+        {/* Pending Dialog */}
+        {pendingDialog && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
+            <div style={{ background: "#0D2137", borderRadius: 12, padding: 24, maxWidth: 400, width: "100%" }}>
+              <div style={{ fontSize: 48, textAlign: "center", marginBottom: 12 }}>⏳</div>
+              <h2 style={{ fontSize: 20, color: "#fff", textAlign: "center", marginBottom: 8 }}>A tua conta esta pendente</h2>
+              <p style={{ fontSize: 14, color: "#9ca3af", textAlign: "center", marginBottom: 20, lineHeight: 1.5 }}>
+                O teu pedido de registo sera revisto por um administrador. Receberas uma notificacao quando a conta for ativada.
+              </p>
+              <button
+                onClick={() => setPendingDialog({ visible: false })}
+                style={{ display: "block", width: "100%", padding: "12px 0", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: "pointer" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

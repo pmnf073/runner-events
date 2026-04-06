@@ -8,17 +8,36 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
+  id         String    @id @default(cuid())
+  email      String    @unique
   name       String
-  password   String?  // null for social login users
+  password   String?   // null for social login users
   avatar     String?
-  provider   String   @default("local") // "local" | "google" | "facebook"
-  role       String   @default("member") // "admin" | "member"
-  clubs      String   @default("Alverca Urban Runners")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  provider   String    @default("local") // "local" | "google" | "facebook"
+  role       String    @default("member") // "admin" | "organizer" | "member"
+  phone      String?
+  altContact String?
+  address    String?
+  dob        DateTime?
+  status     String    @default("pending") // "pending" | "active" | "inactive" | "banned"
+  invitedBy  String?
+  notes      String?
+  clubs      String    @default("Alverca Urban Runners")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   rsvps      RSVP[]
+  registrations Registration[]
+}
+
+model Registration {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String   @default("pending") // "pending" | "approved" | "rejected"
+  reviewerId      String?
+  appliedAt       DateTime @default(now())
+  reviewedAt      DateTime?
+  rejectionReason String?
 }
 
 model Event {
