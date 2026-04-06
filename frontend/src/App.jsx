@@ -122,7 +122,7 @@ function AppInner() {
       <header style={{ background: "var(--bg-header)", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid var(--border-subtle)", transition: "background 0.3s ease" }}>
         <nav style={{ maxWidth: 1152, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 14, textDecoration: "none" }}>
-            <img src="/logo.png" alt="AUR" style={{ height: 52, width: "auto" }} />
+            <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 52, width: "auto" }} />
             <div>
               <div style={{ fontSize: 17, fontWeight: 500, color: "var(--text-heading)", textTransform: "uppercase" }}>Alverca Urban Runners</div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>Vamos descobrindo a cidade</div>
@@ -251,3 +251,5 @@ function App() {
 }
 
 export default App;
+
+/* ── Fix: user header button SVG color ── */
