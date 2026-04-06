@@ -169,7 +169,6 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
           </div>
         </div>
       </div>
-      </div>
       {/* Dark theme overrides for react-datepicker */}
       <style>{`
         .react-datepicker { background-color: #0D2137; border-color: #1B3A5C; color: #e8ecef; }
