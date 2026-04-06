@@ -3,10 +3,19 @@ import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
-function Section({ title, children }) {
+function Section({ id, title, children, accent }) {
   return (
-    <section style={{ marginBottom: 48 }}>
-      <h2 style={{ fontSize: 14, fontWeight: 600, color: "#CC3333", textTransform: "uppercase", letterSpacing: 2, marginBottom: 20, paddingBottom: 12, borderBottom: `1px solid ${V("--border-subtle")}` }}>
+    <section id={id} style={{ marginBottom: 48 }}>
+      <h2 style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: accent || "#CC3333",
+        textTransform: "uppercase",
+        letterSpacing: 2,
+        marginBottom: 20,
+        paddingBottom: 12,
+        borderBottom: `1px solid ${V("--border-subtle")}`
+      }}>
         {title}
       </h2>
       {children}
@@ -23,14 +32,56 @@ function StatCard({ label, value }) {
   );
 }
 
-function Card({ title, children, accent, rightAction }) {
-  const style = accent ? { borderLeft: `3px solid ${accent}` } : {};
+function Card({ title, children, icon, accent }) {
   return (
-    <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 28, ...style }}>
-      <h3 style={{ fontSize: 17, fontWeight: 600, color: V("--text-primary"), margin: "0 0 8px" }}>{title}</h3>
+    <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 28, border: `1px solid ${V("--border-subtle")}`, borderLeft: accent ? `4px solid ${accent}` : "4px solid transparent" }}>
+      {icon && <div style={{ fontSize: 28, marginBottom: 12 }}>{icon}</div>}
+      <h3 style={{ fontSize: 17, fontWeight: 600, color: V("--text-heading"), margin: "0 0 12px" }}>{title}</h3>
       {children}
-      {rightAction}
     </div>
+  );
+}
+
+function LemaCard({ text }) {
+  return (
+    <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32, textAlign: "center", border: `1px solid ${V("--border-subtle")}` }}>
+      <p style={{ fontSize: 20, fontWeight: 600, color: "#CC3333", margin: 0, fontStyle: "italic" }}>"{text}"</p>
+    </div>
+  );
+}
+
+function Badge({ text }) {
+  return (
+    <span style={{ background: V("--hover-bg"), color: V("--text-secondary"), borderRadius: 9999, padding: "4px 14px", fontSize: 13, fontWeight: 500 }}>{text}</span>
+  );
+}
+
+function ListItem({ text }) {
+  return (
+    <li style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, color: V("--text-secondary"), fontSize: 14, lineHeight: 1.5, listStyle: "none" }}>
+      <span style={{ color: "#CC3333", marginTop: 4, fontSize: 8, flexShrink: 0 }}>●</span>
+      <span>{text}</span>
+    </li>
+  );
+}
+
+function Quote({ text }) {
+  return (
+    <div style={{ background: V("--bg-card"), border: "1px solid var(--border-subtle)", borderLeft: "4px solid #CC3333", borderRadius: 8, padding: 24, margin: "16px 0" }}>
+      <p style={{ fontSize: 15, fontWeight: 500, color: V("--text-heading"), margin: 0, fontStyle: "italic" }}>"{text}"</p>
+    </div>
+  );
+}
+
+function SocialLink({ name, url, icon }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      style={{ display: "flex", alignItems: "center", gap: 14, background: V("--bg-card"), borderRadius: 10, padding: "16px 20px", textDecoration: "none", border: `1px solid ${V("--border-subtle")}`, transition: "border-color 0.2s" }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = "#CC3333"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = V("--border-subtle")}>
+      <span style={{ fontSize: 24 }}>{icon}</span>
+      <span style={{ fontSize: 15, color: V("--text-primary"), fontWeight: 500 }}>{name}</span>
+    </a>
   );
 }
 
@@ -39,111 +90,247 @@ export default function AboutPage() {
   const logoSrc = theme === "light" ? "/logo-light.png" : "/logo.png";
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
-      {/* Hero */}
+      {/* ── Hero ── */}
       <div style={{ textAlign: "center", padding: "48px 0 56px" }}>
         <img src={logoSrc} alt="AUR" style={{ height: 112, width: "auto", margin: "0 auto 24px", display: "block" }} />
-        <p style={{ fontSize: 24, fontWeight: 300, color: V("--text-heading"), letterSpacing: 4, textTransform: "uppercase" }}>Vamos descobrir a cidade</p>
+        <p style={{ fontSize: 24, fontWeight: 300, color: V("--text-heading"), letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>Vamos descobrir a cidade</p>
+        <p style={{ fontSize: 15, color: V("--text-secondary"), maxWidth: 640, margin: "0 auto", lineHeight: 1.7 }}>
+          Os Alverca Urban Runners sao um grupo de corrida comunitario sediado em Alverca do Ribatejo,
+          dedicado a promocao da atividade fisica, da convivencia e da descoberta da cidade atraves da corrida e do trail.
+          O grupo reune pessoas de diferentes niveis de experiencia, com o principio de que todos podem participar
+          e ninguem fica para tras.
+        </p>
       </div>
 
-      {/* About */}
-      <Section title="Quem Somos">
-        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32 }}>
-          <p style={{ color: V("--text-primary"), lineHeight: 1.7, fontSize: 15, margin: 0 }}>
-            Os Alverca Urban Runners sao um grupo de corrida informal, criado em 2014 em Alverca do Ribatejo.
-            O slogan <em style={{ color: "#CC3333" }}>"Vamos descobrir a cidade"</em> traduz a vontade de explorar a regiao a correr.
-            O lema <em style={{ color: "#CC3333" }}>"O mais importante e o ultimo"</em> reflete a essencia do grupo:
-            correr juntos, sem deixar ninguem para tras.
+      {/* ── Valores + Stats ── */}
+      <Section title="Valores">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 32 }}>
+          {["Comunidade", "Inclusao", "Saude e bem-estar", "Descoberta da cidade", "Espirito de equipa"].map((v) => (
+            <span key={v} style={{ background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`, borderRadius: 9999, padding: "8px 18px", fontSize: 13, color: V("--text-primary"), fontWeight: 500 }}>{v}</span>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
+          <StatCard label="Fundacao" value="2014" />
+          <StatCard label="Localizacao" value="Alverca" />
+          <StatCard label="Treinos/Semana" value="3" />
+          <StatCard label="Tipo" value="Comunitario" />
+        </div>
+      </Section>
+
+      {/* ── Lemas ── */}
+      <Section title="Os Nossos Lemas" id="lemas">
+        <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+          <LemaCard text="Ninguem fica para tras." />
+          <LemaCard text="O ultimo e o mais importante." />
+        </div>
+        <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.7, margin: 0 }}>
+          Estes principios refletem a filosofia inclusiva do grupo, onde o foco esta no espirito de equipa e nao na competicao.
+        </p>
+      </Section>
+
+      {/* ── Historia ── */}
+      <Section title="A Nossa Historia" id="historia">
+        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32, border: `1px solid ${V("--border-subtle")}` }}>
+          <p style={{ color: V("--text-primary"), lineHeight: 1.7, fontSize: 15, margin: "0 0 16px" }}>
+            Os Alverca Urban Runners surgirarm a partir da iniciativa de um pequeno grupo de amigos com o objetivo de promover a corrida e a atividade fisica na comunidade local.
           </p>
-          <p style={{ color: V("--text-primary"), lineHeight: 1.7, fontSize: 15, marginTop: 16, marginBottom: 0 }}>
-            O grupo criou um conjunto de circuitos identificados por linhas de cores — percursos circulares
-            de diferentes niveis de dificuldade, adaptados a todos os niveis de condicao fisica.
-            Desde iniciantes a runners experientes, todos sao bem-vindos.
+          <p style={{ color: V("--text-primary"), lineHeight: 1.7, fontSize: 15, margin: "0 0 16px" }}>
+            O projeto comecou com treinos informais e caminhadas mensais, que rapidamente comecaram a atrair cada vez mais participantes interessados em descobrir novos percursos na cidade e arredores.
+          </p>
+          <p style={{ color: V("--text-primary"), lineHeight: 1.7, fontSize: 15, margin: 0 }}>
+            Com o crescimento do grupo, a atividade expandiu-se para treinos regulares, participacao em provas e organizacao de eventos desportivos, tornando-se uma referencia local na promocao do desporto.
           </p>
         </div>
       </Section>
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 48 }}>
-        <StatCard label="Fundacao" value="2014" />
-        <StatCard label="Localizacao" value="Alverca" />
-        <StatCard label="Membros (FB)" value="2.1k+" />
-        <StatCard label="Tipo" value="Informal" />
-      </div>
+      {/* ── Missao ── */}
+      <Section title="Missao" id="missao">
+        <Quote text="Promover um estilo de vida ativo e saudavel atraves da corrida, incentivando a participacao de pessoas de todas as idades e niveis de experiencia." />
+      </Section>
 
-      {/* Equipment */}
-      <Section title="Equipamento">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <Card title="Loja Oficial">
-            <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.6, margin: "0 0 20px" }}>
-              Camisolas de atletismo, tops de trail e opcoes para todos os membros.
-              Disponivel atraves da UIN Sports.
-            </p>
-            <a href="https://www.uin-sports.pt/lojaonline/clubes/ps-alverca-urban-runners"
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-block", background: "#CC3333", color: "#fff", padding: "10px 20px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
-              Ver Equipamentos
-            </a>
+      {/* ── Associacao ── */}
+      <Section title="A Associacao" id="associacao">
+        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32, border: `1px solid ${V("--border-subtle")}`, marginBottom: 24 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>DestinOlimpico</h3>
+          <p style={{ color: V("--text-secondary"), fontSize: 15, lineHeight: 1.6, margin: 0 }}>
+            Associacao de Desportos Urbanos de Alverca — os Alverca Urban Runners estao integrados nesta associacao que promove diversas modalidades desportivas urbanas.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+          <Card title="Urban Runners" icon="🏃" accent="#CC3333">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Corrida e caminhada</p>
           </Card>
-          <Card title="Cores do Grupo">
-            <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: "#0D2137", border: `1px solid ${V("--border-subtle")}` }}></div>
-                <span style={{ fontSize: 13, color: V("--text-secondary") }}>Navy</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: "#CC3333" }}></div>
-                <span style={{ fontSize: 13, color: V("--text-secondary") }}>Vermelho</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: "#FFFFFF", border: `1px solid ${V("--border-subtle")}` }}></div>
-                <span style={{ fontSize: 13, color: V("--text-secondary") }}>Branco</span>
-              </div>
+          <Card title="Urban Bikers" icon="🚴" accent="#3b82f6">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Ciclismo e BTT</p>
+          </Card>
+          <Card title="Urban Warriors" icon="💪" accent="#f59e0b">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Treino funcional em espacos publicos</p>
+          </Card>
+        </div>
+        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 24, border: `1px solid ${V("--border-subtle")}` }}>
+          <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 12px", fontWeight: 600 }}>Estrutura Organizativa</h4>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {["Assembleia Geral", "Direcao", "Conselho Fiscal"].map((r) => (
+              <Badge key={r} text={r} />
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Treinos ── */}
+      <Section title="Treinos" id="treinos">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+          <div>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 12px", fontWeight: 600 }}>Dias de Treino</h4>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ListItem text="Tercas-feiras" />
+              <ListItem text="Quintas-feiras" />
+              <ListItem text="Domingos" />
+            </ul>
+          </div>
+          <div>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 12px", fontWeight: 600 }}>Tipos de Treino</h4>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ListItem text="Corrida em estrada" />
+              <ListItem text="Trail running" />
+              <ListItem text="Treinos de grupo" />
+              <ListItem text="Reconhecimento de percursos" />
+              <ListItem text="Treinos de convivencia" />
+            </ul>
+          </div>
+        </div>
+
+        <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 12px", fontWeight: 600 }}>Filosofia dos Treinos</h4>
+        <ul style={{ listStyle: "none", padding: 0, marginBottom: 16 }}>
+          <ListItem text="Ritmos diferentes sao respeitados" />
+          <ListItem text="O grupo mantem-se unido" />
+          <ListItem text="Os mais rapidos regressam para acompanhar quem vem atras" />
+        </ul>
+        <Quote text="Os mais rapidos regressam para acompanhar quem vem atras." />
+      </Section>
+
+      {/* ── Comunidade ── */}
+      <Section title="Comunidade" id="comunidade">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+          <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 24, border: `1px solid ${V("--border-subtle")}` }}>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 16px", fontWeight: 600 }}>Quem Pode Participar</h4>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ListItem text="Iniciantes" />
+              <ListItem text="Corredores experientes" />
+              <ListItem text="Caminhantes" />
+              <ListItem text="Amantes do trail" />
+            </ul>
+          </div>
+          <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 24, border: `1px solid ${V("--border-subtle")}` }}>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 16px", fontWeight: 600 }}>Filosofia</h4>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ListItem text="Participacao aberta" />
+              <ListItem text="Partilha de experiencias" />
+              <ListItem text="Convivio" />
+              <ListItem text="Dezenas de participantes regulares" />
+            </ul>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Eventos ── */}
+      <Section title="Eventos e Iniciativas" id="eventos">
+        <div style={{ marginBottom: 20 }}>
+          <Card title="Trail Encostas de Xira (TEX)" icon="🏔️" accent="#10b981">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.7 }}>
+              Um dos eventos mais marcantes associados ao grupo. Uma prova de trail running organizada pelos Alverca Urban Runners com apoio de entidades locais, que atrai centenas de participantes e promove os trilhos naturais da regiao.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              {["Trail running", "Caminhada", "Natureza", "Patrimonio local"].map((t) => <Badge key={t} text={t} />)}
             </div>
           </Card>
         </div>
+        <Card title="Sao Silvestre Pirata de Alverca" icon="🎭" accent="#CC3333">
+          <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.7 }}>
+            Uma iniciativa tradicional — um treino especial realizado no final do ano pelas ruas da cidade.
+            Um evento informal de cariz solidario com participacao da comunidade local.
+          </p>
+        </Card>
       </Section>
 
-      {/* Routes */}
-      <Section title="Percursos">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <Card title="Trilho" accent="#10b981">
-            <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.6, margin: 0 }}>
-              Caminhos naturais, terreno variado, maior desafio tecnico.
-            </p>
+      {/* ── Provas ── */}
+      <Section title="Participacao em Provas" id="provas">
+        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32, border: `1px solid ${V("--border-subtle")}` }}>
+          <p style={{ color: V("--text-secondary"), fontSize: 14, lineHeight: 1.7, margin: "0 0 16px" }}>
+            O grupo participa regularmente em diversas competicoes:
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+            <Badge text="Corridas de estrada" />
+            <Badge text="Provas de trail running" />
+            <Badge text="Eventos nacionais e internacionais" />
+          </div>
+          <p style={{ color: V("--text-secondary"), fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            Alem da vertente competitiva, o grupo valoriza sobretudo o convivencia e a experiencia coletiva.
+          </p>
+        </div>
+      </Section>
+
+      {/* ── Descobrir Alverca ── */}
+      <Section title="Descobrir Alverca a Correr" id="descobrir">
+        <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 32, border: `1px solid ${V("--border-subtle")}` }}>
+          <p style={{ color: V("--text-primary"), fontSize: 15, lineHeight: 1.7, margin: "0 0 16px" }}>
+            Uma das ideias centrais do grupo e explorar a cidade atraves da corrida. Os treinos percorrem zonas urbanas, trilhos naturais, bairros da cidade e areas envolventes de Alverca.
+          </p>
+          <Quote text="A cidade e o nosso ginásio ao ar livre." />
+        </div>
+      </Section>
+
+      {/* ── Destaques ── */}
+      <Section title="Destaques" id="destaques">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <Card title="Treinos Semanais" icon="📅">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Terca, quinta e domingo</p>
           </Card>
-          <Card title="Urbano" accent="#CC3333">
-            <p style={{ fontSize: 14, color: V("--text-secondary"), lineHeight: 1.6, margin: 0 }}>
-              Ruas e parques de Alverca, ritmo acessivel, foco na socializacao.
-            </p>
+          <Card title="Eventos e Provas" icon="🏅">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Organizacao e participacao regular</p>
+          </Card>
+          <Card title="Comunidade" icon="👥">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Dezenas de participantes regulares</p>
+          </Card>
+          <Card title="Noticias e Fotos" icon="📸">
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Registos dos treinos e eventos</p>
           </Card>
         </div>
       </Section>
 
-      {/* Where to find */}
-      <Section title="Redes">
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[
-            { name: "Facebook", handle: "alvercaurbanrunners", url: "https://www.facebook.com/alvercaurbanrunners/" },
-            { name: "Instagram", handle: "@alvercaurbanrunners", url: "https://www.instagram.com/alvercaurbanrunners/" },
-            { name: "Loja", handle: "UIN Sports", url: "https://www.uin-sports.pt/lojaonline/clubes/ps-alverca-urban-runners" },
-            { name: "Website", handle: "alvercaurbanrunners.pt", url: "https://alvercaurbanrunners.pt/" },
-            { name: "YouTube", handle: "Registos de eventos", url: "https://www.youtube.com/channel/UCSnjODnBA8M-K9z2wPwrPvg" },
-          ].map((link) => (
-            <a key={link.name} href={link.url}
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: V("--bg-card"), borderRadius: 10, padding: "18px 24px", textDecoration: "none", border: "1px solid transparent", transition: "border-color 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = V("--border-subtle")}
-              onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}>
-              <span style={{ fontSize: 15, color: V("--text-primary"), fontWeight: 500 }}>{link.name}</span>
-              <span style={{ fontSize: 13, color: V("--text-muted") }}>{link.handle}</span>
-            </a>
-          ))}
+      {/* ── Contactos ── */}
+      <Section title="Contactos" id="contactos">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+          <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 24, border: `1px solid ${V("--border-subtle")}`, textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📍</div>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 4px", fontWeight: 600 }}>Localizacao</h4>
+            <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Alverca do Ribatejo, concelho de Vila Franca de Xira</p>
+          </div>
+          <div style={{ background: V("--bg-card"), borderRadius: 12, padding: 24, border: `1px solid ${V("--border-subtle")}`, textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>✉️</div>
+            <h4 style={{ fontSize: 14, color: V("--text-heading"), margin: "0 0 4px", fontWeight: 600 }}>Email</h4>
+            <a href="mailto:alvercaurbanrunners@gmail.com" style={{ fontSize: 14, color: "#36C2CE", textDecoration: "none" }}>alvercaurbanrunners@gmail.com</a>
+          </div>
         </div>
       </Section>
 
-      {/* CTA */}
+      {/* ── Presenca Online ── */}
+      <Section title="Presenca Online" id="online">
+        <p style={{ color: V("--text-secondary"), fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+          Nos nossos canais sao partilhadas fotos dos treinos, convites para eventos, resultados de provas e noticias do grupo.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          <SocialLink name="Website" url="https://alvercaurbanrunners.pt/" icon="🌐" />
+          <SocialLink name="Facebook" url="https://www.facebook.com/alvercaurbanrunners/" icon="📘" />
+          <SocialLink name="Instagram" url="https://www.instagram.com/alvercaurbanrunners/" icon="📷" />
+          <SocialLink name="YouTube" url="https://www.youtube.com/channel/UCSnjODnBA8M-K9z2wPwrPvg" icon="📺" />
+          <SocialLink name="Loja UIN Sports" url="https://www.uin-sports.pt/lojaonline/clubes/ps-alverca-urban-runners" icon="👕" />
+        </div>
+      </Section>
+
+      {/* ── CTA ── */}
       <div style={{ textAlign: "center", padding: "32px 0 48px" }}>
         <p style={{ fontSize: 15, color: V("--text-secondary"), marginBottom: 20 }}>Queres juntar-te a nos? Vem correr connosco.</p>
         <Link to="/"
