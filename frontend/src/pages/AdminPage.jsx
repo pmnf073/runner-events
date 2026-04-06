@@ -21,8 +21,11 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   // Normalize dates from backend ISO to local "YYYY-MM-DDTHH:mm" format
   const normalizeDate = (val) => {
     if (!val) return "";
-    const d = val instanceof Date ? val : new Date(val);
-    console.log('[normalizeDate] input:', val, '→ local:', d.toString(), 'hours:', d.getHours());
+    // Parse as UTC to preserve the exact time stored
+    const d = val.endsWith('Z') 
+      ? new Date(val) 
+      : new Date(val + 'Z');
+    console.log('[normalizeDate]', val, '→', d.toISOString(), '→ local hrs:', d.getHours());
     if (isNaN(d.getTime())) return "";
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -99,13 +102,9 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
 
   const localToUTC = (localStr) => {
     if (!localStr) return null;
-    // Parse components and build Date in PT timezone, then convert to UTC ISO
-    const [datePart, timePart] = localStr.split('T');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hours, minutes] = timePart.split(':').map(Number);
-    const local = new Date(year, month - 1, day, hours, minutes);
-    console.log('[localToUTC] input:', localStr, '→', local.toISOString());
-    return local.toISOString();
+    // Store as UTC with the exact time (preserving user-selected time)
+    // "2026-04-12T08:30" → "2026-04-12T08:30:00.000Z"
+    return new Date(localStr + ":00Z").toISOString();
   };
 
   const handleSubmit = (e) => {
