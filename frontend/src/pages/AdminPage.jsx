@@ -357,7 +357,7 @@ export default function AdminPage({ user }) {
               <button onClick={() => { setEditing(ev); setShowForm(true); }}
                 className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition" style={{ color: "#fff" }}>Editar</button>
               <button onClick={() => handleDelete(ev.id)}
-                className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition" style={{ color: "#f87171" }}>Eliminar</button>
+                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#CC3333", color: "#fff" }}>Eliminar</button>
             </div>
           </div>
         ))}
