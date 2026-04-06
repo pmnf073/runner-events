@@ -219,7 +219,7 @@ function AppInner() {
       <footer style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", marginTop: 48, transition: "background 0.3s ease" }}>
         <div style={{ maxWidth: 1152, margin: "0 auto", padding: "24px 16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, fontSize: 14, color: "var(--text-muted)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <img src="/logo.png" alt="AUR" style={{ height: 24, width: "auto", opacity: 0.5 }} />
+            <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 24, width: "auto", opacity: 0.5 }} />
             <span>Alverca Urban Runners &copy; {new Date().getFullYear()}</span>
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>

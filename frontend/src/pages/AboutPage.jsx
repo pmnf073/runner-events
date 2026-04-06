@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
@@ -34,12 +35,15 @@ function Card({ title, children, accent, rightAction }) {
 }
 
 export default function AboutPage() {
+  const { theme } = useTheme();
+  const logoSrc = theme === "light" ? "/logo-light.png" : "/logo.png";
+
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
 
       {/* Hero */}
       <div style={{ textAlign: "center", padding: "48px 0 56px" }}>
-        <img src="/logo.png" alt="AUR" style={{ height: 112, width: "auto", margin: "0 auto 24px", display: "block" }} />
+        <img src={logoSrc} alt="AUR" style={{ height: 112, width: "auto", margin: "0 auto 24px", display: "block" }} />
         <p style={{ fontSize: 24, fontWeight: 300, color: V("--text-heading"), letterSpacing: 4, textTransform: "uppercase" }}>Vamos descobrir a cidade</p>
       </div>
 
