@@ -18,12 +18,6 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   const [extracting, setExtracting] = useState(false);
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
-  const getDatePart = (val) => val ? val.split("T")[0] : "";
-  const getTimePart = (val) => val ? (val.split("T")[1] || "09:00").slice(0, 5) : "09:00";
-  const handleDateChange = (v) => handleChange("date", v + "T" + getTimePart(form.date));
-  const handleTimeChange = (v) => handleChange("date", getDatePart(form.date) + "T" + v);
-  const handleEndDateChange = (v) => handleChange("endDate", v + "T" + getTimePart(form.endDate));
-  const handleEndTimeChange = (v) => handleChange("endDate", getDatePart(form.endDate) + "T" + v);
 
   const handleUrlExtract = async () => {
     if (!form.url) return;
@@ -87,30 +81,15 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
           </select>
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Data *</label>
-          <input type="date" value={getDatePart(form.date)}
-            onChange={(e) => handleDateChange(e.target.value)}
-            required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Hora *</label>
-          <input type="time" value={getTimePart(form.date)}
-            onChange={(e) => handleTimeChange(e.target.value)}
-            step="60"
+          <label className="block text-sm text-gray-400 mb-1">Data e hora *</label>
+          <input type="datetime-local" value={form.date ? form.date.slice(0, 16) : ""}
+            onChange={(e) => handleChange("date", e.target.value)} required
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data fim (opcional)</label>
-          <input type="date" value={getDatePart(form.endDate)}
-            onChange={(e) => handleEndDateChange(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Hora fim (opcional)</label>
-          <input type="time" value={getTimePart(form.endDate)}
-            onChange={(e) => handleEndTimeChange(e.target.value)}
-            step="60"
+          <input type="datetime-local" value={form.endDate ? form.endDate.slice(0, 16) : ""}
+            onChange={(e) => handleChange("endDate", e.target.value || "")}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
         </div>
         <div>
