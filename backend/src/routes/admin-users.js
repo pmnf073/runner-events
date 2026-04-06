@@ -21,6 +21,20 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+// ─── Stats (MUST be before /users/:id or Express matches "stats" as :id) ───
+router.get("/users/stats", requireAdmin, async (req, res) => {
+  try {
+    const total = await prisma.user.count();
+    const pending = await prisma.user.count({ where: { status: "pending" } });
+    const active = await prisma.user.count({ where: { status: "active" } });
+    const inactive = await prisma.user.count({ where: { status: "inactive" } });
+    const banned = await prisma.user.count({ where: { status: "banned" } });
+    res.json({ total, pending, active, inactive, banned });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── List users (admin only) ───
 router.get("/users", requireAdmin, async (req, res) => {
   try {
@@ -64,33 +78,59 @@ router.get("/users", requireAdmin, async (req, res) => {
   }
 });
 
+// ─── Approve/Reject registration (MUST be before /users/:id) ───
+router.put("/users/:id/registration", requireAdmin, async (req, res) => {
+  try {
+    const { action, reason } = req.body;
+    if (!["approve", "reject"].includes(action)) {
+      return res.status(400).json({ error: "Action must be 'approve' or 'reject'" });
+    }
+
+    const registration = await prisma.registration.findFirst({
+      where: { userId: req.params.id, status: "pending" },
+    });
+
+    if (!registration) {
+      if (action === "approve") {
+        await prisma.user.update({ where: { id: req.params.id }, data: { status: "active" } });
+        return res.json({ ok: true, action, note: "User activated directly" });
+      } else {
+        await prisma.user.update({ where: { id: req.params.id }, data: { status: "inactive" } });
+        return res.json({ ok: true, action, note: "User deactivated directly" });
+      }
+    }
+
+    const updateData = {};
+    if (action === "approve") {
+      updateData.status = "approved";
+      updateData.reviewerId = req.user.id;
+      updateData.reviewedAt = new Date();
+      await prisma.user.update({ where: { id: req.params.id }, data: { status: "active" } });
+    } else {
+      updateData.status = "rejected";
+      updateData.reviewerId = req.user.id;
+      updateData.reviewedAt = new Date();
+      updateData.rejectionReason = reason || null;
+    }
+
+    await prisma.registration.update({ where: { id: registration.id }, data: updateData });
+    res.json({ ok: true, action });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Get single user ───
 router.get("/users/:id", requireAdmin, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
       select: {
-        id: true,
-        email: true,
-        name: true,
-        phone: true,
-        altContact: true,
-        address: true,
-        dob: true,
-        avatar: true,
-        provider: true,
-        role: true,
-        status: true,
-        clubs: true,
-        notes: true,
-        invitedBy: true,
-        createdAt: true,
-        updatedAt: true,
-        rsvps: {
-          include: {
-            event: { select: { id: true, title: true, date: true, type: true } },
-          },
-        },
+        id: true, email: true, name: true, phone: true, altContact: true,
+        address: true, dob: true, avatar: true, provider: true, role: true,
+        status: true, clubs: true, notes: true, invitedBy: true,
+        createdAt: true, updatedAt: true,
+        rsvps: { include: { event: { select: { id: true, title: true, date: true, type: true } } } },
         registrations: true,
       },
     });
@@ -115,70 +155,8 @@ router.put("/users/:id", requireAdmin, async (req, res) => {
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
-
-    const user = await prisma.user.update({
-      where: { id: req.params.id },
-      data: updateData,
-    });
+    const user = await prisma.user.update({ where: { id: req.params.id }, data: updateData });
     res.json(user);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ─── Approve/Reject registration ───
-router.put("/users/:id/registration", requireAdmin, async (req, res) => {
-  try {
-    const { action, reason } = req.body; // action: "approve" | "reject"
-    if (!["approve", "reject"].includes(action)) {
-      return res.status(400).json({ error: "Action must be 'approve' or 'reject'" });
-    }
-
-    const registration = await prisma.registration.findFirst({
-      where: { userId: req.params.id, status: "pending" },
-    });
-
-    if (!registration) {
-      // No pending registration - just update user status directly
-      if (action === "approve") {
-        await prisma.user.update({
-          where: { id: req.params.id },
-          data: { status: "active" },
-        });
-        return res.json({ ok: true, action, note: "User activated directly" });
-      } else {
-        await prisma.user.update({
-          where: { id: req.params.id },
-          data: { status: "inactive" },
-        });
-        return res.json({ ok: true, action, note: "User deactivated directly" });
-      }
-    }
-
-    const updateData = {};
-    if (action === "approve") {
-      updateData.status = "approved";
-      updateData.reviewerId = req.user.id;
-      updateData.reviewedAt = new Date();
-
-      // Also activate user
-      await prisma.user.update({
-        where: { id: req.params.id },
-        data: { status: "active" },
-      });
-    } else {
-      updateData.status = "rejected";
-      updateData.reviewerId = req.user.id;
-      updateData.reviewedAt = new Date();
-      updateData.rejectionReason = reason || null;
-    }
-
-    await prisma.registration.update({
-      where: { id: registration.id },
-      data: updateData,
-    });
-
-    res.json({ ok: true, action });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -189,20 +167,6 @@ router.delete("/users/:id", requireAdmin, async (req, res) => {
   try {
     await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ─── Stats ───
-router.get("/users/stats", requireAdmin, async (req, res) => {
-  try {
-    const total = await prisma.user.count();
-    const pending = await prisma.user.count({ where: { status: "pending" } });
-    const active = await prisma.user.count({ where: { status: "active" } });
-    const inactive = await prisma.user.count({ where: { status: "inactive" } });
-    const banned = await prisma.user.count({ where: { status: "banned" } });
-    res.json({ total, pending, active, inactive, banned });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

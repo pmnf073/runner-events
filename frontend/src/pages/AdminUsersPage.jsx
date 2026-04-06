@@ -106,6 +106,26 @@ export default function AdminUsersPage() {
     }
   };
 
+  const doDelete = async (userId) => {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Erro ao eliminar");
+        return;
+      }
+      fetchData();
+    } catch (e) {
+      alert("Erro de ligacao");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const openEdit = (user) => {
     setEditId(user.id);
     setEditForm({
@@ -200,18 +220,23 @@ export default function AdminUsersPage() {
 
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   {user.status === "pending" || user.status === "inactive" ? (
-                    <button onClick={() => doAction(user.id, "approve")} disabled={actionLoading === user.id} style={{ ...actionBtn, background: "#22c55e", color: "#fff" }}>
+                    <button onClick={() => doAction(user.id, "approve")} disabled={actionLoading === user.id} title="Ativar" style={{ ...actionBtn, background: "#22c55e", color: "#fff" }}>
                       ✅
                     </button>
                   ) : null}
                   {user.status === "active" ? (
-                    <button onClick={() => doAction(user.id, "reject")} disabled={actionLoading === user.id} style={{ ...actionBtn, background: "#6b7280", color: "#fff" }}>
+                    <button onClick={() => { doAction(user.id, "reject"); }} disabled={actionLoading === user.id} title="Desativar" style={{ ...actionBtn, background: "#6b7280", color: "#fff" }}>
                       ⏸
                     </button>
                   ) : null}
-                  <button onClick={() => { if (editId === user.id) setEditId(null); else openEdit(user); }} style={{ ...actionBtn, background: "#1B3A5C", color: "#e5e7eb" }}>
+                  <button onClick={() => { if (editId === user.id) setEditId(null); else openEdit(user); }} title="Editar" style={{ ...actionBtn, background: "#1B3A5C", color: "#e5e7eb" }}>
                     ✏️
                   </button>
+                  {user.status === "pending" ? (
+                    <button onClick={() => { if (confirm(`Eliminar ${user.name}? Esta acao nao pode ser desfeita.`)) doDelete(user.id); }} disabled={actionLoading === user.id} title="Eliminar" style={{ ...actionBtn, background: "#ef4444", color: "#fff" }}>
+                      🗑️
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
