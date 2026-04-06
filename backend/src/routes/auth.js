@@ -135,6 +135,21 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
   router.get("/facebook", (_req, res) => res.status(501).json({ error: "Facebook OAuth not configured" }));
 }
 
+// ─── TEMP: Promote to admin (remove after first use) ───
+router.post("/promote", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ error: "Wrong password" });
+    await prisma.user.update({ where: { id: user.id }, data: { role: "admin" } });
+    res.json({ ok: true, message: "Promoted to admin" });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Auth Me ───
 router.get("/me", async (req, res) => {
   // Priority: JWT header
