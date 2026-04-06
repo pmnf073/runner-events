@@ -10,11 +10,13 @@ import RegisterPage from "./pages/RegisterPage";
 import RegisterSuccessPage from "./pages/RegisterSuccessPage";
 import ImportPage from "./pages/ImportPage";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 function api(path, options = {}) {
   const token = localStorage.getItem("token");
   const headers = { "Content-Type": "application/json", ...options.headers };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(path, { ...options, headers, credentials: "include" });
+  return fetch(API_URL + path, { ...options, headers, credentials: "include" });
 }
 
 function App() {
@@ -24,13 +26,20 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    console.log("App init, API_URL:", API_URL, "token:", token ? "present" : "none");
     if (token) {
       api("/auth/me")
-        .then((r) => r.json())
-        .then((data) => {
+        .then(async (r) => {
+          console.log("/auth/me status:", r.status);
+          const data = await r.json();
+          console.log("/auth/me data:", data);
           if (data.authenticated) setUser(data.user);
+          else localStorage.removeItem("token");
         })
-        .catch(() => localStorage.removeItem("token"))
+        .catch((err) => {
+          console.error("/auth/me error:", err);
+          // Don't remove token on network errors (cold start, etc)
+        })
         .finally(() => setLoaded(true));
     } else {
       setLoaded(true);
