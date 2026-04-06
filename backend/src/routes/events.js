@@ -18,10 +18,19 @@ async function auth(req, res, next) {
 }
 
 async function isAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ error: "Admin access required" });
+  // Check DB role first
+  if (req.user && req.user.role === "admin") return next();
+  
+  // Fallback: check JWT payload directly
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+      if (payload.role === "admin") return next();
+    } catch {}
   }
-  next();
+  
+  return res.status(403).json({ error: "Admin access required" });
 }
 
 router.post("/extract-image", isAdmin, async (req, res) => {
