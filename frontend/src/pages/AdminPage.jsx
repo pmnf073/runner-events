@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const TYPES = [
   { value: "trail", label: "🏔️ Trilho" },
@@ -18,6 +20,19 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   const [extracting, setExtracting] = useState(false);
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
+
+  // Convert "YYYY-MM-DDTHH:mm" from datetime-local to Date object
+  const parseLocalDate = (val) => val ? new Date(val) : null;
+  // Convert Date object to "YYYY-MM-DDTHH:mm" for storage
+  const formatLocalDate = (d) => {
+    if (!d || isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  };
 
   const handleUrlExtract = async () => {
     if (!form.url) return;
@@ -41,7 +56,25 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
     }
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); onSubmit(form); };
+  const localToUTC = (localStr) => {
+    if (!localStr) return null;
+    // "2026-04-12T09:00" means 09:00 in the user's browser timezone
+    const d = new Date(localStr + ":00");
+    // d now represents 09:00 in local timezone, converted to internal UTC value
+    // Convert back to correct UTC by adding the timezone offset
+    const utcMs = d.getTime() + d.getTimezoneOffset() * 60 * 1000;
+    return new Date(utcMs).toISOString();
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      date: localToUTC(form.date),
+      endDate: form.endDate ? localToUTC(form.endDate) : null,
+    };
+    onSubmit(payload);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-gray-900 rounded-xl border border-gray-800 p-6">
@@ -61,15 +94,35 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         </div>
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data e hora *</label>
-          <input type="datetime-local" value={form.date ? form.date.slice(0, 16) : ""}
-            onChange={(e) => handleChange("date", e.target.value)} required
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          <DatePicker
+            selected={parseLocalDate(form.date)}
+            onChange={(d) => handleChange("date", formatLocalDate(d))}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={5}
+            dateFormat="dd/MM/yyyy HH:mm"
+            placeholderText="dd/mm/aaaa hh:mm"
+            required
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white cursor-pointer"
+            calendarClassName="bg-gray-900 border border-gray-700 rounded-lg"
+            popperClassName="z-50"
+          />
         </div>
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data fim (opcional)</label>
-          <input type="datetime-local" value={form.endDate ? form.endDate.slice(0, 16) : ""}
-            onChange={(e) => handleChange("endDate", e.target.value || "")}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
+          <DatePicker
+            selected={parseLocalDate(form.endDate)}
+            onChange={(d) => handleChange("endDate", d ? formatLocalDate(d) : "")}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={5}
+            dateFormat="dd/MM/yyyy HH:mm"
+            placeholderText="dd/mm/aaaa hh:mm"
+            isClearable
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white cursor-pointer"
+            calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+            popperClassName="z-50"
+          />
         </div>
         <div>
           <label className="block text-sm text-gray-400 mb-1">Localização</label>
@@ -112,6 +165,28 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
           </div>
         </div>
       </div>
+      </div>
+      {/* Dark theme overrides for react-datepicker */}
+      <style>{`
+        .react-datepicker { background-color: #0D2137; border-color: #1B3A5C; color: #e8ecef; }
+        .react-datepicker__header { background-color: #0a1a2d; border-color: #1B3A5C; }
+        .react-datepicker__day { color: #e8ecef; }
+        .react-datepicker__day:hover { background-color: #1a3a52; }
+        .react-datepicker__day--selected { background-color: #CC3333; color: #fff; }
+        .react-datepicker__day--today { font-weight: bold; color: #CC3333; }
+        .react-datepicker__current-month { color: #e8ecef; }
+        .react-datepicker__day-name { color: #9ca3af; }
+        .react-datepicker__time { background-color: #0D2137; }
+        .react-datepicker__time-container { background-color: #0D2137; border-color: #1B3A5C; }
+        .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item { color: #e8ecef; }
+        .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover { background-color: #1a3a52; }
+        .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected { background-color: #CC3333; }
+        .react-datepicker__time-list { scrollbar-width: thin; scrollbar-color: #1B3A5C #0D2137; }
+        .react-datepicker__triangle path { fill: #0D2137; stroke: #1B3A5C; }
+        .react-datepicker__triangle { border: none; }
+      `}
+      </style>
+
       <div>
         <label className="block text-sm text-gray-400 mb-1">Descrição</label>
         <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={2}
