@@ -18,10 +18,32 @@ const TYPES = [
 ];
 
 function AdminEventForm({ event, onSubmit, onCancel }) {
-  const [form, setForm] = useState(event || {
-    title: "", description: "", date: "", endDate: "", location: "", type: "training",
-    club: "Alverca Urban Runners", distance: "", elevation: "", url: "", imageUrl: "",
-  });
+  // Normalize dates from backend ISO to local "YYYY-MM-DDTHH:mm" format
+  const normalizeDate = (val) => {
+    if (!val) return "";
+    const d = val instanceof Date ? val : new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  };
+
+  const [form, setForm] = useState(() => ({
+    title: event?.title || "",
+    description: event?.description || "",
+    date: normalizeDate(event?.date),
+    endDate: normalizeDate(event?.endDate),
+    location: event?.location || "",
+    type: event?.type || "training",
+    club: "Alverca Urban Runners",
+    distance: event?.distance || "",
+    elevation: event?.elevation || "",
+    url: event?.url || "",
+    imageUrl: event?.imageUrl || "",
+  }));
   const [extracting, setExtracting] = useState(false);
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
