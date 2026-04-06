@@ -40,7 +40,7 @@ export default function CalendarPage() {
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -134,7 +134,7 @@ export default function CalendarPage() {
       {/* GRID VIEW */}
       {viewMode === "grid" && (
         <div className="calendar-grid" style={{ border: "1px solid #1B3A5C" }}>
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"].map((d) => (
+          {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((d) => (
             <div key={d} className="calendar-day-header">{d}</div>
           ))}
           {Array.from({ length: firstDay }).map((_, i) => (
