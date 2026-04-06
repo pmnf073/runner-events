@@ -348,7 +348,7 @@ export default function AdminPage({ user }) {
 
       <div className="mt-6 space-y-3">
         {events.map((ev) => (
-          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3" style={{ background: "#0B1A2B", borderColor: "#1B3A5C" }}>
+          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
             <div>
               <h3 className="font-medium">{ev.title}</h3>
               <p className="text-sm text-gray-400">{formatEventDate(ev.date)} • {ev.location || "Sem local"} • {ev.type}</p>
