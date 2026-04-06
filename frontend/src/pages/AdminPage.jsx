@@ -22,6 +22,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   const normalizeDate = (val) => {
     if (!val) return "";
     const d = val instanceof Date ? val : new Date(val);
+    console.log('[normalizeDate] input:', val, '→ local:', d.toString(), 'hours:', d.getHours());
     if (isNaN(d.getTime())) return "";
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -98,13 +99,12 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
 
   const localToUTC = (localStr) => {
     if (!localStr) return null;
-    // localStr = "YYYY-MM-DDTHH:mm" representing time in user's timezone
-    // Parse components and create Date object in local TZ, then get proper UTC
-    const [date, time] = localStr.split('T');
-    const [y, mo, d] = date.split('-').map(Number);
-    const [h, mi] = time.split(':').map(Number);
-    // Create Date in local timezone
-    const local = new Date(y, mo - 1, d, h, mi, 0, 0);
+    // Parse components and build Date in PT timezone, then convert to UTC ISO
+    const [datePart, timePart] = localStr.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
+    const local = new Date(year, month - 1, day, hours, minutes);
+    console.log('[localToUTC] input:', localStr, '→', local.toISOString());
     return local.toISOString();
   };
 
