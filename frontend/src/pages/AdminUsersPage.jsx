@@ -178,9 +178,9 @@ export default function AdminUsersPage() {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 14, fontWeight: 600, color: "#e5e7eb", flexShrink: 0
                 }}>
-                  {user.avatar ? (
-                    <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                  ) : user.name.charAt(0).toUpperCase()}
+                  {user.avatar
+                    ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                    : user.name.charAt(0).toUpperCase()}
                 </div>
 
                 <div style={{ flex: "1 1 200px", minWidth: 0 }}>
