@@ -156,7 +156,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
             dateFormat="dd/MM/yyyy HH:mm"
             placeholderText="dd/mm/aaaa hh:mm"
             required
-            style={{ ...formInput, cursor: "pointer" }}
+            style={{ cursor: "pointer" }}
             calendarClassName="bg-gray-900 border border-gray-700 rounded-lg"
             popperClassName="z-50"
           />
@@ -172,7 +172,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
             dateFormat="dd/MM/yyyy HH:mm"
             placeholderText="dd/mm/aaaa hh:mm"
             isClearable
-            style={{ ...formInput, cursor: "pointer" }}
+            style={{ cursor: "pointer" }}
             calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
             popperClassName="z-50"
           />
@@ -217,6 +217,10 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
       </div>
       {/* Dark theme overrides for react-datepicker */}
       <style>{`
+        /* Input field */
+        .react-datepicker-wrapper { width: 100%; display: block; }
+        .react-datepicker__input-container input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--text-primary); outline: none; box-sizing: border-box; cursor: pointer; }
+        /* Calendar popup */
         .react-datepicker { background-color: #0D2137 !important; border-color: #1B3A5C !important; color: #e8ecef !important; font-family: inherit; }
         .react-datepicker__header { background-color: #0a1a2d !important; border-color: #1B3A5C !important; }
         .react-datepicker__day { color: #e8ecef !important; }
