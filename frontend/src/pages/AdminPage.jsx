@@ -17,29 +17,63 @@ const TYPES = [
   { value: "meeting", label: "📋 Reunião" },
 ];
 
-function AdminEventForm({ event, onSubmit, onCancel }) {
-  // Normalize dates from backend ISO to local "YYYY-MM-DDTHH:mm" format
-  const normalizeDate = (val) => {
-    if (!val) return "";
-    // Parse as UTC to preserve the exact time stored
-    const d = val.endsWith('Z') 
-      ? new Date(val) 
-      : new Date(val + 'Z');
-    console.log('[normalizeDate]', val, '→', d.toISOString(), '→ local hrs:', d.getHours());
-    if (isNaN(d.getTime())) return "";
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-  };
+/*
+ * Timezone strategy: store Lisbon wall-clock as UTC in DB.
+ * Example: user picks 08:30 Lisbon → stored as "2026-04-12T08:30:00.000Z"
+ * On read back: extract UTC hours/minutes (= Lisbon time).
+ * This means everyone sees "Europe/Lisbon" times regardless of their browser TZ.
+ */
 
+// Backend ISO → "YYYY-MM-DDTHH:mm" (Lisbon wall-clock via UTC getters)
+const backendToForm = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return "";
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const min = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
+// "YYYY-MM-DDTHH:mm" → Date for DatePicker (UTC-based)
+const formToDate = (val) => {
+  if (!val || typeof val !== "string" || val.length < 16) return null;
+  const [dp, tp] = val.split("T");
+  const [y, mo, d] = dp.split("-").map(Number);
+  const [h, mi] = tp.split(":").map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h, mi, 0, 0));
+};
+
+// Date from DatePicker OR raw text → "YYYY-MM-DDTHH:mm" (UTC getters = Lisbon wall-clock)
+const dateToForm = (d) => {
+  if (!d) return "";
+  if (d instanceof Date) {
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const min = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  }
+  // Manual text input — pass through if it looks valid
+  return typeof d === "string" && d.length >= 16 ? d : "";
+};
+
+// "YYYY-MM-DDTHH:mm" → ISO for DB — store exactly as shown, no conversion
+const formToBackend = (localStr) => {
+  if (!localStr) return null;
+  return localStr + ":00.000Z";
+};
+
+function AdminEventForm({ event, onSubmit, onCancel }) {
   const [form, setForm] = useState(() => ({
     title: event?.title || "",
     description: event?.description || "",
-    date: normalizeDate(event?.date),
-    endDate: normalizeDate(event?.endDate),
+    date: backendToForm(event?.date),
+    endDate: backendToForm(event?.endDate),
     location: event?.location || "",
     type: event?.type || "training",
     club: "Alverca Urban Runners",
@@ -52,31 +86,14 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
-  // Patch "Time" -> "Hora" after component mounts / renders
+  // Patch "Time" → "Hora"
   useEffect(() => {
     const timer = setInterval(() => {
-      const headers = document.querySelectorAll('.react-datepicker__header--time .react-datepicker-time__header');
-      headers.forEach(el => { if (el.textContent === 'Time') el.textContent = 'Hora'; });
+      document.querySelectorAll('.react-datepicker__header--time .react-datepicker-time__header')
+        .forEach(el => { if (el.textContent === 'Time') el.textContent = 'Hora'; });
     }, 500);
     return () => clearInterval(timer);
   }, [form.date]);
-
-  // Convert "YYYY-MM-DDTHH:mm" from datetime-local to Date object
-  const parseLocalDate = (val) => {
-    if (!val) return null;
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  };
-  // Convert Date object to "YYYY-MM-DDTHH:mm" for storage
-  const formatLocalDate = (d) => {
-    if (!d || isNaN(d.getTime())) return "";
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-  };
 
   const handleUrlExtract = async () => {
     if (!form.url) return;
@@ -100,19 +117,12 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
     }
   };
 
-  const localToUTC = (localStr) => {
-    if (!localStr) return null;
-    // Store as UTC with the exact time (preserving user-selected time)
-    // "2026-04-12T08:30" → "2026-04-12T08:30:00.000Z"
-    return new Date(localStr + ":00Z").toISOString();
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = {
       ...form,
-      date: localToUTC(form.date),
-      endDate: form.endDate ? localToUTC(form.endDate) : null,
+      date: formToBackend(form.date),
+      endDate: form.endDate ? formToBackend(form.endDate) : null,
     };
     onSubmit(payload);
   };
@@ -136,8 +146,8 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data e hora *</label>
           <DatePicker
-            selected={parseLocalDate(form.date)}
-            onChange={(d) => handleChange("date", formatLocalDate(d))}
+            selected={formToDate(form.date)}
+            onChange={(d) => handleChange("date", dateToForm(d))}
             showTimeSelect
             timeFormat="HH:mm"
             timeIntervals={5}
@@ -152,8 +162,8 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         <div>
           <label className="block text-sm text-gray-400 mb-1">Data fim (opcional)</label>
           <DatePicker
-            selected={parseLocalDate(form.endDate)}
-            onChange={(d) => handleChange("endDate", d ? formatLocalDate(d) : "")}
+            selected={formToDate(form.endDate)}
+            onChange={(d) => handleChange("endDate", d ? dateToForm(d) : "")}
             showTimeSelect
             timeFormat="HH:mm"
             timeIntervals={5}
@@ -216,7 +226,6 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         .react-datepicker__day--today { font-weight: normal; color: #CC3333 !important; }
         .react-datepicker__current-month { color: #e8ecef !important; }
         .react-datepicker__day-name { color: #9ca3af !important; }
-        /* Time container */
         .react-datepicker__time-container { background-color: #0a1a2d !important; border-color: #1B3A5C !important; width: 90px !important; }
         .react-datepicker__header--time { background-color: #0a1a2d !important; border-color: #1B3A5C !important; }
         .react-datepicker__header--time span { color: #e8ecef !important; }
@@ -226,10 +235,8 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         .react-datepicker__time-list-item { color: #e8ecef !important; background-color: #0a1a2d !important; font-size: 13px !important; }
         .react-datepicker__time-list-item:hover { background-color: #1a3a52 !important; color: #fff !important; }
         .react-datepicker__time-list-item--selected { background-color: #CC3333 !important; color: #fff !important; }
-        /* Time header label */
         .react-datepicker__header--time { font-weight: normal !important; }
         .react-datepicker__header--time span { font-weight: normal !important; }
-        /* Selected time header */
         .react-datepicker-time__header { color: #e8ecef !important; font-weight: normal !important; }
         .react-datepicker__triangle path:first-child { fill: #0D2137 !important; }
         .react-datepicker__triangle path:last-child { stroke: #1B3A5C !important; }
@@ -259,6 +266,17 @@ function useEvents() {
   useEffect(() => { fetchEvents(); }, []);
   return { events, loading, fetchEvents };
 }
+
+// Format DB UTC date for list display (Lisbon wall-clock)
+const formatEventDate = (isoStr) => {
+  const d = new Date(isoStr);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mi = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+};
 
 export default function AdminPage({ user }) {
   const { events, loading, fetchEvents } = useEvents();
@@ -329,23 +347,20 @@ export default function AdminPage({ user }) {
       {loading && <div className="text-center py-12 text-gray-400">Carregando...</div>}
 
       <div className="mt-6 space-y-3">
-        {events.map((ev) => {
-          const d = new Date(ev.date);
-          return (
-            <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
-              <div>
-                <h3 className="font-medium">{ev.title}</h3>
-                <p className="text-sm text-gray-400">{d.toLocaleDateString("pt-PT")} • {ev.location || "Sem local"} • {ev.type}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setEditing(ev); setShowForm(true); }}
-                  className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition">Editar</button>
-                <button onClick={() => handleDelete(ev.id)}
-                  className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition">Eliminar</button>
-              </div>
+        {events.map((ev) => (
+          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
+            <div>
+              <h3 className="font-medium">{ev.title}</h3>
+              <p className="text-sm text-gray-400">{formatEventDate(ev.date)} • {ev.location || "Sem local"} • {ev.type}</p>
             </div>
-          );
-        })}
+            <div className="flex gap-2">
+              <button onClick={() => { setEditing(ev); setShowForm(true); }}
+                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition">Editar</button>
+              <button onClick={() => handleDelete(ev.id)}
+                className="text-sm bg-red-900/50 hover:bg-red-900 px-3 py-1.5 rounded text-red-400 transition">Eliminar</button>
+            </div>
+          </div>
+        ))}
         {!loading && events.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum evento criado.</p>}
       </div>
     </div>
