@@ -86,7 +86,7 @@ function App() {
                 <>
                   <Link to="/admin" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
-                    onMouseLeave={e => e.target.style.color = "#9ca3af"}>Admin</Link>
+                    onMouseLeave={e => e.target.style.color = "#9ca3af"}>Eventos</Link>
                   <Link to="/import" style={{ color: "#9ca3af", textDecoration: "none", transition: "color 0.2s" }}
                     onMouseEnter={e => e.target.style.color = "#36C2CE"}
                     onMouseLeave={e => e.target.style.color = "#9ca3af"}>Importar</Link>
@@ -116,7 +116,10 @@ function App() {
                         onClick={() => {
                           setUserMenuOpen(false);
                           localStorage.removeItem("token");
-                          fetch("/auth/logout", { method: "POST" }).finally(() => window.location.reload());
+                          setUser(null);
+                          fetch(`${API_URL}/auth/logout`, { method: "POST" }).finally(() => {
+                            window.location.href = "/";
+                          });
                         }}
                         style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 16px", background: "none", border: "none", color: "#e8ecef", fontSize: 14, cursor: "pointer", transition: "background 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#1B3A5C"}
