@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
 import DatePicker from "react-datepicker";
+import { registerLocale, setDefaultLocale } from "react-datepicker";
+import pt from "date-fns/locale/pt";
 import "react-datepicker/dist/react-datepicker.css";
+
+registerLocale("pt", pt);
+setDefaultLocale("pt");
 
 const TYPES = [
   { value: "trail", label: "🏔️ Trilho" },
@@ -20,6 +25,15 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
   const [extracting, setExtracting] = useState(false);
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
+
+  // Patch "Time" -> "Hora" after component mounts / renders
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const headers = document.querySelectorAll('.react-datepicker__header--time .react-datepicker-time__header');
+      headers.forEach(el => { if (el.textContent === 'Time') el.textContent = 'Hora'; });
+    }, 500);
+    return () => clearInterval(timer);
+  }, [form.date]);
 
   // Convert "YYYY-MM-DDTHH:mm" from datetime-local to Date object
   const parseLocalDate = (val) => {
@@ -176,7 +190,7 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         .react-datepicker__day { color: #e8ecef !important; }
         .react-datepicker__day:hover { background-color: #1a3a52 !important; }
         .react-datepicker__day--selected { background-color: #CC3333 !important; color: #fff !important; }
-        .react-datepicker__day--today { font-weight: bold; color: #CC3333 !important; }
+        .react-datepicker__day--today { font-weight: normal; color: #CC3333 !important; }
         .react-datepicker__current-month { color: #e8ecef !important; }
         .react-datepicker__day-name { color: #9ca3af !important; }
         /* Time container */
@@ -189,8 +203,11 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
         .react-datepicker__time-list-item { color: #e8ecef !important; background-color: #0a1a2d !important; font-size: 13px !important; }
         .react-datepicker__time-list-item:hover { background-color: #1a3a52 !important; color: #fff !important; }
         .react-datepicker__time-list-item--selected { background-color: #CC3333 !important; color: #fff !important; }
+        /* Time header label */
+        .react-datepicker__header--time { font-weight: normal !important; }
+        .react-datepicker__header--time span { font-weight: normal !important; }
         /* Selected time header */
-        .react-datepicker-time__header { color: #e8ecef !important; }
+        .react-datepicker-time__header { color: #e8ecef !important; font-weight: normal !important; }
         .react-datepicker__triangle path:first-child { fill: #0D2137 !important; }
         .react-datepicker__triangle path:last-child { stroke: #1B3A5C !important; }
         .react-datepicker-popper { z-index: 9999 !important; }
