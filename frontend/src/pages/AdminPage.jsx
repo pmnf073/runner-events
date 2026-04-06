@@ -250,8 +250,12 @@ function AdminEventForm({ event, onSubmit, onCancel }) {
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm" />
       </div>
       <div className="flex gap-3 justify-end">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition" style={{ color: "#e8ecef" }}>Cancelar</button>
-        <button type="submit" className="bg-primary hover:bg-primary-dark px-6 py-2 rounded-lg text-sm font-medium transition">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded transition" style={{ color: "#e8ecef", background: "#1f2937" }}
+          onMouseEnter={e => e.target.style.background = "#374151"}
+          onMouseLeave={e => e.target.style.background = "#1f2937"}>Cancelar</button>
+        <button type="submit" className="px-6 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#CC3333", color: "#fff" }}
+          onMouseEnter={e => e.target.style.background = "#be0000"}
+          onMouseLeave={e => e.target.style.background = "#CC3333"}>
           {event ? "Guardar" : "Criar Evento"}
         </button>
       </div>
@@ -325,7 +329,9 @@ export default function AdminPage({ user }) {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{editing ? "Editar Evento" : "Novo Evento"}</h1>
           <button onClick={() => { setShowForm(false); setEditing(null); }}
-            className="text-gray-400 hover:text-white text-sm" style={{ color: "#9ca3af" }}>
+            className="text-sm rounded transition" style={{ color: "#9ca3af" }}
+            onMouseEnter={e => e.target.style.color = "#e8ecef"}
+            onMouseLeave={e => e.target.style.color = "#9ca3af"}>
             ← Voltar à lista
           </button>
         </div>
@@ -339,7 +345,9 @@ export default function AdminPage({ user }) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">⚙️ Admin - Gerir Eventos</h1>
         <button onClick={() => { setEditing(null); setShowForm(true); }}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff" }}>
+          className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff" }}
+          onMouseEnter={e => e.target.style.background = "#16a34a"}
+          onMouseLeave={e => e.target.style.background = "#22c55e"}>
           + Novo Evento
         </button>
       </div>
@@ -355,9 +363,13 @@ export default function AdminPage({ user }) {
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setEditing(ev); setShowForm(true); }}
-                className="text-sm bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded transition" style={{ color: "#fff" }}>Editar</button>
+                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#1f2937", color: "#fff" }}
+                onMouseEnter={e => e.target.style.background = "#374151"}
+                onMouseLeave={e => e.target.style.background = "#1f2937"}>Editar</button>
               <button onClick={() => handleDelete(ev.id)}
-                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#CC3333", color: "#fff" }}>Eliminar</button>
+                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#CC3333", color: "#fff" }}
+                onMouseEnter={e => e.target.style.background = "#be0000"}
+                onMouseLeave={e => e.target.style.background = "#CC3333"}>Eliminar</button>
             </div>
           </div>
         ))}
