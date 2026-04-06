@@ -339,7 +339,7 @@ export default function AdminPage({ user }) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">⚙️ Admin - Gerir Eventos</h1>
         <button onClick={() => { setEditing(null); setShowForm(true); }}
-          className="bg-primary hover:bg-primary-dark px-4 py-2 rounded-lg text-sm font-medium transition" style={{ color: "#fff" }}>
+          className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff" }}>
           + Novo Evento
         </button>
       </div>
