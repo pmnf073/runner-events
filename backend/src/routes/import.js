@@ -176,28 +176,44 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
   }
 });
 
-// Legacy: import from URL
+// Import from TeamUp ICS feed
 router.post("/import-teamup", async (req, res) => {
   try {
-    const { feedUrl } = req.body;
-    if (!feedUrl) return res.status(400).json({ error: "feedUrl is required" });
+    const feedUrl = req.body.feedUrl || process.env.TEAMUP_ICS_FEED;
+    if (!feedUrl) return res.status(400).json({ error: "feedUrl is required or set TEAMUP_ICS_FEED in env" });
 
     const response = await fetch(feedUrl);
+    if (!response.ok) return res.status(502).json({ error: `Failed to fetch feed: ${response.status}` });
     const icsContent = await response.text();
-    const parsed = parseICS(icsContent);
-    if (parsed.length === 0) {
-      return res.json({ imported: 0, message: "Nenhum evento encontrado" });
+    const allEvents = parseICS(icsContent);
+    if (allEvents.length === 0) {
+      return res.json({ imported: 0, skipped: 0, total: 0, message: "Nenhum evento encontrado no feed" });
+    }
+
+    // Dedup by sourceUid
+    const uids = allEvents.map(e => e.sourceUid).filter(Boolean);
+    const existingByUid = new Set();
+    if (uids.length > 0) {
+      const found = await prisma.event.findMany({ where: { sourceUid: { in: uids } }, select: { sourceUid: true } });
+      found.forEach(e => existingByUid.add(e.sourceUid));
     }
 
     let imported = 0;
-    for (const event of parsed) {
+    let skipped = 0;
+    const seen = new Set();
+    for (const event of allEvents) {
+      const key = event.sourceUid || `${event.title}|${event.date}`;
+      if (seen.has(key)) { skipped++; continue; }
+      if (event.sourceUid && existingByUid.has(event.sourceUid)) { skipped++; continue; }
+      seen.add(key);
       try {
-        await prisma.event.create({ data: { ...event, sourceUid: event.sourceUid } });
+        await prisma.event.create({ data: { title: event.title, description: event.description, date: event.date, endDate: event.endDate, location: event.location, type: event.type, club: event.club, sourceUid: event.sourceUid } });
         imported++;
-      } catch { /* skip */ }
+      } catch (err) {
+        if (err.code === "P2002") skipped++;
+      }
     }
-
-    res.json({ imported, total: parsed.length });
+    res.json({ imported, skipped, total: allEvents.length, source: "TeamUp ICS Feed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
