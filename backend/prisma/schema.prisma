@@ -57,6 +57,7 @@ model Event {
   url         String?
   imageUrl    String?
   createdBy   String   @default("system")
+  sourceUid   String?  // UID from external .ics import (for dedup)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   rsvps       RSVP[]
