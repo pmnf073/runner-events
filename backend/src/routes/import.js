@@ -13,41 +13,80 @@ function parseICS(icsContent) {
     const getField = (field) => {
       const regex = new RegExp(`${field}(?:;[^:]*)?:(.*)`, "i");
       const match = block.match(regex);
-      return match ? match[1].trim().replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\n/g, "\n") : null;
+      if (!match) return null;
+      return match[1]
+        .trim()
+        .replace(/\\,/g, ",")
+        .replace(/\\;/g, ";")
+        .replace(/\\n/g, "\n");
     };
 
     const title = getField("SUMMARY");
     const description = getField("DESCRIPTION");
     const location = getField("LOCATION");
-    const dtstart = getField("DTSTART");
-    const dtend = getField("DTEND");
+    const dtstartRaw = getField("DTSTART");
+    const dtendRaw = getField("DTEND");
 
-    if (!title || !dtstart) continue;
+    if (!title || !dtstartRaw) continue;
 
-    const parseDate = (dt) => {
-      if (!dt) return null;
-      const clean = dt.replace("Z", "");
-      const year = clean.slice(0, 4);
-      const month = clean.slice(4, 6);
-      const day = clean.slice(6, 8);
-      const hour = clean.length >= 13 ? clean.slice(9, 11) : "00";
-      const minute = clean.length >= 13 ? clean.slice(11, 13) : "00";
-      return new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`);
+    const parseDate = (raw) => {
+      if (!raw) return null;
+      // Handle DATE only (all-day): 20250523
+      if (/^\d{8}$/.test(raw)) {
+        return new Date(`${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}T00:00:00.000Z`);
+      }
+      // Handle datetime with Z suffix: 20260407T094834Z
+      // Handle datetime without Z: 20260407T193000 (Lisbon TZ from DTSTART;TZID)
+      const clean = raw.replace(/Z$/, "");
+      // Format YYYYMMDD -> yyyy-mm-dd
+      const datePart = clean.slice(0,8);
+      const yyyy = datePart.slice(0,4);
+      const mm = datePart.slice(4,6);
+      const dd = datePart.slice(6,8);
+      // Time part if present
+      if (clean.length >= 13) {
+        const hh = clean.slice(9,11);
+        const mi = clean.slice(11,13);
+        // DTSTART with TZID means local time, store as UTC
+        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:00.000Z`);
+      }
+      return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`);
     };
 
-    const startDate = parseDate(dtstart);
+    const startDate = parseDate(dtstartRaw);
     if (isNaN(startDate.getTime())) continue;
 
+    // Skip past events (before today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (startDate < today) continue;
+
+    // Auto-detect type from title
+    let type = "training";
+    const t = title.toLowerCase();
+    if (t.includes("prova") || t.includes("trail") || t.includes("corsa") || t.includes("sao silvestre") || t.includes("monte gordo") || t.includes("montejunto")) type = "race";
+    else if (t.includes("caminhada")) type = "social";
+    else if (t.includes("treino")) type = "training";
+    else if (t.includes("reuniao") || t.includes("staff")) type = "meeting";
+    else if (t.includes("limpeza")) type = "social";
+    else if (t.includes("aniversario")) type = "social";
+    else if (t.includes("entrega") || t.includes("dorsai")) type = "race";
+
+    const descriptionUnescaped = description?.replace(/\\&amp;/g, "é").replace(/\\&amp\;/g, "é") || "";
+
     events.push({
-      title,
-      description: description || "",
+      title: title.substring(0, 100),
+      description: descriptionUnescaped.substring(0, 2000),
       date: startDate.toISOString(),
-      endDate: dtend ? parseDate(dtend)?.toISOString() : null,
-      location: location || null,
-      type: "training",
+      endDate: dtendRaw ? parseDate(dtendRaw)?.toISOString() : null,
+      location: location?.substring(0, 200) || null,
+      type,
       club: "Alverca Urban Runners",
     });
   }
+
+  // Sort by date
+  events.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return events;
 }
@@ -63,7 +102,7 @@ router.post("/import-ics", upload.single("icsFile"), async (req, res) => {
     const parsed = parseICS(icsContent);
 
     if (parsed.length === 0) {
-      return res.json({ imported: 0, total: 0, message: "Nenhum evento encontrado no ficheiro" });
+      return res.json({ imported: 0, total: 0, message: "Nenhum evento futuro encontrado no ficheiro" });
     }
 
     let imported = 0;
@@ -73,11 +112,16 @@ router.post("/import-ics", upload.single("icsFile"), async (req, res) => {
         await prisma.event.create({ data: event });
         imported++;
       } catch (err) {
-        errors.push(`${event.title}: ${err.meta?.target || err.message}`);
+        // Skip duplicates (title + date clash)
+        if (err.code === "P2002") {
+          console.log(`[import] Skipped duplicate: ${event.title} on ${event.date}`);
+        } else {
+          errors.push(`${event.title}: ${err.message}`);
+        }
       }
     }
 
-    res.json({ imported, total: parsed.length, errors });
+    res.json({ imported, total: parsed.length, errors: errors.length ? errors : undefined });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -94,7 +138,7 @@ router.post("/import-teamup", async (req, res) => {
     const parsed = parseICS(icsContent);
 
     if (parsed.length === 0) {
-      return res.json({ imported: 0, message: "No events found in feed" });
+      return res.json({ imported: 0, message: "Nenhum evento futuro encontrado" });
     }
 
     let imported = 0;
