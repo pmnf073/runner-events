@@ -120,7 +120,7 @@ function AppInner() {
 
       {/* Header */}
       <header style={{ background: "var(--bg-header)", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid var(--border-subtle)", transition: "background 0.3s ease" }}>
-        <nav style={{ maxWidth: 1152, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <nav style={{ margin: "0 32px", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 14, textDecoration: "none" }}>
             <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 52, width: "auto" }} />
             <div>
@@ -201,7 +201,7 @@ function AppInner() {
       </header>
 
       {/* Main */}
-      <main style={{ maxWidth: 1152, margin: "0 auto", padding: "24px 16px" }}>
+      <main style={{ margin: "0 32px", padding: "24px 0" }}>
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/event/:id" element={<EventPage />} />
@@ -217,7 +217,7 @@ function AppInner() {
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", marginTop: 48, transition: "background 0.3s ease" }}>
-        <div style={{ maxWidth: 1152, margin: "0 auto", padding: "24px 16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, fontSize: 14, color: "var(--text-muted)" }}>
+        <div style={{ margin: "0 32px", padding: "24px 16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, fontSize: 14, color: "var(--text-muted)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 24, width: "auto", opacity: 0.5 }} />
             <span>Alverca Urban Runners &copy; {new Date().getFullYear()}</span>
