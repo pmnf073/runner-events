@@ -56,11 +56,6 @@ function parseICS(icsContent) {
     const startDate = parseDate(dtstartRaw);
     if (isNaN(startDate.getTime())) continue;
 
-    // Skip past events (before today)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (startDate < today) continue;
-
     // Auto-detect type from title
     let type = "training";
     const t = title.toLowerCase();
