@@ -10,6 +10,8 @@ import AboutPage from "./pages/AboutPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterSuccessPage from "./pages/RegisterSuccessPage";
 import ImportPage from "./pages/ImportPage";
+import MembersPage from "./pages/MembersPage";
+import FeesPage from "./pages/FeesPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -207,6 +209,11 @@ function AppInner() {
                         <SubmenuLink to="/import" label="Importar" onClick={() => setUserMenuOpen(false)}
                           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>} />
                         <SubmenuDivider />
+                        <SubmenuLink to="/members" label="Sócios" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>} />
+                        <SubmenuLink to="/fees" label="Anuidades" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>} />
+                        <SubmenuDivider />
                       </>
                     )}
 
@@ -245,6 +252,8 @@ function AppInner() {
           <Route path="/admin" element={<AdminPage user={user} />} />
           <Route path="/admin/users" element={<AdminUsersPage user={user} />} />
           <Route path="/import" element={<ImportPage user={user} />} />
+          <Route path="/members" element={<MembersPage user={user} />} />
+          <Route path="/fees" element={<FeesPage user={user} />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>

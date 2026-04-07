@@ -11,6 +11,7 @@ import eventRoutes from "./routes/events.js";
 import rsvpRoutes from "./routes/rsvps.js";
 import importRoutes from "./routes/import.js";
 import adminUsersRoutes from "./routes/admin-users.js";
+import membersRoutes from "./routes/members.js";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/rsvps", rsvpRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api/members", membersRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));

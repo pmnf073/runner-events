@@ -19,6 +19,7 @@ model User {
   altContact String?
   address    String?
   dob        DateTime?
+  nif        String?   // NIF for receipts
   status     String    @default("pending") // "pending" | "active" | "inactive" | "banned"
   invitedBy  String?
   notes      String?
@@ -27,6 +28,7 @@ model User {
   updatedAt  DateTime  @updatedAt
   rsvps      RSVP[]
   registrations Registration[]
+  member     Member?
 }
 
 model Registration {
@@ -73,4 +75,84 @@ model RSVP {
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
+}
+
+/* ── Membership Management ── */
+model Member {
+  id              String   @id @default(cuid())
+  userId          String   @unique          // 1:1 with User
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberNumber    Int      @unique          // sequential membership number
+  joinedAt        DateTime @default(now())
+  status          String   @default("active") // "active" | "suspended" | "resigned" | "excluded"
+  position        String?                    // "direcao" | "fiscal" | "assembleia" | null
+  resignationDate DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships     Membership[]
+  payments        Payment[]
+  accountEntries  AccountEntry[]
+}
+
+model Membership {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  year            Int                          // e.g. 2026
+  amount          Decimal  @db.Decimal(10,2)   // annual fee value
+  status          String   @default("pending") // "pending" | "paid" | "partial" | "exempt" | "discounted"
+  dueDate         DateTime                     // payment deadline
+  paidDate        DateTime?
+  discount        Decimal? @db.Decimal(10,2)   // discount applied
+  discountReason  String?
+  createdAt       DateTime @default(now())
+
+  payments        Payment[]
+
+  @@unique([memberId, year])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id])
+  membershipId    String?                        // optional link to annual fee
+  membership      Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  amount          Decimal  @db.Decimal(10,2)
+  paidAmount      Decimal  @db.Decimal(10,2)     // actually paid
+  date            DateTime @default(now())
+  method          String                         // "transfer" | "cash" | "mbway" | "card"
+  reference       String?                        // bank transfer reference
+  receiptNumber   String?  @unique               // generated receipt number
+  notes           String?
+  createdBy       String                         // user who registered
+  createdAt       DateTime @default(now())
+
+  accountEntries  AccountEntry[]
+}
+
+model AccountEntry {
+  id              String   @id @default(cuid())
+  memberId        String
+  member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  paymentId       String?
+  payment         Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  type            String                         // "debit" | "credit"
+  description     String
+  amount          Decimal  @db.Decimal(10,2)
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
+}
+
+model AnnualFeeConfig {
+  id                  String   @id @default(cuid())
+  year                Int      @unique
+  amount              Decimal  @db.Decimal(10,2)
+  dueDate             DateTime
+  earlybirdDiscount   Decimal? @db.Decimal(10,2)  // early payment discount
+  earlybirdDeadline   DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
