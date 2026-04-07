@@ -116,7 +116,7 @@ function AppInner() {
   const navStyle = { color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)" }}>
 
       {/* Header */}
       <header style={{ background: "var(--bg-header)", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid var(--border-subtle)", transition: "background 0.3s ease" }}>
@@ -201,7 +201,7 @@ function AppInner() {
       </header>
 
       {/* Main */}
-      <main style={{ margin: "0 32px", padding: "24px 0" }}>
+      <main style={{ margin: "0 32px", padding: "24px 0", flex: 1 }}>
         <Routes>
           <Route path="/" element={<CalendarPage />} />
           <Route path="/event/:id" element={<EventPage />} />
@@ -216,7 +216,7 @@ function AppInner() {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", marginTop: 48, transition: "background 0.3s ease" }}>
+      <footer style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", marginTop: 48, flexShrink: 0, transition: "background 0.3s ease" }}>
         <div style={{ margin: "0 32px", padding: "24px 16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, fontSize: 14, color: "var(--text-muted)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 24, width: "auto", opacity: 0.5 }} />
