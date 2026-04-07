@@ -46,7 +46,6 @@ function ThemeToggle() {
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {isDark ? (
-        // Sun icon
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--toggle-icon-fill)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="5" />
           <line x1="12" y1="1" x2="12" y2="3" />
@@ -59,13 +58,29 @@ function ThemeToggle() {
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
       ) : (
-        // Moon icon
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--toggle-icon-fill)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       )}
     </button>
   );
+}
+
+/* ── Submenu link helper ── */
+function SubmenuLink({ to, icon, label, onClick }) {
+  return (
+    <Link to={to} onClick={onClick}
+      style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", textDecoration: "none", color: "var(--text-primary)", fontSize: 14, transition: "background 0.2s" }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "none")}>
+      {icon}
+      {label}
+    </Link>
+  );
+}
+
+function SubmenuDivider() {
+  return <div style={{ height: 1, background: "var(--border-subtle)" }} />;
 }
 
 /* ── Inner App (has access to ThemeContext) ── */
@@ -114,6 +129,17 @@ function AppInner() {
   }
 
   const navStyle = { color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" };
+  const isAdmin = user?.role === "admin";
+  const isStaff = user && ["admin", "organizer"].includes(user.role);
+
+  const handleLogout = () => {
+    setUserMenuOpen(false);
+    localStorage.removeItem("token");
+    setUser(null);
+    fetch(`${API_URL}/auth/logout`, { method: "POST" }).finally(() => {
+      window.location.href = "/";
+    });
+  };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)" }}>
@@ -135,25 +161,11 @@ function AppInner() {
             <Link to="/about" style={navStyle}
               onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
               onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Sobre</Link>
-            {user && ["admin", "organizer"].includes(user.role) && (
-              <>
-                <Link to="/admin" style={navStyle}
-                  onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-                  onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Eventos</Link>
-                <Link to="/import" style={navStyle}
-                  onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-                  onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Importar</Link>
-              </>
-            )}
-            {user?.role === "admin" && (
-              <Link to="/admin/users" style={navStyle}
-                onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-                onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Utilizadores</Link>
-            )}
 
             {/* Theme toggle */}
             <ThemeToggle />
 
+            {/* User menu (or Login) */}
             {user ? (
               <div style={{ position: "relative" }} data-user-menu>
                 <button
@@ -166,19 +178,41 @@ function AppInner() {
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <span style={{ color: "var(--text-secondary)", fontSize: 14 }}>{user.name}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
                 </button>
                 {userMenuOpen && (
-                  <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--bg-modal)", border: "1px solid var(--border-subtle)", borderRadius: 10, overflow: "hidden", minWidth: 160, boxShadow: `0 8px 24px var(--shadow-dropdown)` }}>
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        localStorage.removeItem("token");
-                        setUser(null);
-                        fetch(`${API_URL}/auth/logout`, { method: "POST" }).finally(() => {
-                          window.location.href = "/";
-                        });
-                      }}
-                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "12px 16px", background: "none", border: "none", color: "var(--text-primary)", fontSize: 14, cursor: "pointer", transition: "background 0.2s" }}
+                  <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "var(--bg-modal)", border: "1px solid var(--border-subtle)", borderRadius: 10, overflow: "hidden", minWidth: 200, boxShadow: `0 8px 24px var(--shadow-dropdown)` }}>
+                    {/* User info */}
+                    <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)" }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-heading)" }}>{user.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>{user.role}</div>
+                    </div>
+
+                    {/* Admin-only links */}
+                    {isAdmin && (
+                      <>
+                        <SubmenuLink to="/admin/users" label="Utilizadores" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} />
+                        <SubmenuDivider />
+                      </>
+                    )}
+
+                    {/* Admin + Organizer links */}
+                    {isStaff && (
+                      <>
+                        <SubmenuLink to="/admin" label="Eventos" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>} />
+                        <SubmenuLink to="/import" label="Importar" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>} />
+                        <SubmenuDivider />
+                      </>
+                    )}
+
+                    {/* Logout */}
+                    <button onClick={handleLogout}
+                      style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 16px", background: "none", border: "none", color: "var(--text-primary)", fontSize: 14, cursor: "pointer", transition: "background 0.2s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "none")}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -251,5 +285,3 @@ function App() {
 }
 
 export default App;
-
-/* ── Fix: user header button SVG color ── */
