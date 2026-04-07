@@ -30,7 +30,7 @@ export default function ImportPage({ user }) {
     try {
       const formData = new FormData();
       formData.append("icsFile", file);
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/import-ics`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/import/import-ics`, {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
