@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const V = (name) => `var(${name})`;
+const API_URL = import.meta.env.VITE_API_URL || "";
+const DEFAULT_FEED_URL = "https://ics.teamup.com/feed/ksqvj6k9irbm6cadp6/0.ics";
 
 export default function ImportPage({ user }) {
   const [files, setFiles] = useState([]);
@@ -8,6 +10,46 @@ export default function ImportPage({ user }) {
   const [result, setResult] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
+  
+  // TeamUp feed sync
+  const [feedUrl, setFeedUrl] = useState("");
+  const [feedResult, setFeedResult] = useState(null);
+  const [feedLoading, setFeedLoading] = useState(false);
+  
+  useEffect(() => {
+    const saved = localStorage.getItem("teamup_feed_url");
+    if (saved) setFeedUrl(saved);
+  }, []);
+
+  const handleFeedUrlSave = () => {
+    if (feedUrl.trim()) {
+      localStorage.setItem("teamup_feed_url", feedUrl.trim());
+    } else {
+      localStorage.removeItem("teamup_feed_url");
+    }
+  };
+
+  const handleFeedImport = async () => {
+    setFeedLoading(true);
+    setFeedResult(null);
+    try {
+      const url = feedUrl.trim() || DEFAULT_FEED_URL;
+      const res = await fetch(`${API_URL}/api/import/import-teamup`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ feedUrl: url }),
+      });
+      const data = await res.json();
+      setFeedResult(data);
+    } catch (err) {
+      setFeedResult({ error: "Erro na importação: " + err.message });
+    } finally {
+      setFeedLoading(false);
+    }
+  };
 
   if (!user || user.role !== "admin") {
     return <div style={{ textAlign: "center", padding: 80, color: V("--text-secondary") }}>Acesso restrito a administradores.</div>;
@@ -55,7 +97,54 @@ export default function ImportPage({ user }) {
 
   return (
     <div style={{ maxWidth: 672, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: V("--text-heading") }}>📥 Importar Ficheiros .ics</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: V("--text-heading") }}>📥 Importar Eventos</h1>
+
+      {/* TeamUp Feed */}
+      <div style={{ background: V("--card-bg"), border: `1px solid ${V("--border")}`, borderRadius: 12, padding: 20, marginBottom: 32 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: V("--text-heading") }}>🔄 Sincronização TeamUp</h2>
+
+        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: V("--text-secondary"), marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>URL do Feed ICS</label>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            type="url"
+            value={feedUrl}
+            onChange={(e) => setFeedUrl(e.target.value)}
+            placeholder={DEFAULT_FEED_URL}
+            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${V("--border-input")}`, background: V("--bg-input"), color: V("--text-primary"), fontSize: 13, outline: "none", boxSizing: "border-box" }}
+          />
+          <button
+            onClick={handleFeedUrlSave}
+            style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${V("--border")}`, background: V("--card-bg"), color: V("--text-primary"), cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}
+          >Guardar</button>
+        </div>
+
+        <button
+          onClick={handleFeedImport}
+          disabled={feedLoading}
+          style={{
+            background: feedLoading ? V("--text-muted") : "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "#fff", padding: "10px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, border: "none", cursor: feedLoading ? "not-allowed" : "pointer", width: "100%",
+          }}
+        >
+          {feedLoading ? "A sincronizar..." : "🔄 Importar do TeamUp agora"}
+        </button>
+
+        {feedResult && (
+          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
+            {feedResult.error ? (
+              <p style={{ margin: 0, color: "#ff6b6b" }}>❌ {feedResult.error}</p>
+            ) : (
+              <>
+                <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Importados:</strong> {feedResult.imported} eventos</p>
+                {feedResult.skipped != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Ignorados (duplicados):</strong> {feedResult.skipped}</p>}
+                {feedResult.total != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Total no feed:</strong> {feedResult.total}</p>}
+              </>
+            )}
+          </div>
+        )}
+
+        <p style={{ margin: "12px 0 0", fontSize: 12, color: V("--text-muted") }}>ℹ️ A sincronização automática também corre de hora a hora no servidor.</p>
+      </div>
 
       <div
         style={{

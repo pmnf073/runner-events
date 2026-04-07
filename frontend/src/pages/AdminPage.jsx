@@ -305,6 +305,8 @@ export default function AdminPage({ user }) {
   const { events, loading, fetchEvents } = useEvents();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("");
 
   const handleDelete = async (id) => {
     if (!confirm("Eliminar este evento?")) return;
@@ -359,6 +361,18 @@ export default function AdminPage({ user }) {
     );
   }
 
+  // Filter events by search text and/or type
+  const filtered = events.filter((ev) => {
+    const matchSearch = !search ||
+      ev.title.toLowerCase().includes(search.toLowerCase()) ||
+      (ev.location || "").toLowerCase().includes(search.toLowerCase()) ||
+      (ev.description || "").toLowerCase().includes(search.toLowerCase());
+    const matchType = !filterType || ev.type === filterType;
+    return matchSearch && matchType;
+  });
+
+  const clearFilters = () => { setSearch(""); setFilterType(""); };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -371,10 +385,44 @@ export default function AdminPage({ user }) {
         </button>
       </div>
 
+      {/* Search bar */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Pesquisar por título, local, descrição..."
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+        <div style={{ minWidth: 160 }}>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 14, outline: "none" }}
+          >
+            <option value="">Todos os tipos</option>
+            {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </div>
+        {(search || filterType) && (
+          <button onClick={clearFilters}
+            style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>
+            ✕ Limpar
+          </button>
+        )}
+      </div>
+      {filtered.length < events.length && (
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: -8, marginBottom: 8 }}>
+          Mostrando {filtered.length} de {events.length} eventos
+        </p>
+      )}
+
       {loading && <div className="text-center py-12 text-gray-400">Carregando...</div>}
 
       <div className="mt-6 space-y-3">
-        {events.map((ev) => (
+        {filtered.map((ev) => (
           <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
             <div>
               <h3 className="font-medium">{ev.title}</h3>
@@ -392,7 +440,12 @@ export default function AdminPage({ user }) {
             </div>
           </div>
         ))}
-        {!loading && events.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum evento criado.</p>}
+        {filtered.length > 0 || loading || null}
+        {!loading && filtered.length === 0 && (
+          <p className="text-gray-500 text-center py-8">
+            {events.length === 0 ? "Nenhum evento criado." : "Nenhum evento corresponde à pesquisa."}
+          </p>
+        )}
       </div>
     </div>
   );
