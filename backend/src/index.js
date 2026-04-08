@@ -11,6 +11,7 @@ import eventRoutes from "./routes/events.js";
 import rsvpRoutes from "./routes/rsvps.js";
 import importRoutes from "./routes/import.js";
 import adminUsersRoutes from "./routes/admin-users.js";
+import staffUsersRoutes from "./routes/staff-users.js";
 import membersRoutes from "./routes/members.js";
 import paymentsRoutes from "./routes/payments.js";
 
@@ -54,6 +55,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/rsvps", rsvpRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api/staff", staffUsersRoutes);
 app.use("/api/members", membersRoutes);
 app.use("/api/payments", paymentsRoutes);
 

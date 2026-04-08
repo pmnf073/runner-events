@@ -37,6 +37,7 @@ const POSITION_LABELS = {
 export default function MembersPage({ user }) {
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,6 +72,7 @@ export default function MembersPage({ user }) {
     }
     loadMembers();
     loadStats();
+    loadStaffUsers();
   }, [user]);
 
   useEffect(() => {
@@ -94,6 +96,14 @@ export default function MembersPage({ user }) {
     api("/api/members/stats")
       .then(async (r) => {
         if (r.ok) setStats(await r.json());
+      })
+      .catch(() => {});
+  }
+
+  function loadStaffUsers() {
+    api("/api/staff/users")
+      .then(async (r) => {
+        if (r.ok) setUsers(await r.json());
       })
       .catch(() => {});
   }
@@ -358,12 +368,10 @@ export default function MembersPage({ user }) {
         </button>
       </div>
 
-      {showInactive && (
-        <button onClick={() => setShowConvertModal(true)}
-          style={{ marginBottom: 16, padding: "8px 16px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500, fontSize: 14 }}>
-          + Ativar novo sócio
-        </button>
-      )}
+      <button onClick={() => setShowConvertModal(true)}
+        style={{ marginBottom: 16, padding: "8px 16px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500, fontSize: 14 }}>
+        + Ativar novo sócio
+      </button>
 
       {error && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{error}</p>}
 
@@ -441,9 +449,19 @@ export default function MembersPage({ user }) {
             onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: "var(--text-heading)" }}>Ativar novo sócio</h2>
             <label style={{ display: "block", marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>ID do Utilizador (User ID)</span>
-              <input value={convertUserId} onChange={(e) => setConvertUserId(e.target.value)}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+              <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Utilizador</span>
+              <select value={convertUserId} onChange={(e) => setConvertUserId(e.target.value)} required
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }}>
+                <option value="">Selecionar utilizador...</option>
+                {users.filter(u => !members.find(m => m.userId === u.id)).map(u => (
+                  <option key={u.id} value={u.id}>{u.name} ({u.email}) — {u.role}</option>
+                ))}
+              </select>
+              {users.filter(u => !members.find(m => m.userId === u.id)).length === 0 && (
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, marginBottom: 0 }}>
+                  Todos os utilizadores já são sócios.
+                </p>
+              )}
             </label>
             <label style={{ display: "block", marginBottom: 16 }}>
               <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Notas (opcional)</span>
