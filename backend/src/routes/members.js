@@ -1,19 +1,29 @@
 import express from "express";
+import jwt from "jsonwebtoken";
 import prisma from "../db.js";
-import adminMiddleware from "../middleware/admin.js";
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 
-/* ── Middleware: require admin or organizer ── */
-function requireStaff(req, res, next) {
-  if (!req.user || !["admin", "organizer"].includes(req.user.role)) {
-    return res.status(403).json({ error: "Acesso restrito." });
+function requireAdminOrOrganizer(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Auth required" });
   }
-  next();
+  try {
+    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+    if (!["admin", "organizer"].includes(payload.role)) {
+      return res.status(403).json({ error: "Acesso restrito." });
+    }
+    req.user = payload;
+    next();
+  } catch {
+    res.status(401).json({ error: "Token inválido" });
+  }
 }
 
 /* ── GET /api/members — list all members with user data ── */
-router.get("/", requireStaff, async (req, res) => {
+router.get("/", requireAdminOrOrganizer, async (req, res) => {
   try {
     const members = await prisma.member.findMany({
       include: {
@@ -63,7 +73,7 @@ router.get("/", requireStaff, async (req, res) => {
 });
 
 /* ── GET /api/members/:id — single member detail ── */
-router.get("/:id", requireStaff, async (req, res) => {
+router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
     const member = await prisma.member.findUnique({
       where: { id: req.params.id },
@@ -88,7 +98,7 @@ router.get("/:id", requireStaff, async (req, res) => {
 });
 
 /* ── POST /api/members — activate/convert user to member ── */
-router.post("/", requireStaff, async (req, res) => {
+router.post("/", requireAdminOrOrganizer, async (req, res) => {
   try {
     const { userId, notes } = req.body;
     if (!userId) return res.status(400).json({ error: "userId é obrigatório." });
@@ -119,7 +129,7 @@ router.post("/", requireStaff, async (req, res) => {
 });
 
 /* ── PUT /api/members/:id — update member associativo data ── */
-router.put("/:id", requireStaff, async (req, res) => {
+router.put("/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
     const { status, position, notes, resignationDate } = req.body;
     const data = {};
@@ -147,7 +157,7 @@ router.put("/:id", requireStaff, async (req, res) => {
 });
 
 /* ── DELETE /api/members/:id — remove member (cascade to user via relation) ── */
-router.delete("/:id", requireStaff, async (req, res) => {
+router.delete("/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
     await prisma.member.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
@@ -161,7 +171,7 @@ router.delete("/:id", requireStaff, async (req, res) => {
 });
 
 /* ── GET /api/members/balance/:id — get current balance ── */
-router.get("/balance/:id", requireStaff, async (req, res) => {
+router.get("/balance/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
     const debits = await prisma.accountEntry.aggregate({
       where: { memberId: req.params.id, type: "debit" },
@@ -190,7 +200,7 @@ router.get("/balance/:id", requireStaff, async (req, res) => {
 /* ── Annual Fee Configuration ── */
 
 // GET /api/fees
-router.get("/fees", requireStaff, async (req, res) => {
+router.get("/fees", requireAdminOrOrganizer, async (req, res) => {
   try {
     const fees = await prisma.annualFeeConfig.findMany({ orderBy: { year: "desc" } });
     res.json(fees);
@@ -201,7 +211,7 @@ router.get("/fees", requireStaff, async (req, res) => {
 });
 
 // POST /api/fees
-router.post("/fees", requireStaff, async (req, res) => {
+router.post("/fees", requireAdminOrOrganizer, async (req, res) => {
   try {
     const { year, amount, dueDate, earlybirdDiscount, earlybirdDeadline } = req.body;
     if (!year || amount == null || !dueDate) {
@@ -233,7 +243,7 @@ router.post("/fees", requireStaff, async (req, res) => {
 });
 
 /* ── POST /api/fees/:year/generate-memberships — generate pending memberships for all active members ── */
-router.post("/fees/:year/generate-memberships", requireStaff, async (req, res) => {
+router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     if (isNaN(year)) return res.status(400).json({ error: "Ano inválido." });
@@ -279,7 +289,7 @@ router.post("/fees/:year/generate-memberships", requireStaff, async (req, res) =
 });
 
 /* ── GET /api/members/stats — quick stats for admin dashboard ── */
-router.get("/stats", requireStaff, async (req, res) => {
+router.get("/stats", requireAdminOrOrganizer, async (req, res) => {
   try {
     const totalMembers = await prisma.member.count();
     const activeMembers = await prisma.member.count({ where: { status: "active" } });
