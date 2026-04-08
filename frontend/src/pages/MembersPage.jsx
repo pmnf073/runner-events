@@ -102,7 +102,7 @@ export default function MembersPage({ user }) {
   }
 
   function loadStaffUsers() {
-    api("/api/staff/users")
+    api("/api/admin/users")
       .then(async (r) => {
         if (r.ok) {
           setUsers(await r.json());
