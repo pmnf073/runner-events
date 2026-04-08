@@ -38,6 +38,7 @@ export default function MembersPage({ user }) {
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [users, setUsers] = useState([]);
+  const [usersError, setUsersError] = useState("");
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,9 +104,16 @@ export default function MembersPage({ user }) {
   function loadStaffUsers() {
     api("/api/staff/users")
       .then(async (r) => {
-        if (r.ok) setUsers(await r.json());
+        if (r.ok) {
+          setUsers(await r.json());
+          setUsersError("");
+        } else {
+          setUsersError(`Erro ${r.status}: ${r.statusText}`);
+        }
       })
-      .catch(() => {});
+      .catch((err) => {
+        setUsersError(err.message);
+      });
   }
 
   function applyFilters() {
