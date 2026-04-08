@@ -346,7 +346,7 @@ export default function MembersPage({ user }) {
       </div>
 
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
           <StatCard label="Total Sócios" value={stats.totalMembers} color="var(--text-heading)" />
           <StatCard label="Ativos" value={stats.activeMembers} color="#22c55e" />
           <StatCard label={`Quotas ${stats.currentYear}`} value={`${stats.paidThisYear} pagas`} color="#3b82f6" />
