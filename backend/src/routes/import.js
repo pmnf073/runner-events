@@ -238,6 +238,7 @@ router.post("/import-teamup", async (req, res) => {
     let updated = 0;
     let skipped = 0;
     const seen = new Set();
+    console.log("TeamUp import: force =", force, "total events =", allEvents.length);
     for (const event of allEvents) {
       const key = event.sourceUid || `${event.title}|${event.date}`;
       if (seen.has(key)) { skipped++; continue; }
@@ -250,6 +251,7 @@ router.post("/import-teamup", async (req, res) => {
         const existing = await prisma.event.findFirst({ where, select: { id: true, description: true } });
         
         const shouldUpdate = force || !existing || !existing.description || existing.description.length < (event.description?.length || 0);
+        console.log("Event:", event.title, "| existing:", !!existing, "| shouldUpdate:", shouldUpdate, "| desc length:", event.description?.length);
         
         await prisma.event.upsert({
           where,
@@ -280,9 +282,11 @@ router.post("/import-teamup", async (req, res) => {
           skipped++;
         }
       } catch (err) {
+        console.error("Error importing event:", event.title, err);
         if (err.code === "P2002") skipped++;
       }
     }
+    console.log("TeamUp import result: imported =", imported, "updated =", updated, "skipped =", skipped);
     res.json({ imported, updated, skipped, total: allEvents.length, source: "TeamUp ICS Feed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
