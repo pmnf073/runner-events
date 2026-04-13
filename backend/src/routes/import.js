@@ -95,6 +95,7 @@ function parseICS(icsContent) {
       endDate: dtendRaw ? parseDate(dtendRaw)?.toISOString() : null,
       location: location?.substring(0, 200) || null,
       type,
+      _rawDescription: description,
       club: "Alverca Urban Runners",
       sourceUid: uid,
     });
@@ -274,7 +275,12 @@ router.post("/import-teamup", async (req, res) => {
         
         const existingDesc = existingId ? await prisma.event.findUnique({ where: { id: existingId }, select: { description: true } }) : null;
         const shouldUpdate = force || !existingDesc?.description || existingDesc.description.length < (event.description?.length || 0);
-        console.log("Event:", event.title, "| existingId:", existingId, "| shouldUpdate:", shouldUpdate, "| desc length:", event.description?.length);
+        console.log("======== RAW DESCRIPTION ========");
+        console.log("Title:", event.title);
+        console.log(event._rawDescription);
+        console.log("======== CLEANED DESCRIPTION ========");
+        console.log(event.description);
+        console.log("====================================");
         
         if (where) {
           await prisma.event.update({
