@@ -42,7 +42,7 @@ export default function AboutPage() {
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        background: `linear-gradient(135deg, ${V("--bg-page")} 0%, #0D2137 100%)`,
+        background: `linear-gradient(135deg, rgba(8,20,32,0.92) 0%, rgba(13,33,55,0.88) 100%), url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1920&q=80') center/cover no-repeat`,
         overflow: "hidden",
       }}>
         <div style={{
@@ -149,8 +149,9 @@ export default function AboutPage() {
       </section>
 
       {/* ── QUEM SOMOS ── */}
-      <section style={{ padding: "80px 24px", background: V("--bg-card") }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+      <section style={{ padding: "80px 24px", background: `linear-gradient(180deg, ${V("--bg-card")} 0%, ${V("--bg-page")} 100%)`, position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, background: `url('https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=1920&q=60') center/cover no-repeat`, opacity: 0.15 }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
           <FadeIn>
             <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Quem Somos</span>
             <h2 style={{
@@ -454,7 +455,7 @@ export default function AboutPage() {
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#CC3333"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = V("--border-subtle"); e.currentTarget.style.transform = "translateY(0)"; }}
               >
-                <span style={{ fontSize: 24 }}>📘</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                 <span style={{ fontWeight: 500 }}>Facebook</span>
               </a>
               <a href="https://www.instagram.com/alvercaurbanrunners/"
@@ -475,7 +476,7 @@ export default function AboutPage() {
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#CC3333"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = V("--border-subtle"); e.currentTarget.style.transform = "translateY(0)"; }}
               >
-                <span style={{ fontSize: 24 }}>📷</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="url(#instagram-gradient)"><defs><linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFD600"/><stop offset="50%" stop-color="#FF3D00"/><stop offset="100%" stop-color="#8C00FF"/></linearGradient></defs><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153.509.5.902 1.105 1.153 1.772.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 01-1.153 1.772c-.5.508-1.105.902-1.772 1.153-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 01-1.772-1.153 4.904 4.904 0 01-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 011.153-1.772A4.897 4.897 0 015.45 2.525c.637-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 1.802c-2.67 0-2.986.01-4.04.058-.976.045-1.505.207-1.858.344-.466.182-.8.398-1.15.748-.35.35-.566.684-.748 1.15-.137.353-.3.882-.344 1.857-.048 1.055-.058 1.37-.058 4.041 0 2.67.01 2.986.058 4.04.045.976.207 1.505.344 1.858.182.466.399.8.748 1.15.35.35.684.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058 2.67 0 2.987-.01 4.04-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.684.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041 0-2.67-.01-2.986-.058-4.04-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.055-.048-1.37-.058-4.041-.058zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 <span style={{ fontWeight: 500 }}>Instagram</span>
               </a>
             </div>
