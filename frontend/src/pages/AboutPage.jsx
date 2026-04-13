@@ -1,29 +1,98 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
-function FadeIn({ children, delay = 0 }) {
+function Reveal({ children, delay = 0 }) {
   const [visible, setVisible] = useState(false);
-  const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(true);
-      setHasAnimated(true);
-    }, delay);
+    const timer = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(timer);
   }, [delay]);
 
   return (
-    <div style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(20px)",
-      transition: "opacity 0.6s ease, transform 0.6s ease",
-    }}>
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(20px)",
+        transition: "opacity 650ms ease, transform 650ms ease",
+      }}
+    >
       {children}
     </div>
+  );
+}
+
+function SectionTitle({ tag, title, subtitle }) {
+  return (
+    <div style={{ marginBottom: 34 }}>
+      <p
+        style={{
+          margin: 0,
+          color: "#CC3333",
+          textTransform: "uppercase",
+          letterSpacing: 1.6,
+          fontWeight: 700,
+          fontSize: 12,
+        }}
+      >
+        {tag}
+      </p>
+      <h2
+        style={{
+          margin: "12px 0 12px",
+          color: V("--text-heading"),
+          lineHeight: 1.12,
+          fontSize: "clamp(30px, 5vw, 46px)",
+          fontWeight: 800,
+          letterSpacing: -0.8,
+          fontFamily: "Oswald, Inter, system-ui, sans-serif",
+        }}
+      >
+        {title}
+      </h2>
+      {subtitle ? (
+        <p
+          style={{
+            margin: 0,
+            color: V("--text-secondary"),
+            lineHeight: 1.72,
+            maxWidth: 760,
+            fontSize: "clamp(16px, 2.4vw, 18px)",
+          }}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ActionButton({ children, ...props }) {
+  return (
+    <a
+      {...props}
+      style={{
+        textDecoration: "none",
+        padding: "13px 24px",
+        borderRadius: 999,
+        fontWeight: 800,
+        transition: "transform 200ms ease, border-color 200ms ease, background 200ms ease",
+        ...props.style,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-3px)";
+        if (props.onMouseEnter) props.onMouseEnter(e);
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        if (props.onMouseLeave) props.onMouseLeave(e);
+      }}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -31,555 +100,586 @@ export default function AboutPage() {
   const { theme } = useTheme();
   const logoSrc = theme === "light" ? "/logo-light.png" : "/logo.png";
 
-  return (
-    <div style={{ margin: 0, padding: 0, overflow: "hidden" }}>
+  const feed = useMemo(
+    () => [
+      "Terca de series progressivas com 30+ atletas em pista.",
+      "Nova estreia em 10K: celebracao total na meta.",
+      "Trail de domingo com sunrise run e cafe de equipa no final.",
+    ],
+    [],
+  );
 
-      {/* ── HERO SECTION ── */}
-      <section style={{
-        position: "relative",
-        minHeight: "90vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        background: `linear-gradient(135deg, rgba(8,20,32,0.92) 0%, rgba(13,33,55,0.88) 100%), url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1920&q=80') center/cover no-repeat`,
+  return (
+    <div
+      style={{
+        marginTop: -24,
+        marginLeft: -32,
+        width: "calc(100% + 64px)",
         overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: "radial-gradient(circle at 30% 70%, rgba(204,51,51,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 30%, rgba(54,194,206,0.1) 0%, transparent 50%)",
-        }} />
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
-        
-        <div style={{ position: "relative", zIndex: 1, padding: "0 24px", maxWidth: 900 }}>
-          <FadeIn>
-            <img src={logoSrc} alt="AUR" style={{ height: 80, width: "auto", margin: "0 auto 32px", display: "block" }} />
-          </FadeIn>
-          
-          <FadeIn delay={150}>
-            <h1 style={{
-              fontSize: "clamp(36px, 8vw, 64px)",
-              fontWeight: 800,
-              color: V("--text-heading"),
-              margin: "0 0 24px",
-              lineHeight: 1.1,
-              letterSpacing: "-1px",
-            }}>
-              CORRE CONNOSCO.<br />
-              <span style={{ color: "#CC3333" }}>CRESCE CONNOSCO.</span>
+        background: V("--bg-page"),
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+        @keyframes moveGrid {
+          0% { background-position: 0 0; }
+          100% { background-position: 180px 0; }
+        }
+        @keyframes pulseBar {
+          0% { opacity: 0.35; transform: scaleY(1); }
+          50% { opacity: 0.75; transform: scaleY(1.08); }
+          100% { opacity: 0.35; transform: scaleY(1); }
+        }
+        @media (max-width: 860px) {
+          .about-wrapper {
+            margin-left: -16px;
+            width: calc(100% + 32px);
+          }
+          .about-section {
+            padding: 62px 18px;
+          }
+        }
+      `}</style>
+
+      <section
+        className="about-wrapper"
+        style={{
+          position: "relative",
+          minHeight: "88vh",
+          padding: "90px 24px 80px",
+          display: "flex",
+          alignItems: "center",
+          background:
+            "linear-gradient(120deg, rgba(8,20,32,0.9) 0%, rgba(13,33,55,0.72) 100%), url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1900&q=80') center/cover no-repeat",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at 16% 24%, rgba(204,51,51,0.28), transparent 50%), radial-gradient(circle at 82% 70%, rgba(54,194,206,0.22), transparent 48%)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(180deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+            animation: "moveGrid 13s linear infinite",
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1080, margin: "0 auto", width: "100%" }}>
+          <Reveal>
+            <img src={logoSrc} alt="Alverca Urban Runners" style={{ height: 76, width: "auto", marginBottom: 26 }} />
+          </Reveal>
+          <Reveal delay={120}>
+            <h1
+              style={{
+                margin: "0 0 16px",
+                color: "#fff",
+                lineHeight: 1.03,
+                letterSpacing: -1.2,
+                fontSize: "clamp(38px, 8vw, 86px)",
+                textTransform: "uppercase",
+                fontWeight: 800,
+                fontFamily: "Oswald, Inter, system-ui, sans-serif",
+              }}
+            >
+              Corre connosco.
+              <br />
+              <span style={{ color: "#CC3333" }}>Cresce connosco.</span>
             </h1>
-          </FadeIn>
-          
-          <FadeIn delay={300}>
-            <p style={{
-              fontSize: "clamp(16px, 3vw, 20px)",
-              color: V("--text-secondary"),
-              margin: "0 auto 40px",
-              maxWidth: 600,
-              lineHeight: 1.6,
-            }}>
-              Um grupo de corrida comunitario que nasceu de uma amizade e se tornou numa família. 
-              Aqui, ninguém corre sozinho.
+          </Reveal>
+          <Reveal delay={220}>
+            <p
+              style={{
+                margin: "0 0 32px",
+                maxWidth: 720,
+                color: "rgba(255,255,255,0.88)",
+                lineHeight: 1.72,
+                fontSize: "clamp(17px, 2.8vw, 22px)",
+              }}
+            >
+              Em Alverca, cada treino e um passo para mais saude, mais confianca e mais comunidade.
+              Somos energia em movimento para todos os niveis.
             </p>
-          </FadeIn>
-          
-          <FadeIn delay={450}>
-            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link to="/"
+          </Reveal>
+          <Reveal delay={320}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Link
+                to="/register"
                 style={{
+                  textDecoration: "none",
                   background: "#CC3333",
                   color: "#fff",
-                  padding: "16px 36px",
-                  borderRadius: 8,
-                  textDecoration: "none",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  transition: "transform 0.2s, background 0.2s",
-                  display: "inline-block",
+                  padding: "13px 24px",
+                  borderRadius: 999,
+                  border: "2px solid #CC3333",
+                  fontWeight: 800,
+                  transition: "transform 200ms ease, background 200ms ease",
                 }}
-                onMouseEnter={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.background = "#be0000"; }}
-                onMouseLeave={e => { e.target.style.transform = "translateY(0)"; e.target.style.background = "#CC3333"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                  e.currentTarget.style.background = "#AF1010";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.background = "#CC3333";
+                }}
               >
-                Junga-te a nós
+                Junta-te a nos
               </Link>
-              <a href="https://www.instagram.com/alvercaurbanrunners/"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: "transparent",
-                  color: V("--text-primary"),
-                  padding: "16px 36px",
-                  borderRadius: 8,
-                  textDecoration: "none",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  border: `2px solid ${V("--border-subtle")}`,
-                  transition: "border-color 0.2s",
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = "#CC3333"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = V("--border-subtle")}
+              <ActionButton
+                href="mailto:alvercaurbanrunners@gmail.com"
+                style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.7)", background: "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.7)")}
               >
-                Seguir nas redes
-              </a>
+                Vem treinar
+              </ActionButton>
             </div>
-          </FadeIn>
+          </Reveal>
         </div>
-        
-        <div style={{
-          position: "absolute",
-          bottom: 40,
-          left: "50%",
-          transform: "translateX(-50%)",
-          animation: "bounce 2s infinite",
-        }}>
-          <span style={{ fontSize: 24, color: V("--text-muted") }}>↓</span>
-        </div>
-        <style>{`
-          @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-            40% { transform: translateX(-50%) translateY(-10px); }
-            60% { transform: translateX(-50%) translateY(-5px); }
-          }
-        `}</style>
       </section>
 
-      {/* ── QUEM SOMOS ── */}
-      <section style={{ padding: "80px 24px", background: `linear-gradient(180deg, ${V("--bg-card")} 0%, ${V("--bg-page")} 100%)`, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: `url('https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=1920&q=60') center/cover no-repeat`, opacity: 0.15 }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Quem Somos</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 24px",
-              lineHeight: 1.2,
-            }}>
-              Mais do que um grupo de corrida. Uma família.
-            </h2>
-          </FadeIn>
-          
-          <FadeIn delay={150}>
-            <p style={{
-              fontSize: 18,
-              color: V("--text-secondary"),
-              lineHeight: 1.8,
-              maxWidth: 700,
-              margin: "0 auto",
-            }}>
-              Os Alverca Urban Runners nasceram em 2014 de um pequeno grupo de amigos que queriam 
-              correr juntos. O que começou como treinos informais tornou-se numa comunidade que 
-              transforma a maneira de viver a corrida — com inclusão, amizade e superação. 
-              Aqui, as conquistas individuais são de todos, e cada vitória é celebrada em equipe.
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-page") }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Quem somos"
+              title="Nascemos de forma simples. Crescemos com espirito de equipa."
+              subtitle="Os Alverca Urban Runners comecaram com amigos a correr juntos. Hoje somos uma comunidade com presenca competitiva e foco total na inclusao. Aqui, ninguem corre sozinho."
+            />
+          </Reveal>
+          <Reveal delay={100}>
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+              {[
+                { value: "2014", label: "Origem organica" },
+                { value: "50+", label: "Participantes ativos" },
+                { value: "2", label: "Pontos de encontro" },
+                { value: "100%", label: "Espirito de grupo" },
+              ].map((stat) => (
+                <article
+                  key={stat.label}
+                  style={{
+                    borderRadius: 14,
+                    padding: "18px 16px",
+                    background: V("--bg-card"),
+                    border: `1px solid ${V("--border-subtle")}`,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "0 0 2px",
+                      color: "#CC3333",
+                      fontSize: 34,
+                      lineHeight: 1,
+                      fontWeight: 800,
+                      fontFamily: "Oswald, Inter, system-ui, sans-serif",
+                    }}
+                  >
+                    {stat.value}
+                  </p>
+                  <p style={{ margin: 0, color: V("--text-secondary"), fontSize: 14 }}>{stat.label}</p>
+                </article>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={180}>
+            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
+              Imagem sugerida: corrida de grupo em avenida de Alverca com diferentes idades.
             </p>
-          </FadeIn>
-          
-          <FadeIn delay={300}>
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 48,
-              marginTop: 48,
-              flexWrap: "wrap",
-            }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 48, fontWeight: 800, color: "#CC3333" }}>2014</div>
-                <div style={{ fontSize: 14, color: V("--text-muted"), textTransform: "uppercase", letterSpacing: 1 }}>Nascemos</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 48, fontWeight: 800, color: "#CC3333" }}>50+</div>
-                <div style={{ fontSize: 14, color: V("--text-muted"), textTransform: "uppercase", letterSpacing: 1 }}>Ativos</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 48, fontWeight: 800, color: "#CC3333" }}>3x</div>
-                <div style={{ fontSize: 14, color: V("--text-muted"), textTransform: "uppercase", letterSpacing: 1 }}>Semana</div>
-              </div>
-            </div>
-          </FadeIn>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── O QUE FAZEMOS ── */}
-      <section style={{ padding: "80px 24px", background: V("--bg-page") }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>O Que Fazemos</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 48px",
-            }}>
-              Corrida para todos. Sempre.
-            </h2>
-          </FadeIn>
-          
-          <div style={{ display: "grid", "gridTemplateColumns": "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
-            <FadeIn delay={100}>
-              <div style={{
-                background: V("--bg-card"),
-                borderRadius: 16,
-                padding: 32,
-                border: `1px solid ${V("--border-subtle")}`,
-                height: "100%",
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🏃</div>
-                <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Treinos Regulares</h3>
-                <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
-                  <strong style={{ color: "#CC3333" }}>Terças e Quintas</strong> — dois pontos de encontro na cidade. 
-                  Corremos em ritmos diferentes, mas sempre juntos. Os mais rápidos regressam para acompanhar quem vem atrás.
-                </p>
-                <ul style={{ color: V("--text-secondary"), paddingLeft: 20, margin: 0, lineHeight: 1.8 }}>
-                  <li>Iniciantes welcome</li>
-                  <li>Todos os níveis</li>
-                  <li>Grupos por ritmo</li>
-                </ul>
-              </div>
-            </FadeIn>
-            
-            <FadeIn delay={200}>
-              <div style={{
-                background: V("--bg-card"),
-                borderRadius: 16,
-                padding: 32,
-                border: `1px solid ${V("--border-subtle")}`,
-                height: "100%",
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🏔️</div>
-                <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Trilhos e Aventuras</h3>
-                <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
-                  <strong style={{ color: "#CC3333" }}>Sábados</strong> — saímos da cidade para explorar os trilhos da região. 
-                  Montanha, floresta, caminhos que poucos conhecem.
-                </p>
-                <ul style={{ color: V("--text-secondary"), paddingLeft: 20, margin: 0, lineHeight: 1.8 }}>
-                  <li>Trail running</li>
-                  <li>Reconhecimento de percursos</li>
-                  <li>Eventos especiais</li>
-                </ul>
-              </div>
-            </FadeIn>
-            
-            <FadeIn delay={300}>
-              <div style={{
-                background: V("--bg-card"),
-                borderRadius: 16,
-                padding: 32,
-                border: `1px solid ${V("--border-subtle")}`,
-                height: "100%",
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                cursor: "pointer",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🎉</div>
-                <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Eventos</h3>
-                <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
-                  Organizamos e participamos em provas ao longo do ano. 
-                  O <strong style={{ color: "#CC3333" }}>Trail das Encostas de Xira (TEX)</strong> é o nosso filho prinho, 
-                  e eventos como a <strong style={{ color: "#CC3333" }}>São Silvestre Pirata</strong> unem a comunidade em aventuras épicas.
-                </p>
-                <ul style={{ color: V("--text-secondary"), paddingLeft: 20, margin: 0, lineHeight: 1.8 }}>
-                  <li>TEX - Trail das Encostas de Xira</li>
-                  <li>São Silvestre Pirata</li>
-                  <li>Participação em provas nacionais</li>
-                </ul>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ENERGIA DA COMUNIDADE ── */}
-      <section style={{ padding: "80px 24px", background: "linear-gradient(180deg, #0D2137 0%, #0B1A2B 100%)", position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: `url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=60') center/cover no-repeat`, opacity: 0.1 }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Comunidade</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 24px",
-            }}>
-              Aqui, toda a gente conta. Espírito de equipe que move montanhas.
-            </h2>
-          </FadeIn>
-          
-          <FadeIn delay={150}>
-            <p style={{
-              fontSize: 18,
-              color: V("--text-secondary"),
-              lineHeight: 1.8,
-              maxWidth: 700,
-              margin: "0 auto 48px",
-            }}>
-              Não importa se nunca corriste ou se já corres há anos. 
-              O que importa é quereres vir correndo. Achas que não consegues? 
-              Nós corremos contigo até conseguires. A amizade e o apoio mútuo são o nosso combustível.
-            </p>
-          </FadeIn>
-          
-          <FadeIn delay={300}>
-            <div style={{
-              background: V("--bg-card"),
-              borderRadius: 16,
-              padding: 40,
-              border: `1px solid ${V("--border-subtle")}`,
-              borderLeft: "4px solid #CC3333",
-              position: "relative",
-            }}>
-              <div style={{ fontSize: 48, position: "absolute", top: -20, left: 20 }}>💪</div>
-              <p style={{
-                fontSize: 20,
-                fontWeight: 500,
-                color: V("--text-heading"),
-                fontStyle: "italic",
-                margin: 0,
-                lineHeight: 1.6,
-              }}>
-                "Juntei-me ao grupo sem nunca ter corrido. Hoje corro a minha primeira maratona. 
-                O grupo mudou a minha vida — não só fisicamente, mas também emocionalmente, com amizades que duram para sempre."
-              </p>
-              <p style={{ color: V("--text-muted"), marginTop: 16 }}>— Um Corredor da Família AUR</p>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── CONQUISTAS ── */}
-      <section style={{ padding: "80px 24px", background: V("--bg-page") }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Conquistas</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 48px",
-            }}>
-              As tuas vitórias são as nossas. Cada conquista é da equipe.
-            </h2>
-          </FadeIn>
-          
-          <div style={{ display: "grid", "gridTemplateColumns": "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 }}>
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-card") }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="O que fazemos"
+              title="Treinos regulares, desafios especiais e eventos com identidade."
+              subtitle="Estrutura clara para evoluir com seguranca e motivacao."
+            />
+          </Reveal>
+          <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             {[
-              { icon: "🏅", title: "Primeiros 10K", desc: "Dezenas de membros que cumpriram o primeiro 10km" },
-              { icon: "🥈", title: "Meia Maratona", desc: "Grupo completo a cruzar a meta da primeira Meia" },
-              { icon: "🥇", title: "Pódios", desc: "Vários pódios em provas de trail e estrada" },
-              { icon: "🏆", title: "Trail das Encostas", desc: "Organização do maior evento de trail da região" },
-            ].map((item, i) => (
-              <FadeIn delay={i * 100} key={item.title}>
-                <div style={{
-                  background: V("--bg-card"),
-                  borderRadius: 12,
-                  padding: 24,
-                  border: `1px solid ${V("--border-subtle")}`,
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>{item.icon}</div>
-                  <h4 style={{ fontSize: 18, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>{item.title}</h4>
-                  <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
-                </div>
-              </FadeIn>
+              {
+                title: "Treinos regulares",
+                text: "Tercas e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os niveis.",
+                points: ["Iniciantes bem-vindos", "Progressao por objetivo", "Ambiente inclusivo"],
+                hint: "Grupo a correr em circuito urbano ao fim da tarde.",
+              },
+              {
+                title: "Treinos especiais",
+                text: "Trilhos, desafios mensais e experiencias fora da rotina para trabalhar resistencia, tecnica e mentalidade.",
+                points: ["Trail running", "Desafios por equipas", "Treinos sunrise"],
+                hint: "Subida em trilho com vista panoramica.",
+              },
+              {
+                title: "Eventos",
+                text: "Destaque para o Trail Encostas de Xira e para a Sao Silvestre Pirata, alem de participacoes em provas regionais.",
+                points: ["Trail Encostas de Xira", "Sao Silvestre Pirata", "Provas de estrada e trail"],
+                hint: "Meta com celebracao coletiva e bandeiras do grupo.",
+              },
+            ].map((card, idx) => (
+              <Reveal delay={idx * 100 + 90} key={card.title}>
+                <article
+                  style={{
+                    height: "100%",
+                    borderRadius: 16,
+                    padding: 24,
+                    background: `linear-gradient(160deg, ${V("--bg-card")} 0%, rgba(11,26,43,0.86) 100%)`,
+                    border: `1px solid ${V("--border-subtle")}`,
+                    boxShadow: "0 14px 36px rgba(0,0,0,0.2)",
+                    transition: "transform 220ms ease, border-color 220ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.borderColor = "#CC3333";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.borderColor = V("--border-subtle");
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: "0 0 10px",
+                      color: V("--text-heading"),
+                      fontSize: 24,
+                      lineHeight: 1.2,
+                      fontFamily: "Oswald, Inter, system-ui, sans-serif",
+                    }}
+                  >
+                    {card.title}
+                  </h3>
+                  <p style={{ margin: "0 0 14px", color: V("--text-secondary"), lineHeight: 1.68 }}>{card.text}</p>
+                  <ul style={{ margin: "0 0 0 18px", padding: 0, color: V("--text-primary"), lineHeight: 1.6 }}>
+                    {card.points.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                  <p style={{ margin: "14px 0 0", color: V("--text-muted"), fontSize: 13 }}>
+                    Imagem sugerida: {card.hint}
+                  </p>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── IMPACTO NA COMUNIDADE ── */}
-      <section style={{ padding: "80px 24px", background: V("--bg-card") }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Comunidade</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 24px",
-            }}>
-              Mais do que corrida. Promovemos saúde e bem-estar através do desporto.
-            </h2>
-          </FadeIn>
-          
-          <FadeIn delay={150}>
-            <div style={{ display: "grid", "gridTemplateColumns": "repeat(auto-fit, minmax(200px, 1fr))", gap: 24, marginTop: 40 }}>
-              <div>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>❤️</div>
-                <h4 style={{ fontSize: 18, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>Saúde</h4>
-                <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Promovemos um estilo de vida ativo e saudável para todos</p>
-              </div>
-              <div>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🤝</div>
-                <h4 style={{ fontSize: 18, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>Parcerias</h4>
-                <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Trabalhamos com a UIN Sports e a Destino Olímpico</p>
-              </div>
-              <div>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🏘️</div>
-                <h4 style={{ fontSize: 18, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>Cidade</h4>
-                <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Somos parte ativa da vida de Alverca</p>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── REDES SOCIAIS ── */}
-      <section style={{ padding: "80px 24px", background: V("--bg-page") }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <FadeIn>
-            <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Siga-nos</span>
-            <h2 style={{
-              fontSize: "clamp(28px, 5vw, 40px)",
-              fontWeight: 700,
-              color: V("--text-heading"),
-              margin: "16px 0 48px",
-            }}>
-              Fica connosco.
-            </h2>
-          </FadeIn>
-          
-          <FadeIn delay={150}>
-            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-              <a href="https://www.facebook.com/alvercaurbanrunners/"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: V("--bg-card"),
-                  border: `1px solid ${V("--border-subtle")}`,
-                  borderRadius: 12,
-                  padding: "16px 24px",
-                  textDecoration: "none",
-                  color: V("--text-primary"),
-                  transition: "border-color 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#CC3333"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = V("--border-subtle"); e.currentTarget.style.transform = "translateY(0)"; }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                <span style={{ fontWeight: 500 }}>Facebook</span>
-              </a>
-              <a href="https://www.instagram.com/alvercaurbanrunners/"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: V("--bg-card"),
-                  border: `1px solid ${V("--border-subtle")}`,
-                  borderRadius: 12,
-                  padding: "16px 24px",
-                  textDecoration: "none",
-                  color: V("--text-primary"),
-                  transition: "border-color 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#CC3333"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = V("--border-subtle"); e.currentTarget.style.transform = "translateY(0)"; }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="url(#instagram-gradient)"><defs><linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFD600"/><stop offset="50%" stop-color="#FF3D00"/><stop offset="100%" stop-color="#8C00FF"/></linearGradient></defs><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.216.598 1.772 1.153.509.5.902 1.105 1.153 1.772.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122 0 2.717-.01 3.056-.06 4.122-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 01-1.153 1.772c-.5.508-1.105.902-1.772 1.153-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06-2.717 0-3.056-.01-4.122-.06-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 01-1.772-1.153 4.904 4.904 0 01-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12c0-2.717.01-3.056.06-4.122.05-1.066.217-1.79.465-2.428a4.88 4.88 0 011.153-1.772A4.897 4.897 0 015.45 2.525c.637-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2zm0 1.802c-2.67 0-2.986.01-4.04.058-.976.045-1.505.207-1.858.344-.466.182-.8.398-1.15.748-.35.35-.566.684-.748 1.15-.137.353-.3.882-.344 1.857-.048 1.055-.058 1.37-.058 4.041 0 2.67.01 2.986.058 4.04.045.976.207 1.505.344 1.858.182.466.399.8.748 1.15.35.35.684.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058 2.67 0 2.987-.01 4.04-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.684.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041 0-2.67-.01-2.986-.058-4.04-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.055-.048-1.37-.058-4.041-.058zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                <span style={{ fontWeight: 500 }}>Instagram</span>
-              </a>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── CTA FINAL ── */}
-      <section style={{
-        padding: "100px 24px",
-        background: "linear-gradient(135deg, #CC3333 0%, #991111 100%)",
-        textAlign: "center",
-      }}>
-        <FadeIn>
-          <h2 style={{
-            fontSize: "clamp(32px, 6vw, 48px)",
-            fontWeight: 800,
-            color: "#fff",
-            margin: "0 0 16px",
-          }}>
-            O próximo passo é teu.
-          </h2>
-          <p style={{
-            fontSize: 18,
-            color: "rgba(255,255,255,0.9)",
-            maxWidth: 500,
-            margin: "0 auto 32px",
-            lineHeight: 1.6,
-          }}>
-            Queres experimentar um treino? Queres saber mais sobre o grupo? 
-            Estamos aqui para te receber.
-          </p>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/"
-              style={{
-                background: "#fff",
-                color: "#CC3333",
-                padding: "16px 36px",
-                borderRadius: 8,
-                textDecoration: "none",
-                fontSize: 16,
-                fontWeight: 600,
-                transition: "transform 0.2s",
-              }}
-              onMouseEnter={e => e.target.style.transform = "translateY(-2px)"}
-              onMouseLeave={e => e.target.style.transform = "translateY(0)"}
-            >
-              Participar num treino
-            </Link>
-            <a href="mailto:alvercaurbanrunners@gmail.com"
-              style={{
-                background: "transparent",
-                color: "#fff",
-                padding: "16px 36px",
-                borderRadius: 8,
-                textDecoration: "none",
-                fontSize: 16,
-                fontWeight: 600,
-                border: "2px solid rgba(255,255,255,0.5)",
-                transition: "border-color 0.2s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = "#fff"}
-              onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"}
-            >
-              Falar connosco
-            </a>
+      <section
+        className="about-section"
+        style={{ padding: "84px 24px", background: "linear-gradient(180deg, #0D2137 0%, #0A1727 100%)" }}
+      >
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Energia da comunidade"
+              title="Amizade, entreajuda e motivacao em cada passada."
+              subtitle="Juntamos pessoas com ritmos diferentes e a mesma vontade de evoluir. O ambiente e proximo, humano e inspirador."
+            />
+          </Reveal>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            {[
+              '"Entrei sem conseguir correr 5K. Hoje fecho 10K com a equipa a puxar por mim."',
+              '"Nos dias dificeis, o grupo ajuda-me a manter o foco. Nunca corro sozinho."',
+              '"Mais do que treino, encontrei amizades e uma rotina que mudou a minha vida."',
+            ].map((quote, idx) => (
+              <Reveal delay={idx * 100 + 100} key={quote}>
+                <article
+                  style={{
+                    borderRadius: 14,
+                    padding: 22,
+                    minHeight: 148,
+                    background: "rgba(11,26,43,0.9)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    color: "rgba(255,255,255,0.92)",
+                    lineHeight: 1.68,
+                  }}
+                >
+                  {quote}
+                </article>
+              </Reveal>
+            ))}
           </div>
-        </FadeIn>
+          <Reveal delay={420}>
+            <p style={{ margin: "18px 0 0", color: "rgba(255,255,255,0.64)", fontSize: 13 }}>
+              Imagem sugerida: foto de grupo diverso pos-treino, com celebracao espontanea.
+            </p>
+          </Reveal>
+        </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{
-        padding: "24px",
-        background: V("--bg-footer"),
-        textAlign: "center",
-        borderTop: `1px solid ${V("--border-subtle")}`,
-      }}>
-        <img src={logoSrc} alt="AUR" style={{ height: 40, width: "auto", margin: "0 auto 16px", display: "block", opacity: 0.6 }} />
-        <p style={{ fontSize: 14, color: V("--text-muted"), margin: 0 }}>
-          Alverca Urban Runners © {new Date().getFullYear()} — Vamos descobrir a cidade
-        </p>
-      </footer>
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-page") }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Conquistas"
+              title="As conquistas individuais sao vitorias de todos."
+              subtitle="Do primeiro 10K aos podios, cada passo tem apoio coletivo."
+            />
+          </Reveal>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            {[
+              { year: "2024", text: "Primeiros 10K de novos membros com pacers da equipa." },
+              { year: "2025", text: "Entradas em meias maratonas e trails tecnicos." },
+              { year: "2025", text: "Podios regionais em provas de estrada e montanha." },
+              { year: "2026", text: "Mais superacoes pessoais e maior impacto na cidade." },
+            ].map((item, idx) => (
+              <Reveal delay={idx * 90 + 100} key={`${item.year}-${item.text}`}>
+                <article
+                  style={{
+                    position: "relative",
+                    borderRadius: 14,
+                    padding: "20px 18px 20px 20px",
+                    background: V("--bg-card"),
+                    border: `1px solid ${V("--border-subtle")}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 4,
+                      borderRadius: "14px 0 0 14px",
+                      background: "#CC3333",
+                      animation: "pulseBar 3s ease-in-out infinite",
+                    }}
+                  />
+                  <p
+                    style={{
+                      margin: "0 0 6px",
+                      color: "#36C2CE",
+                      fontSize: 13,
+                      textTransform: "uppercase",
+                      letterSpacing: 1.1,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {item.year}
+                  </p>
+                  <p style={{ margin: 0, color: V("--text-secondary"), lineHeight: 1.65 }}>{item.text}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={420}>
+            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
+              Imagem sugerida: meta de prova com medalhas e abracos entre membros.
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-card") }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Impacto na comunidade"
+              title="Corremos por nos e inspiramos Alverca a mexer-se."
+              subtitle="Promocao da saude, parcerias locais e eventos comunitarios que aproximam pessoas."
+            />
+          </Reveal>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            {[
+              "Promocao de habitos saudaveis para todas as idades.",
+              "Parcerias com agentes locais para fortalecer o desporto.",
+              "Eventos comunitarios com envolvimento direto da cidade.",
+              "Representacao ativa de Alverca em iniciativas da regiao.",
+            ].map((item, idx) => (
+              <Reveal delay={idx * 80 + 90} key={item}>
+                <article
+                  style={{
+                    borderRadius: 14,
+                    padding: 18,
+                    border: `1px solid ${V("--border-subtle")}`,
+                    background: "rgba(11,26,43,0.72)",
+                    color: V("--text-secondary"),
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {item}
+                </article>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={380}>
+            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
+              Imagem sugerida: treino aberto com participantes e familias.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-page") }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Redes sociais"
+              title="Segue o ritmo da equipa todos os dias."
+              subtitle="Facebook e Instagram com horarios, bastidores e desafios."
+            />
+          </Reveal>
+          <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            <Reveal delay={100}>
+              <a
+                href="https://www.facebook.com/alvercaurbanrunners/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  textDecoration: "none",
+                  color: V("--text-primary"),
+                  border: `1px solid ${V("--border-subtle")}`,
+                  borderRadius: 14,
+                  padding: 20,
+                  background: V("--bg-card"),
+                }}
+              >
+                <p style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700 }}>Facebook</p>
+                <p style={{ margin: 0, color: V("--text-secondary") }}>facebook.com/alvercaurbanrunners</p>
+              </a>
+            </Reveal>
+            <Reveal delay={160}>
+              <a
+                href="https://www.instagram.com/alvercaurbanrunners/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  textDecoration: "none",
+                  color: V("--text-primary"),
+                  border: `1px solid ${V("--border-subtle")}`,
+                  borderRadius: 14,
+                  padding: 20,
+                  background: V("--bg-card"),
+                }}
+              >
+                <p style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700 }}>Instagram</p>
+                <p style={{ margin: 0, color: V("--text-secondary") }}>instagram.com/alvercaurbanrunners</p>
+              </a>
+            </Reveal>
+            <Reveal delay={220}>
+              <article
+                style={{
+                  border: `1px solid ${V("--border-subtle")}`,
+                  borderRadius: 14,
+                  padding: 20,
+                  background: V("--bg-card"),
+                }}
+              >
+                <p style={{ margin: "0 0 12px", color: V("--text-heading"), fontWeight: 700 }}>
+                  Feed dinamico (simulacao)
+                </p>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {feed.map((post) => (
+                    <p
+                      key={post}
+                      style={{
+                        margin: 0,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        background: "rgba(54,194,206,0.08)",
+                        color: V("--text-secondary"),
+                        fontSize: 14,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {post}
+                    </p>
+                  ))}
+                </div>
+              </article>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="about-section"
+        style={{
+          position: "relative",
+          padding: "94px 24px",
+          textAlign: "center",
+          background: "linear-gradient(130deg, #CC3333 0%, #8E1515 100%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.2), transparent 44%), radial-gradient(circle at 80% 85%, rgba(0,0,0,0.22), transparent 55%)",
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 860, margin: "0 auto" }}>
+          <Reveal>
+            <h2
+              style={{
+                margin: "0 0 12px",
+                color: "#fff",
+                lineHeight: 1.08,
+                fontSize: "clamp(34px, 6vw, 62px)",
+                fontWeight: 800,
+                letterSpacing: -0.8,
+                fontFamily: "Oswald, Inter, system-ui, sans-serif",
+              }}
+            >
+              O proximo passo e teu.
+            </h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <p
+              style={{
+                margin: "0 auto 26px",
+                maxWidth: 620,
+                color: "rgba(255,255,255,0.92)",
+                lineHeight: 1.7,
+                fontSize: "clamp(17px, 2.6vw, 20px)",
+              }}
+            >
+              Participa num treino, conhece o grupo e descobre como e evoluir com uma equipa que acredita em ti
+              desde o primeiro dia.
+            </p>
+          </Reveal>
+          <Reveal delay={200}>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link
+                to="/register"
+                style={{
+                  textDecoration: "none",
+                  background: "#fff",
+                  color: "#B91515",
+                  fontWeight: 800,
+                  padding: "13px 24px",
+                  borderRadius: 999,
+                  transition: "transform 200ms ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-3px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+              >
+                Participar num treino
+              </Link>
+              <ActionButton
+                href="mailto:alvercaurbanrunners@gmail.com"
+                style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.84)", background: "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.84)")}
+              >
+                Falar connosco
+              </ActionButton>
+            </div>
+          </Reveal>
+        </div>
+      </section>
     </div>
   );
 }
