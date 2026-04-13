@@ -244,42 +244,63 @@ router.post("/import-teamup", async (req, res) => {
       if (seen.has(key)) { skipped++; continue; }
       seen.add(key);
       try {
-        const where = event.sourceUid 
-          ? { sourceUid: event.sourceUid }
-          : { title: event.title, date: new Date(event.date) };
+        let where;
+        let existingId = null;
         
-        const existing = await prisma.event.findFirst({ where, select: { id: true, description: true } });
+        if (event.sourceUid) {
+          const existing = await prisma.event.findFirst({ 
+            where: { sourceUid: event.sourceUid }, 
+            select: { id: true, description: true } 
+          });
+          if (existing) {
+            where = { id: existing.id };
+            existingId = existing.id;
+          }
+        }
         
-        const shouldUpdate = force || !existing || !existing.description || existing.description.length < (event.description?.length || 0);
-        console.log("Event:", event.title, "| existing:", !!existing, "| shouldUpdate:", shouldUpdate, "| desc length:", event.description?.length);
+        if (!where) {
+          const existing = await prisma.event.findFirst({ 
+            where: { title: event.title, date: new Date(event.date) }, 
+            select: { id: true, description: true } 
+          });
+          if (existing) {
+            where = { id: existing.id };
+            existingId = existing.id;
+          }
+        }
         
-        await prisma.event.upsert({
-          where,
-          create: {
-            title: event.title,
-            description: event.description,
-            date: event.date,
-            endDate: event.endDate,
-            location: event.location,
-            type: event.type,
-            club: event.club,
-            sourceUid: event.sourceUid,
-          },
-          update: shouldUpdate ? {
-            title: event.title,
-            description: event.description,
-            endDate: event.endDate,
-            location: event.location,
-            type: event.type,
-          } : {},
-        });
+        const existingDesc = existingId ? await prisma.event.findUnique({ where: { id: existingId }, select: { description: true } }) : null;
+        const shouldUpdate = force || !existingDesc?.description || existingDesc.description.length < (event.description?.length || 0);
+        console.log("Event:", event.title, "| existingId:", existingId, "| shouldUpdate:", shouldUpdate, "| desc length:", event.description?.length);
         
-        if (!existing) {
-          imported++;
-        } else if (shouldUpdate) {
-          updated++;
+        if (where) {
+          await prisma.event.update({
+            where,
+            data: {
+              title: event.title,
+              description: event.description,
+              endDate: event.endDate,
+              location: event.location,
+              type: event.type,
+              sourceUid: event.sourceUid,
+            },
+          });
+          if (shouldUpdate) updated++;
+          else skipped++;
         } else {
-          skipped++;
+          await prisma.event.create({
+            data: {
+              title: event.title,
+              description: event.description,
+              date: event.date,
+              endDate: event.endDate,
+              location: event.location,
+              type: event.type,
+              club: event.club,
+              sourceUid: event.sourceUid,
+            },
+          });
+          imported++;
         }
       } catch (err) {
         console.error("Error importing event:", event.title, err);
