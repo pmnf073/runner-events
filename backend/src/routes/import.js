@@ -157,20 +157,24 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
     // Deduplicate
     const seen = new Set();
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     const errors = [];
 
     for (const event of allEvents) {
       const key = event.sourceUid || `${event.title}|${event.date}`;
       if (seen.has(key)) { skipped++; continue; } // duplicate within batch
-      if (event.sourceUid && existingByUid.has(event.sourceUid)) { skipped++; continue; } // existing in DB by UID
-      if (!event.sourceUid && existingByTitleDate.has(key)) { skipped++; continue; } // existing in DB by title+date
 
       seen.add(key);
 
       try {
-        await prisma.event.create({
-          data: {
+        const where = event.sourceUid 
+          ? { sourceUid: event.sourceUid }
+          : { title: event.title, date: new Date(event.date) };
+        
+        const result = await prisma.event.upsert({
+          where,
+          create: {
             title: event.title,
             description: event.description,
             date: event.date,
@@ -180,8 +184,20 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
             club: event.club,
             sourceUid: event.sourceUid,
           },
+          update: {
+            title: event.title,
+            description: event.description,
+            endDate: event.endDate,
+            location: event.location,
+            type: event.type,
+          },
         });
-        imported++;
+        
+        if (result.createdAt === result.updatedAt) {
+          imported++;
+        } else {
+          updated++;
+        }
       } catch (err) {
         if (err.code === "P2002") { skipped++; }
         else { errors.push(`${event.title}: ${err.message}`); }
@@ -190,6 +206,7 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
 
     res.json({
       imported,
+      updated,
       skipped,
       total: allEvents.length,
       files: fileNames,
@@ -211,33 +228,53 @@ router.post("/import-teamup", async (req, res) => {
     const icsContent = await response.text();
     const allEvents = parseICS(icsContent);
     if (allEvents.length === 0) {
-      return res.json({ imported: 0, skipped: 0, total: 0, message: "Nenhum evento encontrado no feed" });
-    }
-
-    // Dedup by sourceUid
-    const uids = allEvents.map(e => e.sourceUid).filter(Boolean);
-    const existingByUid = new Set();
-    if (uids.length > 0) {
-      const found = await prisma.event.findMany({ where: { sourceUid: { in: uids } }, select: { sourceUid: true } });
-      found.forEach(e => existingByUid.add(e.sourceUid));
+      return res.json({ imported: 0, updated: 0, skipped: 0, total: 0, message: "Nenhum evento encontrado no feed" });
     }
 
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     const seen = new Set();
     for (const event of allEvents) {
       const key = event.sourceUid || `${event.title}|${event.date}`;
       if (seen.has(key)) { skipped++; continue; }
-      if (event.sourceUid && existingByUid.has(event.sourceUid)) { skipped++; continue; }
       seen.add(key);
       try {
-        await prisma.event.create({ data: { title: event.title, description: event.description, date: event.date, endDate: event.endDate, location: event.location, type: event.type, club: event.club, sourceUid: event.sourceUid } });
-        imported++;
+        const where = event.sourceUid 
+          ? { sourceUid: event.sourceUid }
+          : { title: event.title, date: new Date(event.date) };
+        
+        const result = await prisma.event.upsert({
+          where,
+          create: {
+            title: event.title,
+            description: event.description,
+            date: event.date,
+            endDate: event.endDate,
+            location: event.location,
+            type: event.type,
+            club: event.club,
+            sourceUid: event.sourceUid,
+          },
+          update: {
+            title: event.title,
+            description: event.description,
+            endDate: event.endDate,
+            location: event.location,
+            type: event.type,
+          },
+        });
+        
+        if (result.createdAt === result.updatedAt) {
+          imported++;
+        } else {
+          updated++;
+        }
       } catch (err) {
         if (err.code === "P2002") skipped++;
       }
     }
-    res.json({ imported, skipped, total: allEvents.length, source: "TeamUp ICS Feed" });
+    res.json({ imported, updated, skipped, total: allEvents.length, source: "TeamUp ICS Feed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
