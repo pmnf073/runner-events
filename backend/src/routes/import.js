@@ -223,6 +223,7 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
 router.post("/import-teamup", async (req, res) => {
   try {
     const feedUrl = req.body.feedUrl || process.env.TEAMUP_ICS_FEED;
+    const force = req.body.force === true;
     if (!feedUrl) return res.status(400).json({ error: "feedUrl is required or set TEAMUP_ICS_FEED in env" });
 
     const response = await fetch(feedUrl);
@@ -246,7 +247,9 @@ router.post("/import-teamup", async (req, res) => {
           ? { sourceUid: event.sourceUid }
           : { title: event.title, date: new Date(event.date) };
         
-        const existing = await prisma.event.findFirst({ where, select: { id: true } });
+        const existing = await prisma.event.findFirst({ where, select: { id: true, description: true } });
+        
+        const shouldUpdate = force || !existing || !existing.description || existing.description.length < (event.description?.length || 0);
         
         await prisma.event.upsert({
           where,
@@ -260,19 +263,21 @@ router.post("/import-teamup", async (req, res) => {
             club: event.club,
             sourceUid: event.sourceUid,
           },
-          update: {
+          update: shouldUpdate ? {
             title: event.title,
             description: event.description,
             endDate: event.endDate,
             location: event.location,
             type: event.type,
-          },
+          } : {},
         });
         
-        if (existing) {
+        if (!existing) {
+          imported++;
+        } else if (shouldUpdate) {
           updated++;
         } else {
-          imported++;
+          skipped++;
         }
       } catch (err) {
         if (err.code === "P2002") skipped++;

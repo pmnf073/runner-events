@@ -29,7 +29,7 @@ export default function ImportPage({ user }) {
     }
   };
 
-  const handleFeedImport = async () => {
+  const handleFeedImport = async (force = false) => {
     setFeedLoading(true);
     setFeedResult(null);
     try {
@@ -40,7 +40,7 @@ export default function ImportPage({ user }) {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ feedUrl: url }),
+        body: JSON.stringify({ feedUrl: url, force }),
       });
       const data = await res.json();
       setFeedResult(data);
@@ -119,7 +119,7 @@ export default function ImportPage({ user }) {
         </div>
 
         <button
-          onClick={handleFeedImport}
+          onClick={() => handleFeedImport(false)}
           disabled={feedLoading}
           style={{
             background: feedLoading ? V("--text-muted") : "linear-gradient(135deg, #667eea, #764ba2)",
@@ -129,6 +129,18 @@ export default function ImportPage({ user }) {
           {feedLoading ? "A sincronizar..." : "🔄 Importar do TeamUp agora"}
         </button>
 
+        <button
+          onClick={() => handleFeedImport(true)}
+          disabled={feedLoading}
+          style={{
+            marginTop: 8,
+            background: feedLoading ? V("--text-muted") : "#CC3333",
+            color: "#fff", padding: "8px 16px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "none", cursor: feedLoading ? "not-allowed" : "pointer", width: "100%",
+          }}
+        >
+          {feedLoading ? "A atualizar..." : "🔄 Forçar atualização (descrições)"}
+        </button>
+
         {feedResult && (
           <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
             {feedResult.error ? (
@@ -136,7 +148,8 @@ export default function ImportPage({ user }) {
             ) : (
               <>
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Importados:</strong> {feedResult.imported} eventos</p>
-                {feedResult.skipped != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Ignorados (duplicados):</strong> {feedResult.skipped}</p>}
+                {feedResult.updated != null && feedResult.updated > 0 && <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Atualizados:</strong> {feedResult.updated} eventos</p>}
+                {feedResult.skipped != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Ignorados:</strong> {feedResult.skipped}</p>}
                 {feedResult.total != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Total no feed:</strong> {feedResult.total}</p>}
               </>
             )}
