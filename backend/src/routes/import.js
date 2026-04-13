@@ -172,7 +172,9 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
           ? { sourceUid: event.sourceUid }
           : { title: event.title, date: new Date(event.date) };
         
-        const result = await prisma.event.upsert({
+        const existing = await prisma.event.findFirst({ where, select: { id: true } });
+        
+        await prisma.event.upsert({
           where,
           create: {
             title: event.title,
@@ -193,10 +195,10 @@ router.post("/import-ics", upload.array("icsFiles", 20), async (req, res) => {
           },
         });
         
-        if (result.createdAt === result.updatedAt) {
-          imported++;
-        } else {
+        if (existing) {
           updated++;
+        } else {
+          imported++;
         }
       } catch (err) {
         if (err.code === "P2002") { skipped++; }
@@ -244,7 +246,9 @@ router.post("/import-teamup", async (req, res) => {
           ? { sourceUid: event.sourceUid }
           : { title: event.title, date: new Date(event.date) };
         
-        const result = await prisma.event.upsert({
+        const existing = await prisma.event.findFirst({ where, select: { id: true } });
+        
+        await prisma.event.upsert({
           where,
           create: {
             title: event.title,
@@ -265,10 +269,10 @@ router.post("/import-teamup", async (req, res) => {
           },
         });
         
-        if (result.createdAt === result.updatedAt) {
-          imported++;
-        } else {
+        if (existing) {
           updated++;
+        } else {
+          imported++;
         }
       } catch (err) {
         if (err.code === "P2002") skipped++;
