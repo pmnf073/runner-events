@@ -34,16 +34,17 @@ function parseICS(icsContent) {
         .replace(/\\t/g, "\t");
       cleaned = cleaned.replace(/<br\s*\/?>/gi, "\n");
       cleaned = cleaned.replace(/<hr\s*\/?>/gi, "\n\n");
-      cleaned = cleaned.replace(/<\/strong>\s*([^<])/gi, "\n$1");
-      cleaned = cleaned.replace(/<strong>([^<]+)<\/strong>/gi, "$1");
+      cleaned = cleaned.replace(/<strong>([^<]*?)<\/strong>/gi, (match, text) => {
+        return text.replace(/\n/g, " ").trim();
+      });
       cleaned = cleaned.replace(/<[^>]+>/g, "");
       cleaned = cleaned.replace(/&nbsp;/g, " ");
       cleaned = cleaned.replace(/&amp;/g, "&");
       cleaned = cleaned.replace(/&lt;/g, "<");
       cleaned = cleaned.replace(/&gt;/g, ">");
-      cleaned = cleaned.replace(/\*\*/g, "");
       cleaned = cleaned.replace(/^\s*-\s+/gm, "- ");
       cleaned = cleaned.replace(/^-\s+(.+)$/gm, "- $1\n");
+      cleaned = cleaned.replace(/^- $/gm, "");
       return cleaned;
     };
 

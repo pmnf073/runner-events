@@ -141,28 +141,25 @@ export default function EventPage() {
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
                 const trimmed = line.trim();
-                const isBullet = trimmed.startsWith("-") || trimmed.startsWith("•");
-                const hasDash = trimmed.includes(" - ");
+                const isEmpty = trimmed === "";
+                const hasDash = trimmed.match(/^-\s+.+?\s+-\s+/);
                 
-                if (hasDash && !line.includes("\n")) {
-                  const dashIdx = trimmed.indexOf(" - ");
-                  const title = trimmed.substring(0, dashIdx + 3);
-                  const rest = trimmed.substring(dashIdx + 3).trim();
-                  return (
-                    <div key={i} style={{ marginBottom: 4, marginTop: 8 }}>
-                      <div style={{ fontWeight: 600 }}>{title}</div>
-                      {rest && <div style={{ paddingLeft: 16, marginTop: 2 }}>{rest}</div>}
-                    </div>
-                  );
+                if (hasDash) {
+                  const dashMatch = trimmed.match(/^-\s+(.+?)\s+-\s+(.+)$/);
+                  if (dashMatch) {
+                    return (
+                      <div key={i} style={{ marginBottom: 4, marginTop: 8 }}>
+                        <div style={{ fontWeight: 600 }}>- {dashMatch[1]} -</div>
+                        <div style={{ paddingLeft: 16, marginTop: 2 }}>{dashMatch[2]}</div>
+                      </div>
+                    );
+                  }
                 }
-                if (trimmed === "") {
-                  return <div key={i} style={{ height: 8 }} />;
+                if (isEmpty) {
+                  return <div key={i} style={{ height: 12 }} />;
                 }
                 return (
-                  <div key={i} style={{ 
-                    marginBottom: 2,
-                    paddingLeft: isBullet ? 16 : 0,
-                  }}>
+                  <div key={i} style={{ marginBottom: 2 }}>
                     {line}
                   </div>
                 );
