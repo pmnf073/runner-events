@@ -140,21 +140,27 @@ export default function EventPage() {
             <h3 style={{ fontSize: 14, fontWeight: 600, color: V("--text-secondary"), marginBottom: 8 }}>Descrição</h3>
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
-                const isBullet = line.startsWith("-");
-                if (isBullet && line.includes(" - ") && !line.startsWith("- ") && line.indexOf(" - ") < 20) {
-                  const dashIdx = line.indexOf(" - ");
-                  const title = line.substring(0, dashIdx + 3);
-                  const rest = line.substring(dashIdx + 3);
+                const trimmed = line.trim();
+                const isBullet = trimmed.startsWith("-") || trimmed.startsWith("•");
+                const hasDash = trimmed.includes(" - ");
+                
+                if (hasDash && !line.includes("\n")) {
+                  const dashIdx = trimmed.indexOf(" - ");
+                  const title = trimmed.substring(0, dashIdx + 3);
+                  const rest = trimmed.substring(dashIdx + 3).trim();
                   return (
-                    <div key={i} style={{ marginBottom: 4 }}>
-                      <div>{title}</div>
-                      {rest.trim() && <div style={{ paddingLeft: 16 }}>{rest}</div>}
+                    <div key={i} style={{ marginBottom: 4, marginTop: 8 }}>
+                      <div style={{ fontWeight: 600 }}>{title}</div>
+                      {rest && <div style={{ paddingLeft: 16, marginTop: 2 }}>{rest}</div>}
                     </div>
                   );
                 }
+                if (trimmed === "") {
+                  return <div key={i} style={{ height: 8 }} />;
+                }
                 return (
                   <div key={i} style={{ 
-                    marginBottom: 4,
+                    marginBottom: 2,
                     paddingLeft: isBullet ? 16 : 0,
                   }}>
                     {line}
