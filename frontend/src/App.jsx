@@ -154,7 +154,7 @@ function AppInner() {
             <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 52, width: "auto" }} />
             <div>
               <div style={{ fontSize: 17, fontWeight: 500, color: "var(--text-heading)", textTransform: "uppercase" }}>Alverca Urban Runners</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase", display: "none" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>
                 Vamos descobrir a cidade
               </div>
             </div>
