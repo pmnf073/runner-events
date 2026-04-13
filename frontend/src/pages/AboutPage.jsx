@@ -137,7 +137,7 @@ export default function AboutPage() {
           transform: "translateX(-50%)",
           animation: "bounce 2s infinite",
         }}>
-          <span style={{ fontSize: 24, color: V(--"--text-muted") }}>↓</span>
+          <span style={{ fontSize: 24, color: V("--text-muted") }}>↓</span>
         </div>
         <style>{`
           @keyframes bounce {
