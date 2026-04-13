@@ -140,19 +140,13 @@ export default function EventPage() {
             <h3 style={{ fontSize: 14, fontWeight: 600, color: V("--text-secondary"), marginBottom: 8 }}>Descrição</h3>
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
-                const isBullet = line.startsWith("•");
-                const isBold = /^[•\s]*\*[^*]+\*/.test(line);
-                let content = line;
-                if (isBold) {
-                  content = line.replace(/\*\*([^*]+)\*\*/g, "$1");
-                }
+                const isBullet = line.startsWith("-");
                 return (
                   <div key={i} style={{ 
                     marginBottom: 4,
-                    fontWeight: isBold ? 600 : 400,
                     paddingLeft: isBullet ? 16 : 0,
                   }}>
-                    {content}
+                    {line}
                   </div>
                 );
               })}
