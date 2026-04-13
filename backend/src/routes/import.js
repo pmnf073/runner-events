@@ -39,9 +39,13 @@ function parseICS(icsContent) {
       cleaned = cleaned.replace(/&amp;/g, "&");
       cleaned = cleaned.replace(/&lt;/g, "<");
       cleaned = cleaned.replace(/&gt;/g, ">");
-      cleaned = cleaned.replace(/\n- /g, "\n• ");
+      cleaned = cleaned.replace(/\*\*/g, "");
       cleaned = cleaned.replace(/\n---\n/g, "\n");
-      cleaned = cleaned.replace(/^\s*-\s+/gm, "• ");
+      cleaned = cleaned.replace(/---$/gm, "");
+      cleaned = cleaned.replace(/^\s*---\s*$/gm, "");
+      cleaned = cleaned.replace(/\n\* /g, "\n• ");
+      cleaned = cleaned.replace(/^\s*\* /gm, "• ");
+      cleaned = cleaned.replace(/(\w)\s+([A-Z])/g, "$1\n$2");
       return cleaned;
     };
 

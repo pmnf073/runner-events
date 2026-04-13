@@ -138,7 +138,25 @@ export default function EventPage() {
         {event.description && (
           <div style={{ marginTop: 24, padding: 16, background: `${V("--bg-card")}`, opacity: 0.5, borderRadius: 8 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: V("--text-secondary"), marginBottom: 8 }}>Descrição</h3>
-            <p style={{ color: V("--text-primary"), whiteSpace: "pre-line" }}>{event.description}</p>
+            <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              {event.description.split("\n").map((line, i) => {
+                const isBullet = line.startsWith("•");
+                const isBold = /^[•\s]*\*[^*]+\*/.test(line);
+                let content = line;
+                if (isBold) {
+                  content = line.replace(/\*\*([^*]+)\*\*/g, "$1");
+                }
+                return (
+                  <div key={i} style={{ 
+                    marginBottom: 4,
+                    fontWeight: isBold ? 600 : 400,
+                    paddingLeft: isBullet ? 16 : 0,
+                  }}>
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
