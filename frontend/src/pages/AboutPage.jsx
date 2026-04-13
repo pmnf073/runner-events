@@ -175,7 +175,8 @@ export default function AboutPage() {
             }}>
               Os Alverca Urban Runners nasceram em 2014 de um pequeno grupo de amigos que queriam 
               correr juntos. O que começou como treinos informais tornou-se numa comunidade que 
-              transforma a maneira de viver a corrida — com inclusão, amizade e superação.
+              transforma a maneira de viver a corrida — com inclusão, amizade e superação. 
+              Aqui, as conquistas individuais são de todos, e cada vitória é celebrada em equipe.
             </p>
           </FadeIn>
           
@@ -227,7 +228,12 @@ export default function AboutPage() {
                 padding: 32,
                 border: `1px solid ${V("--border-subtle")}`,
                 height: "100%",
-              }}>
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                cursor: "pointer",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+              >
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🏃</div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Treinos Regulares</h3>
                 <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
@@ -249,7 +255,12 @@ export default function AboutPage() {
                 padding: 32,
                 border: `1px solid ${V("--border-subtle")}`,
                 height: "100%",
-              }}>
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                cursor: "pointer",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+              >
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🏔️</div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Trilhos e Aventuras</h3>
                 <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
@@ -271,12 +282,18 @@ export default function AboutPage() {
                 padding: 32,
                 border: `1px solid ${V("--border-subtle")}`,
                 height: "100%",
-              }}>
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                cursor: "pointer",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-5px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+              >
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🎉</div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, color: V("--text-heading"), margin: "0 0 12px" }}>Eventos</h3>
                 <p style={{ color: V("--text-secondary"), lineHeight: 1.7, margin: "0 0 16px" }}>
                   Organizamos e participamos em provas ao longo do ano. 
-                  O <strong style={{ color: "#CC3333" }}>Trail das Encostas de Xira (TEX)</strong> é o nosso filho prinho.
+                  O <strong style={{ color: "#CC3333" }}>Trail das Encostas de Xira (TEX)</strong> é o nosso filho prinho, 
+                  e eventos como a <strong style={{ color: "#CC3333" }}>São Silvestre Pirata</strong> unem a comunidade em aventuras épicas.
                 </p>
                 <ul style={{ color: V("--text-secondary"), paddingLeft: 20, margin: 0, lineHeight: 1.8 }}>
                   <li>TEX - Trail das Encostas de Xira</li>
@@ -290,8 +307,9 @@ export default function AboutPage() {
       </section>
 
       {/* ── ENERGIA DA COMUNIDADE ── */}
-      <section style={{ padding: "80px 24px", background: "linear-gradient(180deg, #0D2137 0%, #0B1A2B 100%)" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+      <section style={{ padding: "80px 24px", background: "linear-gradient(180deg, #0D2137 0%, #0B1A2B 100%)", position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, background: `url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=60') center/cover no-repeat`, opacity: 0.1 }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
           <FadeIn>
             <span style={{ color: "#CC3333", fontWeight: 600, fontSize: 14, textTransform: "uppercase", letterSpacing: 2 }}>Comunidade</span>
             <h2 style={{
@@ -300,7 +318,7 @@ export default function AboutPage() {
               color: V("--text-heading"),
               margin: "16px 0 24px",
             }}>
-              Aqui, toda a gente conta.
+              Aqui, toda a gente conta. Espírito de equipe que move montanhas.
             </h2>
           </FadeIn>
           
@@ -314,7 +332,7 @@ export default function AboutPage() {
             }}>
               Não importa se nunca corriste ou se já corres há anos. 
               O que importa é quereres vir correndo. Achas que não consegues? 
-              Nós corremos contigo até conseguires.
+              Nós corremos contigo até conseguires. A amizade e o apoio mútuo são o nosso combustível.
             </p>
           </FadeIn>
           
@@ -325,7 +343,9 @@ export default function AboutPage() {
               padding: 40,
               border: `1px solid ${V("--border-subtle")}`,
               borderLeft: "4px solid #CC3333",
+              position: "relative",
             }}>
+              <div style={{ fontSize: 48, position: "absolute", top: -20, left: 20 }}>💪</div>
               <p style={{
                 fontSize: 20,
                 fontWeight: 500,
@@ -335,9 +355,9 @@ export default function AboutPage() {
                 lineHeight: 1.6,
               }}>
                 "Juntei-me ao grupo sem nunca ter corrido. Hoje corro a minha primeira maratona. 
-                O grupo mudou a minha vida."
+                O grupo mudou a minha vida — não só fisicamente, mas também emocionalmente, com amizades que duram para sempre."
               </p>
-              <p style={{ color: V("--text-muted"), marginTop: 16 }}>— Um，跑员</p>
+              <p style={{ color: V("--text-muted"), marginTop: 16 }}>— Um Corredor da Família AUR</p>
             </div>
           </FadeIn>
         </div>
@@ -354,7 +374,7 @@ export default function AboutPage() {
               color: V("--text-heading"),
               margin: "16px 0 48px",
             }}>
-              As tuas vitórias são as nossas.
+              As tuas vitórias são as nossas. Cada conquista é da equipe.
             </h2>
           </FadeIn>
           
@@ -394,7 +414,7 @@ export default function AboutPage() {
               color: V("--text-heading"),
               margin: "16px 0 24px",
             }}>
-              Mais do que corrida.
+              Mais do que corrida. Promovemos saúde e bem-estar através do desporto.
             </h2>
           </FadeIn>
           
