@@ -141,25 +141,18 @@ export default function EventPage() {
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
                 const trimmed = line.trim();
-                const isEmpty = trimmed === "";
-                const hasDash = trimmed.match(/^-\s+.+?\s+-\s+/);
-                
-                if (hasDash) {
-                  const dashMatch = trimmed.match(/^-\s+(.+?)\s+-\s+(.+)$/);
-                  if (dashMatch) {
-                    return (
-                      <div key={i} style={{ marginBottom: 4, marginTop: 8 }}>
-                        <div style={{ fontWeight: 600 }}>- {dashMatch[1]} -</div>
-                        <div style={{ paddingLeft: 16, marginTop: 2 }}>{dashMatch[2]}</div>
-                      </div>
-                    );
-                  }
-                }
-                if (isEmpty) {
+                if (trimmed === "") {
                   return <div key={i} style={{ height: 12 }} />;
                 }
+                if (trimmed.startsWith("- ") && !trimmed.includes("\n")) {
+                  return (
+                    <div key={i} style={{ marginBottom: 4, marginTop: 8, fontWeight: 600 }}>
+                      {line}
+                    </div>
+                  );
+                }
                 return (
-                  <div key={i} style={{ marginBottom: 2 }}>
+                  <div key={i} style={{ marginBottom: 2, paddingLeft: 16 }}>
                     {line}
                   </div>
                 );

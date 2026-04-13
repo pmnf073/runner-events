@@ -26,25 +26,48 @@ function parseICS(icsContent) {
         }
       }
       if (!value) return null;
-      let cleaned = value
+      let raw = value
         .trim()
         .replace(/\\,/g, ",")
         .replace(/\\;/g, ";")
         .replace(/\\n/g, "\n")
         .replace(/\\t/g, "\t");
-      cleaned = cleaned.replace(/<br\s*\/?>/gi, "\n");
-      cleaned = cleaned.replace(/<hr\s*\/?>/gi, "\n\n");
-      cleaned = cleaned.replace(/<strong>([^<]*?)<\/strong>/gi, (match, text) => {
-        return text.replace(/\n/g, " ").trim();
-      });
+      raw = raw.replace(/&nbsp;/g, " ");
+      raw = raw.replace(/&amp;/g, "&");
+      raw = raw.replace(/&lt;/g, "<");
+      raw = raw.replace(/&gt;/g, ">");
+      
+      let cleaned = raw.replace(/<br\s*\/?>/gi, "\n");
+      cleaned = cleaned.replace(/<hr\s*\/?>/gi, "\n---\n");
+      cleaned = cleaned.replace(/<li>/gi, "\n- ");
+      cleaned = cleaned.replace(/<\/li>/gi, "");
+      cleaned = cleaned.replace(/<ul>/gi, "");
+      cleaned = cleaned.replace(/<\/ul>/gi, "");
+      cleaned = cleaned.replace(/<strong>([^<]*?)<\/strong>/gi, "**$1**");
+      cleaned = cleaned.replace(/<b>([^<]*?)<\/b>/gi, "**$1**");
       cleaned = cleaned.replace(/<[^>]+>/g, "");
-      cleaned = cleaned.replace(/&nbsp;/g, " ");
-      cleaned = cleaned.replace(/&amp;/g, "&");
-      cleaned = cleaned.replace(/&lt;/g, "<");
-      cleaned = cleaned.replace(/&gt;/g, ">");
+      
+      cleaned = cleaned.replace(/-\s*---/g, "");
+      cleaned = cleaned.replace(/\n\s*\n+/g, "\n");
+      
+      const titleContentRegex = /\*\*([^*]+)\*\*(.*?)(?=\*\*|$)/gs;
+      const matches = [...cleaned.matchAll(titleContentRegex)];
+      
+      if (matches.length > 0) {
+        const result = matches.map((match) => {
+          const title = match[1].trim();
+          const content = match[2].trim();
+          if (content) {
+            const names = content.split("\n").filter((line) => line.trim()).map((line) => line.trim());
+            return "- " + title + "\n" + names.join("\n");
+          } else {
+            return "- " + title;
+          }
+        });
+        return result.join("\n\n");
+      }
+      
       cleaned = cleaned.replace(/^\s*-\s+/gm, "- ");
-      cleaned = cleaned.replace(/^-\s+(.+)$/gm, "- $1\n");
-      cleaned = cleaned.replace(/^- $/gm, "");
       return cleaned;
     };
 
