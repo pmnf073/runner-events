@@ -26,11 +26,23 @@ function parseICS(icsContent) {
         }
       }
       if (!value) return null;
-      return value
+      let cleaned = value
         .trim()
         .replace(/\\,/g, ",")
         .replace(/\\;/g, ";")
-        .replace(/\\n/g, "\n");
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t");
+      cleaned = cleaned.replace(/<br\s*\/?>/gi, "\n");
+      cleaned = cleaned.replace(/<hr\s*\/?>/gi, "\n---\n");
+      cleaned = cleaned.replace(/<[^>]+>/g, "");
+      cleaned = cleaned.replace(/&nbsp;/g, " ");
+      cleaned = cleaned.replace(/&amp;/g, "&");
+      cleaned = cleaned.replace(/&lt;/g, "<");
+      cleaned = cleaned.replace(/&gt;/g, ">");
+      cleaned = cleaned.replace(/\n- /g, "\n• ");
+      cleaned = cleaned.replace(/\n---\n/g, "\n");
+      cleaned = cleaned.replace(/^\s*-\s+/gm, "• ");
+      return cleaned;
     };
 
     const title = getField("SUMMARY");
