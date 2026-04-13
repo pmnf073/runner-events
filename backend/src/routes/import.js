@@ -11,10 +11,22 @@ function parseICS(icsContent) {
 
   for (const block of eventBlocks.slice(1)) {
     const getField = (field) => {
-      const regex = new RegExp(`${field}(?:;[^:]*)?:(.*)`, "i");
-      const match = block.match(regex);
-      if (!match) return null;
-      return match[1]
+      const lines = block.split(/\r?\n/);
+      let value = "";
+      let found = false;
+      for (const line of lines) {
+        if (found && /^[\s\t]/.test(line)) {
+          value += line.substring(1);
+        } else if (found) {
+          break;
+        } else if (line.match(new RegExp(`^${field}(?:;[^:]*)?:`, "i"))) {
+          found = true;
+          const idx = line.indexOf(":");
+          value = line.substring(idx + 1);
+        }
+      }
+      if (!value) return null;
+      return value
         .trim()
         .replace(/\\,/g, ",")
         .replace(/\\;/g, ";")
@@ -63,7 +75,7 @@ function parseICS(icsContent) {
 
     events.push({
       title: title.substring(0, 100),
-      description: (description || "").substring(0, 2000),
+      description: description || null,
       date: startDate.toISOString(),
       endDate: dtendRaw ? parseDate(dtendRaw)?.toISOString() : null,
       location: location?.substring(0, 200) || null,
