@@ -43,10 +43,12 @@ function parseICS(icsContent) {
       cleaned = cleaned.replace(/\n---\n/g, "\n");
       cleaned = cleaned.replace(/---$/gm, "");
       cleaned = cleaned.replace(/^\s*---\s*$/gm, "");
-      cleaned = cleaned.replace(/\n\* /g, "\n• ");
-      cleaned = cleaned.replace(/^\s*\* /gm, "• ");
-      cleaned = cleaned.replace(/^• /gm, "- ");
-      cleaned = cleaned.replace(/^-\s+/gm, "- ");
+      cleaned = cleaned.replace(/\n\* /g, "\n- ");
+      cleaned = cleaned.replace(/^\s*\* /gm, "- ");
+      cleaned = cleaned.replace(/^- /gm, "- ");
+      cleaned = cleaned.replace(/^-\s+(.+)$/gm, (match, rest) => {
+        return "- " + rest.trim() + "\n";
+      });
       return cleaned;
     };
 
