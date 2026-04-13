@@ -141,6 +141,17 @@ export default function EventPage() {
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
                 const isBullet = line.startsWith("-");
+                if (isBullet && line.includes(" - ") && !line.startsWith("- ") && line.indexOf(" - ") < 20) {
+                  const dashIdx = line.indexOf(" - ");
+                  const title = line.substring(0, dashIdx + 3);
+                  const rest = line.substring(dashIdx + 3);
+                  return (
+                    <div key={i} style={{ marginBottom: 4 }}>
+                      <div>{title}</div>
+                      {rest.trim() && <div style={{ paddingLeft: 16 }}>{rest}</div>}
+                    </div>
+                  );
+                }
                 return (
                   <div key={i} style={{ 
                     marginBottom: 4,
