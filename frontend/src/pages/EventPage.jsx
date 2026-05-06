@@ -218,6 +218,17 @@ export default function EventPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Button for Admin/Organizer */}
+      {user && (user.role === "admin" || user.role === "organizer") && (
+        <div style={{ marginTop: 24, textAlign: "center" }}>
+          <Link to={`/admin/${id}`} style={{ background: "#CC3333", color: "#fff", padding: "8px 16px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 500, transition: "background 0.2s" }}
+            onMouseEnter={(e) => e.target.style.background = "#be0000"}
+            onMouseLeave={(e) => e.target.style.background = "#CC3333"}>
+            Editar Evento
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

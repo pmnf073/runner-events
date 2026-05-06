@@ -254,6 +254,7 @@ function AppInner() {
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register-success" element={<RegisterSuccessPage />} />
+          <Route path="/admin/:id" element={<AdminPage user={user} />} />
           <Route path="/admin" element={<AdminPage user={user} />} />
           <Route path="/admin/users" element={<AdminUsersPage user={user} />} />
           <Route path="/import" element={<ImportPage user={user} />} />

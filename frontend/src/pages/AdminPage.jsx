@@ -4,6 +4,7 @@ import DatePicker from "react-datepicker";
 import { registerLocale, setDefaultLocale } from "react-datepicker";
 import pt from "date-fns/locale/pt";
 import "react-datepicker/dist/react-datepicker.css";
+import { useParams } from "react-router-dom";
 
 registerLocale("pt", pt);
 setDefaultLocale("pt");
@@ -302,11 +303,22 @@ const formatEventDate = (isoStr) => {
 };
 
 export default function AdminPage({ user }) {
+  const { id } = useParams();
   const { events, loading, fetchEvents } = useEvents();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
+
+  useEffect(() => {
+    if (id && events.length > 0) {
+      const eventToEdit = events.find(ev => ev.id === id);
+      if (eventToEdit) {
+        setEditing(eventToEdit);
+        setShowForm(true);
+      }
+    }
+  }, [id, events]);
 
   const handleDelete = async (id) => {
     if (!confirm("Eliminar este evento?")) return;
