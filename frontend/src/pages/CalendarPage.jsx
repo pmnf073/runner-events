@@ -162,8 +162,8 @@ export default function CalendarPage({ user }) {
             const dayEvents = getEventsForDay(day);
             const isStaff = user && ["admin", "organizer"].includes(user.role);
             return (
-              <div key={day} className="calendar-day" onClick={() => handleDayClick(day)} style={{ cursor: isStaff ? "pointer" : "default" }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : cssVar("--text-secondary") }}>{day}</div>
+              <div key={day} className="calendar-day">
+                <div onClick={() => handleDayClick(day)} style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : cssVar("--text-secondary"), cursor: isStaff ? "pointer" : "default" }} title={isStaff ? "Novo registo" : ""}>{day}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {dayEvents.map((event) => {
                     const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
