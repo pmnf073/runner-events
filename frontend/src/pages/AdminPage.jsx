@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker";
 import { registerLocale, setDefaultLocale } from "react-datepicker";
 import pt from "date-fns/locale/pt";
 import "react-datepicker/dist/react-datepicker.css";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 registerLocale("pt", pt);
 setDefaultLocale("pt");
@@ -304,6 +304,7 @@ const formatEventDate = (isoStr) => {
 
 export default function AdminPage({ user }) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { events, loading, fetchEvents } = useEvents();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -339,9 +340,15 @@ export default function AdminPage({ user }) {
       const url = editing ? `/api/events/${editing.id}` : "/api/events";
       const res = await api(url, { method, body: JSON.stringify(payload) });
       if (res.ok) {
-        setShowForm(false);
-        setEditing(null);
-        fetchEvents();
+        if (id) {
+          // Came from event page, redirect back to event
+          navigate(`/event/${id}`);
+        } else {
+          // Came from admin list, stay in admin
+          setShowForm(false);
+          setEditing(null);
+          fetchEvents();
+        }
       } else {
         const error = await res.json();
         alert("Erro ao guardar: " + (error.error || "Erro desconhecido"));
@@ -361,14 +368,28 @@ export default function AdminPage({ user }) {
       <div>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{editing ? "Editar Evento" : "Novo Evento"}</h1>
-          <button onClick={() => { setShowForm(false); setEditing(null); }}
+          <button onClick={() => {
+            if (id) {
+              navigate(`/event/${id}`);
+            } else {
+              setShowForm(false);
+              setEditing(null);
+            }
+          }}
             className="text-sm rounded transition" style={{ color: "#9ca3af" }}
             onMouseEnter={e => e.target.style.color = "#e8ecef"}
             onMouseLeave={e => e.target.style.color = "#9ca3af"}>
-            ← Voltar à lista
+            ← Voltar
           </button>
         </div>
-        <AdminEventForm event={editing} onSubmit={handleSubmit} onCancel={() => { setShowForm(false); setEditing(null); }} />
+        <AdminEventForm event={editing} onSubmit={handleSubmit} onCancel={() => {
+          if (id) {
+            navigate(`/event/${id}`);
+          } else {
+            setShowForm(false);
+            setEditing(null);
+          }
+        }} />
       </div>
     );
   }
