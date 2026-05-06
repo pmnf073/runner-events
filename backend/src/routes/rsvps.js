@@ -1,6 +1,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
+import { materializeInstance, parseVirtualEventId } from "../utils/recurrence.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
@@ -18,6 +19,50 @@ async function auth(req, res, next) {
   return res.status(401).json({ error: "Invalid token" });
 }
 
+async function ensurePersistedEvent(eventId) {
+  const existing = await prisma.event.findUnique({ where: { id: eventId } });
+  if (existing) return existing;
+
+  const parsed = parseVirtualEventId(eventId);
+  if (!parsed) return null;
+
+  const parent = await prisma.event.findUnique({ where: { id: parsed.parentEventId } });
+  if (!parent || !parent.recurrenceType) return null;
+
+  const found = await prisma.event.findFirst({
+    where: {
+      parentEventId: parent.id,
+      recurrenceInstanceDate: parsed.occurrenceDate,
+    },
+  });
+  if (found) return found.recurrenceStatus === "cancelled" ? null : found;
+
+  const instance = materializeInstance(parent, parsed.occurrenceDate);
+  return prisma.event.create({
+    data: {
+      title: instance.title,
+      description: instance.description,
+      date: new Date(instance.date),
+      endDate: instance.endDate ? new Date(instance.endDate) : null,
+      location: instance.location,
+      lat: instance.lat,
+      lng: instance.lng,
+      type: instance.type,
+      club: instance.club,
+      distance: instance.distance,
+      elevation: instance.elevation,
+      gpxUrl: instance.gpxUrl,
+      url: instance.url,
+      imageUrl: instance.imageUrl,
+      createdBy: instance.createdBy,
+      parentEventId: parent.id,
+      isRecurrenceInstance: true,
+      recurrenceInstanceDate: parsed.occurrenceDate,
+      recurrenceStatus: "active",
+    },
+  });
+}
+
 // POST /api/rsvps — RSVP to an event
 router.post("/", auth, async (req, res) => {
   try {
@@ -25,10 +70,13 @@ router.post("/", auth, async (req, res) => {
     if (!["going", "maybe", "not_going"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
+    const persistedEvent = await ensurePersistedEvent(eventId);
+    if (!persistedEvent) return res.status(404).json({ error: "Event not found" });
+
     const rsvp = await prisma.rsvp.upsert({
-      where: { userId_eventId: { userId: req.user.id, eventId } },
+      where: { userId_eventId: { userId: req.user.id, eventId: persistedEvent.id } },
       update: { status },
-      create: { userId: req.user.id, eventId, status },
+      create: { userId: req.user.id, eventId: persistedEvent.id, status },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
     res.json(rsvp);

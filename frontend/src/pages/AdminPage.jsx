@@ -18,6 +18,16 @@ const TYPES = [
   { value: "meeting", label: "📋 Reunião" },
 ];
 
+const WEEK_DAYS = [
+  { value: 1, label: "Seg" },
+  { value: 2, label: "Ter" },
+  { value: 3, label: "Qua" },
+  { value: 4, label: "Qui" },
+  { value: 5, label: "Sex" },
+  { value: 6, label: "Sáb" },
+  { value: 0, label: "Dom" },
+];
+
 /*
  * Timezone strategy: store Lisbon wall-clock as UTC in DB.
  * Example: user picks 08:30 Lisbon → stored as "2026-04-12T08:30:00.000Z"
@@ -82,6 +92,10 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
     elevation: event?.elevation || "",
     url: event?.url || "",
     imageUrl: event?.imageUrl || "",
+    recurrenceType: event?.recurrenceType || "",
+    recurrenceDaysOfWeek: event?.recurrenceDaysOfWeek ? JSON.parse(event.recurrenceDaysOfWeek) : [],
+    recurrenceEndDate: event?.recurrenceEndDate ? backendToForm(event.recurrenceEndDate) : "",
+    recurrenceScope: event?.isRecurrenceInstance ? "single" : "all",
   }));
   const [extracting, setExtracting] = useState(false);
 
@@ -120,10 +134,21 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if ((form.recurrenceType === "weekly" || form.recurrenceType === "biweekly") && form.recurrenceDaysOfWeek.length === 0) {
+      alert("Seleciona pelo menos um dia da semana para a recorrência.");
+      return;
+    }
+    if (form.recurrenceType && form.recurrenceEndDate && form.date && form.recurrenceEndDate < form.date.slice(0, 10)) {
+      alert("A data fim da recorrência não pode ser anterior ao início.");
+      return;
+    }
     const payload = {
       ...form,
       date: formToBackend(form.date),
       endDate: form.endDate ? formToBackend(form.endDate) : null,
+      recurrenceEndDate: form.recurrenceEndDate ? formToBackend(form.recurrenceEndDate) : null,
+      recurrenceDaysOfWeek: form.recurrenceDaysOfWeek.length > 0 ? JSON.stringify(form.recurrenceDaysOfWeek) : null,
+      recurrenceScope: form.recurrenceScope,
     };
     onSubmit(payload);
   };
@@ -135,6 +160,16 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, background: "var(--bg-card)", borderRadius: 12, border: `1px solid var(--border-subtle)`, padding: 24 }}>
       <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>{event ? "Editar Evento" : "Novo Evento"}</h3>
+      {event?.isRecurrenceInstance && (
+        <div>
+          <label style={formLabel}>Aplicar alterações a</label>
+          <select value={form.recurrenceScope} onChange={(e) => handleChange("recurrenceScope", e.target.value)} style={formInput}>
+            <option value="single">Apenas este evento</option>
+            <option value="future">Este e futuros</option>
+            <option value="all">Todos os eventos</option>
+          </select>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
         <div>
           <label style={formLabel}>Título *</label>
@@ -146,6 +181,52 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
             {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
+        <div>
+          <label style={formLabel}>Recorrência</label>
+          <select value={form.recurrenceType} onChange={(e) => handleChange("recurrenceType", e.target.value)} style={formInput}>
+            <option value="">Não recorrente</option>
+            <option value="weekly">Semanal</option>
+            <option value="biweekly">Quinzenal</option>
+            <option value="monthly">Mensal</option>
+          </select>
+        </div>
+        {(form.recurrenceType === "weekly" || form.recurrenceType === "biweekly") && (
+          <div>
+            <label style={formLabel}>Dias da semana</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {WEEK_DAYS.map((day) => (
+                <label key={day.value} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14 }}>
+                  <input
+                    type="checkbox"
+                    checked={form.recurrenceDaysOfWeek.includes(day.value)}
+                    onChange={(e) => {
+                      const days = e.target.checked
+                        ? [...form.recurrenceDaysOfWeek, day.value]
+                        : form.recurrenceDaysOfWeek.filter(d => d !== day.value);
+                      handleChange("recurrenceDaysOfWeek", days);
+                    }}
+                  />
+                  {day.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {form.recurrenceType && (
+          <div>
+            <label style={formLabel}>Data fim da recorrência</label>
+            <DatePicker
+              selected={formToDate(form.recurrenceEndDate)}
+              onChange={(d) => handleChange("recurrenceEndDate", d ? dateToForm(d) : "")}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="dd/mm/aaaa"
+              isClearable
+              style={{ cursor: "pointer" }}
+              calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+              popperClassName="z-50"
+            />
+          </div>
+        )}
         <div>
           <label style={formLabel}>Data e hora *</label>
           <DatePicker
@@ -327,9 +408,22 @@ export default function AdminPage({ user }) {
     }
   }, [id, events, dateParam]);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Eliminar este evento?")) return;
-    await api(`/api/events/${id}`, { method: "DELETE" });
+  const handleDelete = async (event) => {
+    let scope = "all";
+    if (event.isRecurrenceInstance) {
+      const choice = prompt(
+        "Eliminar recorrência:\n1 - Apenas este evento\n2 - Este e futuros\n3 - Todos os eventos",
+        "1"
+      );
+      if (choice === null) return;
+      if (choice === "1") scope = "single";
+      else if (choice === "2") scope = "future";
+      else if (choice === "3") scope = "all";
+      else return alert("Escolha inválida.");
+    } else if (!confirm("Eliminar este evento?")) {
+      return;
+    }
+    await api(`/api/events/${event.id}?scope=${scope}`, { method: "DELETE" });
     fetchEvents();
   };
 
@@ -477,7 +571,7 @@ export default function AdminPage({ user }) {
                 className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#1f2937", color: "#fff" }}
                 onMouseEnter={e => e.target.style.background = "#374151"}
                 onMouseLeave={e => e.target.style.background = "#1f2937"}>Editar</button>
-              <button onClick={() => handleDelete(ev.id)}
+              <button onClick={() => handleDelete(ev)}
                 className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#CC3333", color: "#fff" }}
                 onMouseEnter={e => e.target.style.background = "#be0000"}
                 onMouseLeave={e => e.target.style.background = "#CC3333"}>Eliminar</button>

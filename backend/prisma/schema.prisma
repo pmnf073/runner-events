@@ -60,9 +60,21 @@ model Event {
   imageUrl    String?
   createdBy   String   @default("system")
   sourceUid   String?  @unique // UID from external .ics import (for dedup)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  
+  // Recurrence fields
+  recurrenceType       String?     // "weekly" | "biweekly" | "monthly" | null
+  recurrenceDaysOfWeek String?     // JSON array using JS days: 0 Sunday, 1 Monday, ... 6 Saturday
+  recurrenceEndDate    DateTime?   // When to stop generating instances
+  parentEventId        String?     // Reference to parent recurring event
+  isRecurrenceInstance Boolean     @default(false) // True if this is a generated instance
+  recurrenceInstanceDate DateTime? // Original occurrence date for overrides/cancellations
+  recurrenceStatus     String      @default("active") // "active" | "cancelled"
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   rsvps       RSVP[]
+
+  @@index([parentEventId, recurrenceInstanceDate])
 }
 
 model RSVP {
