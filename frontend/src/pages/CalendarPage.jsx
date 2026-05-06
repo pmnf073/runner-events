@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const EVENT_COLORS = {
@@ -20,8 +20,7 @@ const EVENT_LABELS = {
   meeting: "Reuniao",
 };
 
-export default function CalendarPage() {
-  const [events, setEvents] = useState([]);
+export default function CalendarPage() {  const navigate = useNavigate();  const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -52,6 +51,12 @@ export default function CalendarPage() {
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  const handleDayClick = (day) => {
+    if (!user || !["admin", "organizer"].includes(user.role)) return;
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    navigate(`/admin?date=${dateStr}`);
+  };
 
   const getEventsForDay = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -153,8 +158,9 @@ export default function CalendarPage() {
             const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
             const isToday = dateStr === todayStr;
             const dayEvents = getEventsForDay(day);
+            const isStaff = user && ["admin", "organizer"].includes(user.role);
             return (
-              <div key={day} className="calendar-day">
+              <div key={day} className="calendar-day" onClick={() => handleDayClick(day)} style={{ cursor: isStaff ? "pointer" : "default" }}>
                 <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : cssVar("--text-secondary") }}>{day}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {dayEvents.map((event) => {

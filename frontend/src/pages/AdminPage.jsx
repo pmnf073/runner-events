@@ -4,7 +4,7 @@ import DatePicker from "react-datepicker";
 import { registerLocale, setDefaultLocale } from "react-datepicker";
 import pt from "date-fns/locale/pt";
 import "react-datepicker/dist/react-datepicker.css";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 
 registerLocale("pt", pt);
 setDefaultLocale("pt");
@@ -69,12 +69,12 @@ const formToBackend = (localStr) => {
   return localStr + ":00.000Z";
 };
 
-function AdminEventForm({ event, onSubmit, onCancel }) {
+function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
   const [form, setForm] = useState(() => ({
     title: event?.title || "",
     description: event?.description || "",
-    date: backendToForm(event?.date),
-    endDate: backendToForm(event?.endDate),
+    date: event ? backendToForm(event?.date) : (initialDate ? `${initialDate}T10:00` : ""),
+    endDate: backendToForm(event?.endDate) || "",
     location: event?.location || "",
     type: event?.type || "training",
     club: "Alverca Urban Runners",
@@ -305,6 +305,8 @@ const formatEventDate = (isoStr) => {
 export default function AdminPage({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dateParam = searchParams.get("date");
   const { events, loading, fetchEvents } = useEvents();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -318,8 +320,12 @@ export default function AdminPage({ user }) {
         setEditing(eventToEdit);
         setShowForm(true);
       }
+    } else if (dateParam && !id) {
+      // New event with pre-filled date
+      setEditing(null);
+      setShowForm(true);
     }
-  }, [id, events]);
+  }, [id, events, dateParam]);
 
   const handleDelete = async (id) => {
     if (!confirm("Eliminar este evento?")) return;
@@ -389,7 +395,7 @@ export default function AdminPage({ user }) {
             setShowForm(false);
             setEditing(null);
           }
-        }} />
+        }} initialDate={dateParam} />
       </div>
     );
   }
