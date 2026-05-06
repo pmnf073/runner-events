@@ -157,7 +157,7 @@ export default function CalendarPage() {
               <div key={day} className="calendar-day">
                 <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: isToday ? "#CC3333" : cssVar("--text-secondary") }}>{day}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {dayEvents.slice(0, 3).map((event) => {
+                  {dayEvents.map((event) => {
                     const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
                     return (
                       <Link key={event.id} to={`/event/${event.id}`}
@@ -166,9 +166,6 @@ export default function CalendarPage() {
                       </Link>
                     );
                   })}
-                  {dayEvents.length > 3 && (
-                    <div style={{ fontSize: 12, color: cssVar("--text-muted") }}>+{dayEvents.length - 3} mais</div>
-                  )}
                 </div>
               </div>
             );
