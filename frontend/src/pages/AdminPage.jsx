@@ -349,6 +349,9 @@ export default function AdminPage({ user }) {
         if (id) {
           // Came from event page, redirect back to event
           navigate(`/event/${id}`);
+        } else if (dateParam) {
+          // Came from calendar, redirect back to calendar
+          navigate("/");
         } else {
           // Came from admin list, stay in admin
           setShowForm(false);
@@ -391,6 +394,8 @@ export default function AdminPage({ user }) {
         <AdminEventForm event={editing} onSubmit={handleSubmit} onCancel={() => {
           if (id) {
             navigate(`/event/${id}`);
+          } else if (dateParam) {
+            navigate("/");
           } else {
             setShowForm(false);
             setEditing(null);
