@@ -20,7 +20,9 @@ const EVENT_LABELS = {
   meeting: "Reuniao",
 };
 
-export default function CalendarPage() {  const navigate = useNavigate();  const [events, setEvents] = useState([]);
+export default function CalendarPage({ user }) {
+  const navigate = useNavigate();
+  const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
