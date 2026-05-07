@@ -69,6 +69,82 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+.site-nav {
+  margin: 0 32px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.site-brand-logo {
+  width: auto;
+  height: 52px;
+  flex: 0 0 auto;
+}
+
+.site-brand-copy {
+  min-width: 0;
+}
+
+.site-brand-title {
+  font-size: 17px;
+  font-weight: 500;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-brand-subtitle {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.site-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.site-nav-link {
+  white-space: nowrap;
+}
+
+.site-user-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.site-user-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.site-login-link {
+  padding: 6px 16px;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -141,11 +217,82 @@ body {
 .event-dot.meeting { background: #6b7280; }
 
 @media (max-width: 768px) {
+  .site-nav {
+    margin: 0 12px;
+    padding: 8px 0;
+    gap: 8px;
+  }
+
+  .site-brand {
+    gap: 8px;
+  }
+
+  .site-brand-logo {
+    height: 40px;
+  }
+
+  .site-brand-title {
+    max-width: 150px;
+    font-size: 13px;
+  }
+
+  .site-brand-subtitle {
+    display: none;
+  }
+
+  .site-nav-actions {
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .site-login-link {
+    padding: 6px 12px;
+  }
+
+  .site-user-button {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .site-user-name {
+    display: none;
+  }
+
   .calendar-day {
     min-height: 60px;
     padding: 0.25rem;
   }
   .calendar-day-header {
     font-size: 0.625rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .site-nav {
+    margin: 0 8px;
+  }
+
+  .site-brand-logo {
+    height: 36px;
+  }
+
+  .site-brand-title {
+    max-width: 92px;
+    font-size: 12px;
+  }
+
+  .site-nav-actions {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .site-login-link {
+    padding: 5px 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .site-brand-copy {
+    display: none;
   }
 }

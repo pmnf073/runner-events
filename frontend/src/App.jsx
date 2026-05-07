@@ -148,22 +148,22 @@ function AppInner() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)" }}>
 
       {/* Header */}
-      <header style={{ background: "var(--bg-header)", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid var(--border-subtle)", transition: "background 0.3s ease" }}>
-        <nav style={{ margin: "0 32px", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 14, textDecoration: "none" }}>
-            <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 52, width: "auto" }} />
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 500, color: "var(--text-heading)", textTransform: "uppercase" }}>Alverca Urban Runners</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: 1, textTransform: "uppercase" }}>
+      <header className="site-header" style={{ background: "var(--bg-header)", position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid var(--border-subtle)", transition: "background 0.3s ease" }}>
+        <nav className="site-nav">
+          <Link to="/" className="site-brand">
+            <img className="site-brand-logo" src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" />
+            <div className="site-brand-copy">
+              <div className="site-brand-title" style={{ color: "var(--text-heading)" }}>Alverca Urban Runners</div>
+              <div className="site-brand-subtitle" style={{ color: "var(--text-secondary)" }}>
                 Vamos descobrir a cidade
               </div>
             </div>
           </Link>
-          <div style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 14 }}>
-            <Link to="/" style={navStyle}
+          <div className="site-nav-actions">
+            <Link to="/" className="site-nav-link" style={navStyle}
               onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
               onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Calendário</Link>
-            <Link to="/about" style={navStyle}
+            <Link to="/about" className="site-nav-link" style={navStyle}
               onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
               onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Sobre</Link>
 
@@ -175,14 +175,15 @@ function AppInner() {
               <div style={{ position: "relative" }} data-user-menu>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 8, transition: "background 0.2s" }}
+                  className="site-user-button"
+                  style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 8, transition: "background 0.2s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "none")}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span style={{ color: "var(--text-secondary)", fontSize: 14 }}>{user.name}</span>
+                  <span className="site-user-name" style={{ color: "var(--text-secondary)" }}>{user.name}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
@@ -238,7 +239,7 @@ function AppInner() {
                 )}
               </div>
             ) : (
-              <Link to="/login" style={{ background: "#CC3333", color: "#fff", padding: "6px 16px", borderRadius: 9999, textDecoration: "none", fontWeight: 500, transition: "background 0.2s" }}
+              <Link to="/login" className="site-login-link" style={{ background: "#CC3333", color: "#fff", borderRadius: 9999, textDecoration: "none", fontWeight: 500, transition: "background 0.2s" }}
                 onMouseEnter={(e) => (e.target.style.background = "#be0000")}
                 onMouseLeave={(e) => (e.target.style.background = "#CC3333")}>Entrar</Link>
             )}
