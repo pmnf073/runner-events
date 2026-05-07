@@ -145,6 +145,70 @@ body {
   padding: 6px 16px;
 }
 
+.site-footer {
+  margin-top: 48px;
+  flex-shrink: 0;
+}
+
+.site-footer-inner {
+  margin: 0 32px;
+  padding: 24px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.site-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.site-footer-brand span {
+  white-space: nowrap;
+}
+
+.site-footer-logo {
+  height: 24px;
+  width: auto;
+  opacity: 0.5;
+  flex: 0 0 auto;
+}
+
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.footer-social-link {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  box-sizing: border-box;
+}
+
+.footer-social-link:hover {
+  background: var(--hover-bg);
+}
+
+.footer-social-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -258,6 +322,40 @@ body {
     display: none;
   }
 
+  .site-footer {
+    margin-top: 32px;
+  }
+
+  .site-footer-inner {
+    margin: 0 12px;
+    padding: 18px 0;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+  }
+
+  .site-footer-brand {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .site-footer-brand span {
+    white-space: normal;
+  }
+
+  .site-footer-links {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .footer-social-link {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+
   .calendar-day {
     min-height: 60px;
     padding: 0.25rem;
@@ -288,6 +386,25 @@ body {
 
   .site-login-link {
     padding: 5px 10px;
+  }
+
+  .site-footer-inner {
+    margin: 0 8px;
+    font-size: 13px;
+  }
+
+  .site-footer-links {
+    gap: 6px;
+  }
+
+  .footer-social-link {
+    gap: 5px;
+    padding: 7px 8px;
+  }
+
+  .footer-social-icon {
+    width: 17px;
+    height: 17px;
   }
 }
 

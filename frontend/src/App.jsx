@@ -86,6 +86,33 @@ function SubmenuDivider() {
   return <div style={{ height: 1, background: "var(--border-subtle)" }} />;
 }
 
+function FooterIcon({ name }) {
+  if (name === "facebook") {
+    return (
+      <svg className="footer-social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 8.5V6.75c0-.8.28-1.25 1.35-1.25H17V2.7c-.8-.08-1.62-.12-2.43-.12-2.4 0-4.05 1.46-4.05 4.14V8.5H7.8v3.14h2.72v7.78H14v-7.78h2.72l.42-3.14H14Z" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (name === "instagram") {
+    return (
+      <svg className="footer-social-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="4.5" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" strokeWidth="2" />
+        <circle cx="16.8" cy="7.2" r="1.1" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="footer-social-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.5 8.5h11l-.7 10.2a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.8L6.5 8.5Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M9 8.5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /* ── Inner App (has access to ThemeContext) ── */
 function AppInner() {
   const { theme } = useTheme();
@@ -267,22 +294,31 @@ function AppInner() {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", marginTop: 48, flexShrink: 0, transition: "background 0.3s ease" }}>
-        <div style={{ margin: "0 32px", padding: "24px 16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, fontSize: 14, color: "var(--text-muted)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 24, width: "auto", opacity: 0.5 }} />
+      <footer className="site-footer" style={{ borderTop: "1px solid var(--border-subtle)", background: "var(--bg-footer)", transition: "background 0.3s ease" }}>
+        <div className="site-footer-inner" style={{ color: "var(--text-muted)" }}>
+          <div className="site-footer-brand">
+            <img className="site-footer-logo" src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" />
             <span>Alverca Urban Runners &copy; {new Date().getFullYear()}</span>
           </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <a href="https://www.facebook.com/alvercaurbanrunners/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)", textDecoration: "none" }}
-              onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-              onMouseLeave={(e) => (e.target.style.color = "var(--text-muted)")}>Facebook</a>
-            <a href="https://www.instagram.com/alvercaurbanrunners/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)", textDecoration: "none" }}
-              onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-              onMouseLeave={(e) => (e.target.style.color = "var(--text-muted)")}>Instagram</a>
-            <a href="https://www.uin-sports.pt/lojaonline/clubes/ps-alverca-urban-runners" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)", textDecoration: "none" }}
-              onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-              onMouseLeave={(e) => (e.target.style.color = "var(--text-muted)")}>Loja</a>
+          <div className="site-footer-links">
+            <a className="footer-social-link" href="https://www.facebook.com/alvercaurbanrunners/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--hover-text)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}>
+              <FooterIcon name="facebook" />
+              <span>Facebook</span>
+            </a>
+            <a className="footer-social-link" href="https://www.instagram.com/alvercaurbanrunners/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--hover-text)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}>
+              <FooterIcon name="instagram" />
+              <span>Instagram</span>
+            </a>
+            <a className="footer-social-link" href="https://www.uin-sports.pt/lojaonline/clubes/ps-alverca-urban-runners" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--hover-text)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}>
+              <FooterIcon name="store" />
+              <span>Loja</span>
+            </a>
           </div>
         </div>
       </footer>
