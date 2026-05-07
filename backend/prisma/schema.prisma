@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -113,11 +113,11 @@ model Membership {
   memberId        String
   member          Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   year            Int                          // e.g. 2026
-  amount          Decimal  @db.Decimal(10,2)   // annual fee value
+  amount          Float   // annual fee value
   status          String   @default("pending") // "pending" | "paid" | "partial" | "exempt" | "discounted"
   dueDate         DateTime                     // payment deadline
   paidDate        DateTime?
-  discount        Decimal? @db.Decimal(10,2)   // discount applied
+  discount        Float?   // discount applied
   discountReason  String?
   createdAt       DateTime @default(now())
 
@@ -132,8 +132,8 @@ model Payment {
   member          Member   @relation(fields: [memberId], references: [id])
   membershipId    String?                        // optional link to annual fee
   membership      Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
-  amount          Decimal  @db.Decimal(10,2)
-  paidAmount      Decimal  @db.Decimal(10,2)     // actually paid
+  amount          Float
+  paidAmount      Float     // actually paid
   date            DateTime @default(now())
   method          String                         // "transfer" | "cash" | "mbway" | "card"
   reference       String?                        // bank transfer reference
@@ -153,7 +153,7 @@ model AccountEntry {
   payment         Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   type            String                         // "debit" | "credit"
   description     String
-  amount          Decimal  @db.Decimal(10,2)
+  amount          Float
   date            DateTime @default(now())
   createdAt       DateTime @default(now())
 }
@@ -161,9 +161,9 @@ model AccountEntry {
 model AnnualFeeConfig {
   id                  String   @id @default(cuid())
   year                Int      @unique
-  amount              Decimal  @db.Decimal(10,2)
+  amount              Float
   dueDate             DateTime
-  earlybirdDiscount   Decimal? @db.Decimal(10,2)  // early payment discount
+  earlybirdDiscount   Float?  // early payment discount
   earlybirdDeadline   DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
