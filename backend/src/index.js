@@ -20,11 +20,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware - CORS: accept one or more frontend origins.
-const defaultFrontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-const corsOrigins = (process.env.FRONTEND_URLS || defaultFrontendUrl)
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const fallbackFrontendOrigins = [
+  process.env.FRONTEND_URL,
+  "https://runner-events.vercel.app",
+  "https://alvercaurbanrunners.pt",
+  "https://www.alvercaurbanrunners.pt",
+  "http://localhost:5173",
+].filter(Boolean);
+const corsOrigins = process.env.FRONTEND_URLS
+  ? process.env.FRONTEND_URLS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : fallbackFrontendOrigins;
 
 app.use(cors({
   origin(origin, callback) {
