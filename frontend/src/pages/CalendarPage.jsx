@@ -27,6 +27,15 @@ export default function CalendarPage({ user }) {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("grid");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const updateIsMobile = () => setIsMobile(media.matches);
+    updateIsMobile();
+    media.addEventListener("change", updateIsMobile);
+    return () => media.removeEventListener("change", updateIsMobile);
+  }, []);
 
   useEffect(() => {
     const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
@@ -38,6 +47,8 @@ export default function CalendarPage({ user }) {
       .then(setEvents)
       .finally(() => setLoading(false));
   }, [currentDate, filter]);
+
+  const effectiveViewMode = isMobile ? "list" : viewMode;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -115,6 +126,7 @@ export default function CalendarPage({ user }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
         <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!isMobile && (
           <div style={{ display: "flex", border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, overflow: "hidden" }}>
             <button onClick={() => setViewMode("grid")} style={headerBtn(viewMode === "grid")} title="Grelha">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -126,6 +138,7 @@ export default function CalendarPage({ user }) {
             </button>
             <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: `1px solid ${cssVar("--border-subtle")}` }} title="Lista">&#9776;</button>
           </div>
+          )}
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -147,7 +160,7 @@ export default function CalendarPage({ user }) {
       </div>
 
       {/* GRID VIEW */}
-      {viewMode === "grid" && (
+      {effectiveViewMode === "grid" && (
         <div className="calendar-grid" style={{ border: `1px solid ${cssVar("--border-subtle")}` }}>
           {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((d) => (
             <div key={d} className="calendar-day-header">{d}</div>
@@ -182,8 +195,8 @@ export default function CalendarPage({ user }) {
       )}
 
       {/* LIST VIEW */}
-      {viewMode === "list" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {effectiveViewMode === "list" && (
+        <div className="calendar-list">
           {sortedDates.filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`)).length === 0 ? (
             <div style={{ textAlign: "center", padding: 48, color: cssVar("--text-muted") }}>Sem eventos este mes</div>
           ) : (
@@ -192,22 +205,23 @@ export default function CalendarPage({ user }) {
               .map((dateStr) => {
                 const info = formatDate(dateStr);
                 return (
-                  <div key={dateStr} style={{ background: cssVar("--bg-card"), borderRadius: 12, overflow: "hidden", border: `1px solid ${cssVar("--border-subtle")}` }}>
-                    <div style={{ padding: "12px 20px", background: cssVar("--calendar-today-bg"), display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: "#CC3333", minWidth: 36, textAlign: "center" }}>{info.full}</span>
+                  <div key={dateStr} className="calendar-list-day" style={{ background: cssVar("--bg-card"), border: `1px solid ${cssVar("--border-subtle")}` }}>
+                    <div className="calendar-list-date" style={{ background: cssVar("--calendar-today-bg") }}>
+                      <span>{info.full}</span>
                     </div>
                     {groupedEvents[dateStr].map((event) => {
                       const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
                       return (
                         <Link key={event.id} to={`/event/${event.id}`}
-                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px 14px 72px", textDecoration: "none", borderBottom: `1px solid ${cssVar("--border-subtle")}`, transition: "background 0.2s" }}
+                          className="calendar-list-event"
+                          style={{ textDecoration: "none", borderBottom: `1px solid ${cssVar("--border-subtle")}`, transition: "background 0.2s" }}
                           onMouseEnter={e => e.currentTarget.style.background = cssVar("--hover-bg")}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div className="calendar-list-event-main">
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
-                            <span style={{ fontSize: 15, color: cssVar("--text-primary") }}>{event.title}</span>
+                            <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
                           </div>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <div className="calendar-list-event-meta">
                             <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
                             <span style={{
                               fontSize: 11,
