@@ -19,10 +19,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware - CORS: accept origin from env or wildcard in prod
-const corsOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+// Middleware - CORS: accept one or more frontend origins.
+const defaultFrontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+const corsOrigins = (process.env.FRONTEND_URLS || defaultFrontendUrl)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" ? corsOrigin : "http://localhost:5173",
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    const allowedOrigins = process.env.NODE_ENV === "production" ? corsOrigins : ["http://localhost:5173"];
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
