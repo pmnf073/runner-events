@@ -187,7 +187,7 @@ function AppInner() {
             </div>
           </Link>
           <div className="site-nav-actions">
-            <Link to="/" className="site-nav-link" style={navStyle}
+            <Link to="/calendar" className="site-nav-link" style={navStyle}
               onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
               onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Calendário</Link>
             <Link to="/about" className="site-nav-link" style={navStyle}
