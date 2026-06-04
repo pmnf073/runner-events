@@ -149,8 +149,11 @@ export default function AboutPage() {
           padding: "90px 24px 80px",
           display: "flex",
           alignItems: "center",
-          background:
-            "linear-gradient(120deg, rgba(8,20,32,0.9) 0%, rgba(13,33,55,0.72) 100%), url('/IMG_20230122_093440.jpg') center/cover no-repeat",
+          backgroundImage:
+            "linear-gradient(120deg, rgba(8,20,32,0.9) 0%, rgba(13,33,55,0.72) 100%), url('/IMG_20230122_093440.jpg')",
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
         }}
       >
         <div
