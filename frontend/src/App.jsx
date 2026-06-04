@@ -278,6 +278,7 @@ function AppInner() {
       <main style={{ margin: "0 32px", padding: "24px 0", flex: 1 }}>
         <Routes>
           <Route path="/" element={<AboutPage />} />
+          <Route path="/calendar" element={<CalendarPage user={user} />} />
           <Route path="/event/:id" element={<EventPage />} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/register" element={<RegisterPage />} />
