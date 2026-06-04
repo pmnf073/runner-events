@@ -150,7 +150,7 @@ export default function AboutPage() {
           display: "flex",
           alignItems: "center",
           background:
-            "linear-gradient(120deg, rgba(8,20,32,0.9) 0%, rgba(13,33,55,0.72) 100%), url('https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1900&q=80') center/cover no-repeat",
+            "linear-gradient(120deg, rgba(8,20,32,0.9) 0%, rgba(13,33,55,0.72) 100%), url('/IMG_20230122_093440.jpg') center/cover no-repeat",
         }}
       >
         <div
