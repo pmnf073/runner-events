@@ -42,7 +42,8 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-app.use(express.json());
+// Event images selected locally are optimized in the browser and sent as data URLs.
+app.use(express.json({ limit: "3mb" }));
 
 // Session
 app.use(session({

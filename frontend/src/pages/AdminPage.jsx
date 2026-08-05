@@ -79,6 +79,42 @@ const formToBackend = (localStr) => {
   return localStr + ":00.000Z";
 };
 
+const MAX_LOCAL_IMAGE_BYTES = 2 * 1024 * 1024;
+
+async function localImageToDataUrl(file) {
+  if (!file.type.startsWith("image/")) throw new Error("Seleciona um ficheiro de imagem.");
+
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Não foi possível ler esta imagem."));
+      img.src = sourceUrl;
+    });
+    const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob) throw new Error("Não foi possível preparar esta imagem.");
+    if (blob.size > MAX_LOCAL_IMAGE_BYTES) {
+      throw new Error("A imagem é demasiado grande. Escolhe uma imagem mais pequena.");
+    }
+
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Não foi possível preparar esta imagem."));
+      reader.readAsDataURL(blob);
+    });
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
   const [form, setForm] = useState(() => ({
     title: event?.title || "",
@@ -98,6 +134,8 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
     recurrenceScope: event?.isRecurrenceInstance ? "single" : "all",
   }));
   const [extracting, setExtracting] = useState(false);
+  const [processingImage, setProcessingImage] = useState(false);
+  const [localImageName, setLocalImageName] = useState("");
 
   const handleChange = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
@@ -129,6 +167,22 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
       alert("Erro ao extrair imagem.");
     } finally {
       setExtracting(false);
+    }
+  };
+
+  const handleLocalImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProcessingImage(true);
+    try {
+      const imageUrl = await localImageToDataUrl(file);
+      setForm((p) => ({ ...p, imageUrl }));
+      setLocalImageName(file.name);
+    } catch (error) {
+      alert(error.message || "Não foi possível preparar esta imagem.");
+    } finally {
+      setProcessingImage(false);
+      e.target.value = "";
     }
   };
 
@@ -280,9 +334,19 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
           <label style={formLabel}>Imagem do Evento</label>
           <input type="url" value={form.imageUrl || ""} onChange={(e) => handleChange("imageUrl", e.target.value)}
             placeholder="https://example.com/image.jpg" style={formInput} />
+          <label style={{ ...formLabel, marginTop: 10 }}>Ou escolhe uma imagem do computador</label>
+          <input type="file" accept="image/*" onChange={handleLocalImage} disabled={processingImage}
+            style={{ ...formInput, padding: "6px 8px", cursor: processingImage ? "wait" : "pointer" }} />
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+            {processingImage ? "A preparar imagem..." : localImageName ? `Imagem selecionada: ${localImageName}` : "A imagem será otimizada antes de guardar (máx. 2 MB)."}
+          </div>
           {form.imageUrl && (
             <div style={{ marginTop: 8 }}>
               <img src={form.imageUrl} alt="Preview" style={{ width: "100%", height: 128, objectFit: "cover", borderRadius: 8 }} onError={(e) => e.target.style.display = "none"} />
+              <button type="button" onClick={() => { handleChange("imageUrl", ""); setLocalImageName(""); }}
+                style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, borderRadius: 6, border: "1px solid var(--border-input)", color: "var(--text-secondary)", background: "transparent", cursor: "pointer" }}>
+                Remover imagem
+              </button>
             </div>
           )}
         </div>
