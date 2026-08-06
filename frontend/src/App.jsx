@@ -13,6 +13,7 @@ import ImportPage from "./pages/ImportPage";
 import MembersPage from "./pages/MembersPage";
 import FeesPage from "./pages/FeesPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -281,6 +282,7 @@ function AppInner() {
           <Route path="/calendar" element={<CalendarPage user={user} />} />
           <Route path="/event/:id" element={<EventPage />} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
+          <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register-success" element={<RegisterSuccessPage />} />
           <Route path="/admin/:id" element={<AdminPage user={user} />} />

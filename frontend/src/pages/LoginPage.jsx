@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useTheme } from "../ThemeContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -8,11 +8,20 @@ const V = (name) => `var(${name})`;
 export default function LoginPage({ setUser }) {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (searchParams.get("oauthError") === "account-unavailable") return "A tua conta não está disponível. Contacta o administrador.";
+    if (searchParams.get("oauthError")) return "Não foi possível concluir o início de sessão. Tenta novamente.";
+    return "";
+  });
   const [loading, setLoading] = useState(false);
   const [pendingDialog, setPendingDialog] = useState(null);
+
+  const startOAuth = (provider) => {
+    window.location.assign(`${API_URL}/auth/${provider}`);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -102,8 +111,15 @@ export default function LoginPage({ setUser }) {
           <div style={{ flex: 1, height: 1, background: V("--border-subtle") }} />
         </div>
 
-        <div style={{ opacity: 0.4, textAlign: "center" }}>
-          <p style={{ fontSize: 12, color: V("--text-muted"), margin: 0 }}>Google e Facebook em breve</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button type="button" onClick={() => startOAuth("google")}
+            style={{ width: "100%", background: "var(--bg-input)", color: V("--text-primary"), border: `1px solid ${V("--border-input")}`, padding: "11px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
+            Continuar com Google
+          </button>
+          <button type="button" onClick={() => startOAuth("facebook")}
+            style={{ width: "100%", background: "#1877F2", color: "#fff", border: "none", padding: "11px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
+            Continuar com Facebook
+          </button>
         </div>
 
         <p style={{ fontSize: 13, color: V("--text-secondary"), textAlign: "center", marginTop: 20 }}>

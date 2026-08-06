@@ -41,6 +41,7 @@ export default function RegisterPage() {
   };
 
   const labelStyle = { fontSize: 13, color: V("--text-secondary") };
+  const startOAuth = (provider) => window.location.assign(`${API_URL}/auth/${provider}`);
 
   return (
     <div style={{ minHeight: "100vh", background: V("--bg-page"), color: V("--text-primary"), display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -93,8 +94,8 @@ export default function RegisterPage() {
           <div style={{ borderTop: `1px solid ${V("--border-subtle")}`, margin: "16px 0", position: "relative" }}>
             <span style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", background: V("--bg-page"), padding: "0 16px", color: V("--text-muted"), fontSize: 13 }}>ou</span>
           </div>
-          <button disabled style={{ ...inputStyle, cursor: "not-allowed", opacity: 0.4, fontSize: 13, color: V("--text-muted"), background: V("--bg-input"), textAlign: "center" }}>🔵 Continuar com Google (em breve)</button>
-          <button disabled style={{ ...inputStyle, cursor: "not-allowed", opacity: 0.4, fontSize: 13, color: V("--text-muted"), background: V("--bg-input"), textAlign: "center", marginTop: 8 }}>🔐 Continuar com Facebook (em breve)</button>
+          <button type="button" onClick={() => startOAuth("google")} style={{ ...inputStyle, cursor: "pointer", fontSize: 13, color: V("--text-primary"), textAlign: "center" }}>Continuar com Google</button>
+          <button type="button" onClick={() => startOAuth("facebook")} style={{ ...inputStyle, cursor: "pointer", fontSize: 13, color: "#fff", background: "#1877F2", border: "none", textAlign: "center", marginTop: 8 }}>Continuar com Facebook</button>
         </div>
 
         <p style={{ fontSize: 13, color: V("--text-secondary"), textAlign: "center", marginTop: 20 }}>

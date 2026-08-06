@@ -12,6 +12,40 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 const signToken = (user) =>
   jwt.sign({ id: user.id, email: user.email, role: user.role, status: user.status }, JWT_SECRET, { expiresIn: "7d" });
 
+const frontendUrl = (path) => new URL(path, process.env.FRONTEND_URL || "http://localhost:5173").toString();
+
+function redirectToFrontend(res, path, params = {}) {
+  const url = new URL(path, process.env.FRONTEND_URL || "http://localhost:5173");
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  res.redirect(url.toString());
+}
+
+async function findOrCreateOAuthUser({ provider, email, name, avatar }) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) return user;
+
+  return prisma.user.create({
+    data: {
+      email,
+      name,
+      avatar,
+      provider,
+      role: "member",
+      status: "pending",
+      registrations: { create: { status: "pending" } },
+    },
+  });
+}
+
+function completeOAuthLogin(req, res) {
+  const user = req.user;
+  if (user.status === "pending") return redirectToFrontend(res, "/register-success", { email: user.email });
+  if (user.status === "banned" || user.status === "inactive") {
+    return redirectToFrontend(res, "/login", { oauthError: "account-unavailable" });
+  }
+  return redirectToFrontend(res, "/auth/callback", { token: signToken(user) });
+}
+
 // ─── Register (email + password) ───
 router.post("/register", async (req, res) => {
   const { email, password, name, phone, altContact, address, dob, invitedBy } = req.body;
@@ -114,18 +148,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
-          let user = await prisma.user.findUnique({ where: { email: profile.emails[0].value } });
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email: profile.emails[0].value,
-                name: profile.displayName,
-                avatar: profile.photos?.[0]?.value,
-                provider: "google",
-                providerId: profile.id,
-              },
-            });
-          }
+          const email = profile.emails?.[0]?.value;
+          if (!email) throw new Error("Google não disponibilizou um email para esta conta.");
+          const user = await findOrCreateOAuthUser({
+            provider: "google",
+            email,
+            name: profile.displayName,
+            avatar: profile.photos?.[0]?.value,
+          });
           done(null, user);
         } catch (err) {
           done(err, null);
@@ -135,12 +165,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 
   router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-  router.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: "/login" }),
-    (req, res) => {
-      const token = signToken(req.user);
-      res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/auth/callback?token=${token}`);
-    }
-  );
+  router.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: frontendUrl("/login?oauthError=google") }), completeOAuthLogin);
 } else {
   router.get("/google", (_req, res) => res.status(501).json({ error: "Google OAuth not configured" }));
 }
@@ -153,22 +178,18 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
         clientID: process.env.FACEBOOK_APP_ID,
         clientSecret: process.env.FACEBOOK_APP_SECRET,
         callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+        profileFields: ["id", "displayName", "photos", "email"],
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
-          const email = profile.emails?.[0]?.value || `${profile.id}@facebook.placeholder`;
-          let user = await prisma.user.findUnique({ where: { email } });
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email,
-                name: profile.displayName,
-                avatar: profile.photos?.[0]?.value,
-                provider: "facebook",
-                providerId: profile.id,
-              },
-            });
-          }
+          const email = profile.emails?.[0]?.value;
+          if (!email) throw new Error("Facebook não disponibilizou um email para esta conta.");
+          const user = await findOrCreateOAuthUser({
+            provider: "facebook",
+            email,
+            name: profile.displayName,
+            avatar: profile.photos?.[0]?.value,
+          });
           done(null, user);
         } catch (err) {
           done(err, null);
@@ -178,12 +199,7 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
   );
 
   router.get("/facebook", passport.authenticate("facebook", { scope: ["email"] }));
-  router.get("/facebook/callback", passport.authenticate("facebook", { session: false, failureRedirect: "/login" }),
-    (req, res) => {
-      const token = signToken(req.user);
-      res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/auth/callback?token=${token}`);
-    }
-  );
+  router.get("/facebook/callback", passport.authenticate("facebook", { session: false, failureRedirect: frontendUrl("/login?oauthError=facebook") }), completeOAuthLogin);
 } else {
   router.get("/facebook", (_req, res) => res.status(501).json({ error: "Facebook OAuth not configured" }));
 }
