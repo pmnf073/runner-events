@@ -133,7 +133,7 @@ router.post("/", requireStaff, async (req, res) => {
       const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
       if (membership) {
         const totalPaid = await prisma.payment.aggregate({
-          where: { membershipId, deletedAt: null },
+          where: { membershipId },
           _sum: { paidAmount: true },
         });
         const newStatus =
