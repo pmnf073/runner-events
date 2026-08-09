@@ -244,15 +244,15 @@ router.post("/fees", requireAdminOrOrganizer, async (req, res) => {
       where: { year },
       create: {
         year,
-        amount: String(amount),
+        amount: Number(amount),
         dueDate: new Date(dueDate),
-        earlybirdDiscount: earlybirdDiscount ? String(earlybirdDiscount) : null,
+        earlybirdDiscount: earlybirdDiscount ? Number(earlybirdDiscount) : null,
         earlybirdDeadline: earlybirdDeadline ? new Date(earlybirdDeadline) : null,
       },
       update: {
-        amount: String(amount),
+        amount: Number(amount),
         dueDate: new Date(dueDate),
-        earlybirdDiscount: earlybirdDiscount ? String(earlybirdDiscount) : null,
+        earlybirdDiscount: earlybirdDiscount ? Number(earlybirdDiscount) : null,
         earlybirdDeadline: earlybirdDeadline ? new Date(earlybirdDeadline) : null,
       },
     });
