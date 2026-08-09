@@ -3,6 +3,7 @@ import prisma from "../db.js";
 import adminMiddleware from "../middleware/admin.js";
 
 const router = express.Router();
+router.use(adminMiddleware);
 
 /* ── Middleware: admin or organizer ── */
 function requireStaff(req, res, next) {
