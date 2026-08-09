@@ -305,7 +305,7 @@ export default function MembersPage({ user }) {
           )}
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => { setEditMember(m); setEditStatus(m.status); setEditPosition(m.position || ""); setEditNotes(m.notes || ""); }}
+            <button onClick={() => { setDetailId(null); setDetailData(null); setEditMember(m); setEditStatus(m.status); setEditPosition(m.position || ""); setEditNotes(m.notes || ""); }}
               style={{ padding: "8px 16px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500 }}>
               Editar
             </button>
