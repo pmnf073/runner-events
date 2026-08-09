@@ -94,6 +94,17 @@ router.get("/", requireAdminOrOrganizer, async (req, res) => {
   }
 });
 
+/* ── GET /api/members/fees ── */
+router.get("/fees", requireAdminOrOrganizer, async (req, res) => {
+  try {
+    const fees = await prisma.annualFeeConfig.findMany({ orderBy: { year: "desc" } });
+    res.json(fees);
+  } catch (err) {
+    console.error("[GET /api/fees]", err);
+    res.status(500).json({ error: "Erro ao listar configurações." });
+  }
+});
+
 /* ── GET /api/members/:id — single member detail ── */
 router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
@@ -220,17 +231,6 @@ router.get("/balance/:id", requireAdminOrOrganizer, async (req, res) => {
 });
 
 /* ── Annual Fee Configuration ── */
-
-// GET /api/fees
-router.get("/fees", requireAdminOrOrganizer, async (req, res) => {
-  try {
-    const fees = await prisma.annualFeeConfig.findMany({ orderBy: { year: "desc" } });
-    res.json(fees);
-  } catch (err) {
-    console.error("[GET /api/fees]", err);
-    res.status(500).json({ error: "Erro ao listar configurações." });
-  }
-});
 
 // POST /api/fees
 router.post("/fees", requireAdminOrOrganizer, async (req, res) => {
