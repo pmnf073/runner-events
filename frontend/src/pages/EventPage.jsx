@@ -62,7 +62,7 @@ export default function EventPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <Link to="/" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none" }}
+      <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none" }}
         onMouseEnter={e => e.target.style.textDecoration = "underline"}
         onMouseLeave={e => e.target.style.textDecoration = "none"}>← Voltar ao calendário</Link>
 
