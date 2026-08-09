@@ -56,7 +56,7 @@ router.get("/", requireAdminOrOrganizer, async (req, res) => {
           _sum: { amount: true },
         });
         const credits = await prisma.accountEntry.aggregate({
-          where: { memberId: m.id, type: "credit" },
+          where: { memberId: m.id, type: "credit", paymentId: { not: null } },
           _sum: { amount: true },
         });
         const balance =
@@ -178,7 +178,7 @@ router.get("/balance/:id", requireAdminOrOrganizer, async (req, res) => {
       _sum: { amount: true },
     });
     const credits = await prisma.accountEntry.aggregate({
-      where: { memberId: req.params.id, type: "credit" },
+      where: { memberId: req.params.id, type: "credit", paymentId: { not: null } },
       _sum: { amount: true },
     });
     const totalDebit = Number(debits._sum.amount) || 0;

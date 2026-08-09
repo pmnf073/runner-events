@@ -220,10 +220,9 @@ router.delete("/:id", requireStaff, async (req, res) => {
     const payment = await prisma.payment.findUnique({ where: { id: req.params.id } });
     if (!payment) return res.status(404).json({ error: "Pagamento não encontrado." });
 
-    await prisma.payment.delete({ where: { id: req.params.id } });
-
-    // Also delete associated AccountEntry entries (cascade might handle, but be explicit)
+    // Delete the credit before the payment; deleting the payment sets paymentId to null.
     await prisma.accountEntry.deleteMany({ where: { paymentId: req.params.id } });
+    await prisma.payment.delete({ where: { id: req.params.id } });
 
     // Recalculate membership status if linked
     if (payment.membershipId) {
