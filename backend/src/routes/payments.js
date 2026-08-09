@@ -4,6 +4,7 @@ import adminMiddleware from "../middleware/admin.js";
 
 const router = express.Router();
 router.use(adminMiddleware);
+const membershipAmountDue = (membership) => Math.max(0, Number(membership.amount) - Number(membership.discount || 0));
 
 /* ── Middleware: admin or organizer ── */
 function requireStaff(req, res, next) {
@@ -137,7 +138,7 @@ router.post("/", requireStaff, async (req, res) => {
           _sum: { paidAmount: true },
         });
         const newStatus =
-          Number(totalPaid._sum.paidAmount) >= Number(membership.amount) ? "paid" :
+          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
           Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
         await prisma.membership.update({
           where: { id: membershipId },
@@ -193,7 +194,7 @@ router.put("/:id", requireStaff, async (req, res) => {
       const membership = await prisma.membership.findUnique({ where: { id: existing.membershipId } });
       if (membership) {
         const newStatus =
-          Number(totalPaid._sum.paidAmount) >= Number(membership.amount) ? "paid" :
+          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
           Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
         await prisma.membership.update({
           where: { id: existing.membershipId },
@@ -232,7 +233,9 @@ router.delete("/:id", requireStaff, async (req, res) => {
       });
       const membership = await prisma.membership.findUnique({ where: { id: payment.membershipId } });
       if (membership) {
-        const newStatus = Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
+        const newStatus =
+          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
+          Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
         await prisma.membership.update({
           where: { id: payment.membershipId },
           data: { status: newStatus, paidDate: null },

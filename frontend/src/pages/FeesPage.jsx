@@ -33,6 +33,8 @@ export default function FeesPage({ user }) {
   const [generateYear, setGenerateYear] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateResult, setGenerateResult] = useState(null);
+  const [syncingAccount, setSyncingAccount] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   // Members list for display
   const [members, setMembers] = useState([]);
@@ -116,6 +118,22 @@ export default function FeesPage({ user }) {
       setGenerateResult({ error: err.message });
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleSyncAccountEntries() {
+    setSyncingAccount(true);
+    setSyncResult(null);
+    try {
+      const r = await api("/api/members/fees/sync-account-entries", { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Erro ao sincronizar conta corrente");
+      setSyncResult(data);
+      loadMembers();
+    } catch (err) {
+      setSyncResult({ error: err.message });
+    } finally {
+      setSyncingAccount(false);
     }
   }
 
@@ -220,6 +238,20 @@ export default function FeesPage({ user }) {
               `✅ ${generateResult.created} quotas criadas · ${generateResult.skipped} ignoradas (já existem) · ${generateResult.total} sócios ativos`}
           </div>
         )}
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 10px" }}>
+            Para quotas criadas antes desta atualização, cria os débitos em falta na conta corrente.
+          </p>
+          <button onClick={handleSyncAccountEntries} disabled={syncingAccount}
+            style={{ padding: "8px 14px", background: syncingAccount ? "#999" : "var(--bg-input)", color: "var(--text-primary)", border: "1px solid var(--border-subtle)", borderRadius: 8, cursor: syncingAccount ? "wait" : "pointer", fontWeight: 500, fontSize: 13 }}>
+            {syncingAccount ? "A sincronizar..." : "Sincronizar conta corrente"}
+          </button>
+          {syncResult && (
+            <p style={{ margin: "8px 0 0", fontSize: 13, color: syncResult.error ? "#ef4444" : "#22c55e" }}>
+              {syncResult.error || `${syncResult.created} débitos criados em ${syncResult.total} quotas.`}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Configuration History */}

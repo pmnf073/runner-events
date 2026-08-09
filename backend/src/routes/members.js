@@ -22,6 +22,28 @@ function requireAdminOrOrganizer(req, res, next) {
   }
 }
 
+const membershipDebitDescription = (year) => `Anuidade ${year}`;
+const membershipAmountDue = (membership) => Math.max(0, Number(membership.amount) - Number(membership.discount || 0));
+
+async function ensureMembershipDebit(membership) {
+  const description = membershipDebitDescription(membership.year);
+  const existing = await prisma.accountEntry.findFirst({
+    where: { memberId: membership.memberId, type: "debit", description },
+  });
+  if (existing) return false;
+
+  await prisma.accountEntry.create({
+    data: {
+      memberId: membership.memberId,
+      type: "debit",
+      description,
+      amount: membershipAmountDue(membership),
+      date: membership.createdAt,
+    },
+  });
+  return true;
+}
+
 /* ── GET /api/members — list all members with user data ── */
 router.get("/", requireAdminOrOrganizer, async (req, res) => {
   try {
@@ -269,7 +291,7 @@ router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (
         continue;
       }
 
-      await prisma.membership.create({
+      const membership = await prisma.membership.create({
         data: {
           memberId: member.id,
           year,
@@ -278,6 +300,7 @@ router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (
           discount: feeConfig.earlybirdDiscount, // auto-apply early bird (can be removed later)
         },
       });
+      await ensureMembershipDebit(membership);
       created++;
     }
 
@@ -285,6 +308,21 @@ router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (
   } catch (err) {
     console.error("[POST /api/fees/:year/generate-memberships]", err);
     res.status(500).json({ error: "Erro ao gerar quotas." });
+  }
+});
+
+/* ── POST /api/fees/sync-account-entries — add missing debits for existing memberships ── */
+router.post("/fees/sync-account-entries", requireAdminOrOrganizer, async (_req, res) => {
+  try {
+    const memberships = await prisma.membership.findMany();
+    let created = 0;
+    for (const membership of memberships) {
+      if (await ensureMembershipDebit(membership)) created++;
+    }
+    res.json({ created, total: memberships.length });
+  } catch (err) {
+    console.error("[POST /api/fees/sync-account-entries]", err);
+    res.status(500).json({ error: "Erro ao sincronizar a conta corrente." });
   }
 });
 
