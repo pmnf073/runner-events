@@ -23,7 +23,7 @@ export default function FeesPage({ user }) {
 
   // Edit/Create form
   const [editYear, setEditYear] = useState("");
-  const [editAmount, setEditAmount] = useState("");
+  const [editAmount, setEditAmount] = useState("15.00");
   const [editDueDate, setEditDueDate] = useState("");
   const [editEarlyDiscount, setEditEarlyDiscount] = useState("");
   const [editEarlyDeadline, setEditEarlyDeadline] = useState("");
@@ -58,6 +58,9 @@ export default function FeesPage({ user }) {
         if (!r.ok) throw new Error("Falha ao carregar configurações");
         const data = await r.json();
         setConfigurations(data);
+        if (data && data.length > 0) {
+          setGenerateYear(String(data[0].year));
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -226,8 +229,17 @@ export default function FeesPage({ user }) {
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Ano</span>
-            <input type="number" value={generateYear} onChange={(e) => setGenerateYear(e.target.value)}
-              placeholder={new Date().getFullYear().toString()} style={inputStyle} />
+            {configurations && configurations.length > 0 ? (
+              <select value={generateYear} onChange={(e) => setGenerateYear(e.target.value)} style={inputStyle}>
+                <option value="">-- Selecione uma configuração --</option>
+                {configurations.map((cfg) => (
+                  <option key={cfg.id} value={cfg.year}>{cfg.year} — {parseFloat(cfg.amount).toFixed(2)} €</option>
+                ))}
+              </select>
+            ) : (
+              <input type="number" value={generateYear} onChange={(e) => setGenerateYear(e.target.value)}
+                placeholder={new Date().getFullYear().toString()} style={inputStyle} />
+            )}
           </label>
           <button onClick={handleGenerateMemberships} disabled={generating}
             style={{ padding: "10px 20px", background: generating ? "#999" : "#3b82f6", color: "#fff", border: "none", borderRadius: 10, cursor: generating ? "wait" : "pointer", fontWeight: 600, fontSize: 14 }}>
