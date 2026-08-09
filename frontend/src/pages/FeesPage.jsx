@@ -148,7 +148,7 @@ export default function FeesPage({ user }) {
   }
 
   function fillConfigForEdit(cfg) {
-    setEditYear(cfg.year);
+    setEditYear(String(cfg.year));
     setEditAmount(String(parseFloat(cfg.amount)));
     setEditDueDate(cfg.dueDate.split("T")[0]);
     setEditEarlyDiscount(cfg.earlybirdDiscount ? String(parseFloat(cfg.earlybirdDiscount)) : "");
@@ -156,6 +156,10 @@ export default function FeesPage({ user }) {
     setEditingYear(cfg.year);
     requestAnimationFrame(() => configFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [];
+  for (let y = 2022; y <= currentYear; y++) yearOptions.push(y);
 
   if (loading) {
     return (
@@ -187,8 +191,12 @@ export default function FeesPage({ user }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Ano</span>
-            <input type="number" value={editYear} onChange={(e) => setEditYear(e.target.value)}
-              placeholder="2026" style={inputStyle} />
+            <select value={editYear} onChange={(e) => setEditYear(e.target.value)} style={inputStyle}>
+              <option value="">-- Selecione ano --</option>
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Valor (€)</span>
