@@ -104,8 +104,8 @@ router.post("/", requireStaff, async (req, res) => {
       data: {
         memberId,
         membershipId: membershipId || null,
-        amount: String(amount),
-        paidAmount: paidAmount ? String(paidAmount) : String(amount),
+        amount: Number(amount),
+        paidAmount: paidAmount != null ? Number(paidAmount) : Number(amount),
         date: date ? new Date(date) : new Date(),
         method,
         reference: reference || null,
@@ -170,8 +170,8 @@ router.put("/:id", requireStaff, async (req, res) => {
 
     // Prevent changing memberId or membershipId after creation (complex)
     const data = {};
-    if (amount !== undefined) data.amount = String(amount);
-    if (paidAmount !== undefined) data.paidAmount = String(paidAmount);
+    if (amount !== undefined) data.amount = Number(amount);
+    if (paidAmount !== undefined) data.paidAmount = Number(paidAmount);
     if (date !== undefined) data.date = new Date(date);
     if (method !== undefined) data.method = method;
     if (reference !== undefined) data.reference = reference || null;
