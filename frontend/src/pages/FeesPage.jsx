@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -28,6 +28,8 @@ export default function FeesPage({ user }) {
   const [editEarlyDiscount, setEditEarlyDiscount] = useState("");
   const [editEarlyDeadline, setEditEarlyDeadline] = useState("");
   const [editError, setEditError] = useState("");
+  const [editingYear, setEditingYear] = useState(null);
+  const configFormRef = useRef(null);
 
   // Generate memberships
   const [generateYear, setGenerateYear] = useState("");
@@ -94,6 +96,7 @@ export default function FeesPage({ user }) {
       setEditEarlyDiscount("");
       setEditEarlyDeadline("");
       setEditError("");
+      setEditingYear(null);
       setSuccess(`Anuidade de ${data.year} guardada com sucesso!`);
       setTimeout(() => setSuccess(""), 3000);
       loadConfigurations();
@@ -147,6 +150,8 @@ export default function FeesPage({ user }) {
     setEditDueDate(cfg.dueDate.split("T")[0]);
     setEditEarlyDiscount(cfg.earlybirdDiscount ? String(parseFloat(cfg.earlybirdDiscount)) : "");
     setEditEarlyDeadline(cfg.earlybirdDeadline ? cfg.earlybirdDeadline.split("T")[0] : "");
+    setEditingYear(cfg.year);
+    requestAnimationFrame(() => configFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   if (loading) {
@@ -172,9 +177,9 @@ export default function FeesPage({ user }) {
       )}
 
       {/* Config Form */}
-      <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", padding: 24, marginBottom: 24 }}>
+      <div ref={configFormRef} style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", padding: 24, marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "var(--text-heading)" }}>
-          Configurar Anuidade
+          {editingYear ? `Editar Anuidade ${editingYear}` : "Configurar Anuidade"}
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
           <label>
@@ -206,7 +211,7 @@ export default function FeesPage({ user }) {
         {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 8 }}>{editError}</p>}
         <button onClick={handleSaveConfig}
           style={{ padding: "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
-          Guardar Configuração
+          {editingYear ? "Guardar Alterações" : "Guardar Configuração"}
         </button>
       </div>
 
@@ -261,10 +266,7 @@ export default function FeesPage({ user }) {
         </h2>
         {configurations.map((cfg) => (
           <div key={cfg.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)", cursor: "pointer" }}
-            onClick={() => fillConfigForEdit(cfg)}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+            padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
             <div>
               <span style={{ fontWeight: 700, marginRight: 12 }}>{cfg.year}</span>
               <span style={{ color: "var(--text-secondary)" }}>{parseFloat(cfg.amount).toFixed(2)} €</span>
@@ -274,7 +276,10 @@ export default function FeesPage({ user }) {
                 <span style={{ fontSize: 11, color: "#22c55e" }}>Early-bird: {parseFloat(cfg.earlybirdDiscount).toFixed(2)} €</span>
               )}
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Até {formatDate(cfg.dueDate)}</span>
-              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Editar →</span>
+              <button type="button" onClick={() => fillConfigForEdit(cfg)}
+                style={{ color: "#CC3333", background: "none", border: "none", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                Editar
+              </button>
             </div>
           </div>
         ))}
