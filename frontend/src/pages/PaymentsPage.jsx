@@ -320,10 +320,14 @@ export default function PaymentsPage({ user }) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                 <td style={tdStyle}>{formatDate(p.date)}</td>
                 <td style={{ ...tdStyle, fontWeight: 600, fontFamily: "monospace" }}>{p.receiptNumber}</td>
-                <td style={tdStyle} title={p.notes || p.reference || ""}>
-                  {p.notes ? (p.notes.length > 60 ? p.notes.slice(0, 60) + "…" : p.notes)
-                    : p.reference ? (p.reference.length > 60 ? p.reference.slice(0, 60) + "…" : p.reference)
-                    : "—"}
+                <td style={tdStyle} title={p.membership ? `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${p.membership.status})` : (p.notes || "") }>
+                  {p.membership ? (
+                    `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${p.membership.status})`
+                  ) : p.notes ? (
+                    p.notes.length > 60 ? p.notes.slice(0, 60) + "…" : p.notes
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td style={tdStyle}>{p.member.user.name}</td>
                 <td style={{ ...tdStyle, display: "flex", alignItems: "center", gap: 6 }}>
