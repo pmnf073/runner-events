@@ -152,6 +152,28 @@ export default function FeesPage({ user }) {
     return `${dd}/${mm}/${yyyy}`;
   }
 
+  function displayDateForInput(ymd) {
+    if (!ymd) return "";
+    // accept full ISO like 2026-08-10T00:00:00
+    const datePart = (ymd || "").split("T")[0];
+    if (!datePart) return "";
+    const [y, m, d] = datePart.split("-");
+    if (!y || !m || !d) return "";
+    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+  }
+
+  function parseInputDateToYMD(input) {
+    if (!input) return "";
+    // accept dd/mm/yyyy or yyyy-mm-dd
+    if (input.includes("/")) {
+      const parts = input.split("/").map(p => p.trim());
+      if (parts.length !== 3) return "";
+      const [d, m, y] = parts;
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    return input; // assume already yyyy-mm-dd
+  }
+
   function fillConfigForEdit(cfg) {
     setEditYear(String(cfg.year));
     setEditAmount(String(parseFloat(cfg.amount)));
@@ -212,8 +234,8 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Data Limite</span>
-            <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)}
-              style={inputStyle} />
+            <input type="text" value={displayDateForInput(editDueDate)} onChange={(e) => setEditDueDate(parseInputDateToYMD(e.target.value))}
+              placeholder="dd/mm/aaaa" style={inputStyle} />
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Desconto Early-bird (€)</span>
@@ -222,8 +244,8 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Prazo Early-bird</span>
-            <input type="date" value={editEarlyDeadline} onChange={(e) => setEditEarlyDeadline(e.target.value)}
-              style={inputStyle} />
+            <input type="text" value={displayDateForInput(editEarlyDeadline)} onChange={(e) => setEditEarlyDeadline(parseInputDateToYMD(e.target.value))}
+              placeholder="dd/mm/aaaa" style={inputStyle} />
           </label>
         </div>
         {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 8 }}>{editError}</p>}

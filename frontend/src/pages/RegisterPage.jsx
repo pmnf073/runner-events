@@ -79,7 +79,7 @@ export default function RegisterPage() {
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Data de nascimento</label>
-              <input type="date" name="dob" value={form.dob} onChange={handleChange} style={{ ...inputStyle, color: V("--text-primary") }} />
+              <input type="text" name="dob" value={(function(d){ if(!d) return ""; const datePart=(d||"").split("T")[0]; const [y,m,dd]=datePart.split("-"); return dd?`${dd.padStart(2,'0')}/${m.padStart(2,'0')}/${y}` : "" })(form.dob)} onChange={(e)=>{ const v=e.target.value; const newVal = v.includes('/') ? (function(p){ const parts=p.split('/').map(x=>x.trim()); if(parts.length!==3) return ""; return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` })(v) : v; handleChange({ target: { name: 'dob', value: newVal } }) }} style={{ ...inputStyle, color: V("--text-primary") }} />
             </div>
           </div>
 

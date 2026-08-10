@@ -261,6 +261,26 @@ export default function PaymentsPage({ user }) {
     return `${dd}/${mm}/${yyyy}`;
   }
 
+  function displayDateForInput(ymd) {
+    if (!ymd) return "";
+    const datePart = (ymd || "").split("T")[0];
+    if (!datePart) return "";
+    const [y, m, d] = datePart.split("-");
+    if (!y || !m || !d) return "";
+    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+  }
+
+  function parseInputDateToYMD(input) {
+    if (!input) return "";
+    if (input.includes("/")) {
+      const parts = input.split("/").map(p => p.trim());
+      if (parts.length !== 3) return "";
+      const [d, m, y] = parts;
+      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    return input;
+  }
+
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: 80 }}>
@@ -307,11 +327,11 @@ export default function PaymentsPage({ user }) {
           <option value="card">Cartão</option>
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <input type="text" value={displayDateForInput(dateFrom)} onChange={(e) => setDateFrom(parseInputDateToYMD(e.target.value))}
+            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
           <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>até</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <input type="text" value={displayDateForInput(dateTo)} onChange={(e) => setDateTo(parseInputDateToYMD(e.target.value))}
+            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
         </div>
         <button onClick={() => { setSearch(""); setMethodFilter(""); setDateFrom(""); setDateTo(""); }}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14 }}>
