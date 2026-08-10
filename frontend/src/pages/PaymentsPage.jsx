@@ -80,6 +80,24 @@ export default function PaymentsPage({ user }) {
     applyFilters();
   }, [payments, search, methodFilter, dateFrom, dateTo]);
 
+  useEffect(() => {
+    if (editPayment) {
+      setEditAmount(editPayment.amount != null ? String(editPayment.amount) : "");
+      setEditPaidAmount(editPayment.paidAmount != null ? String(editPayment.paidAmount) : (editPayment.amount != null ? String(editPayment.amount) : ""));
+      setEditDate(editPayment.date || "");
+      setEditMethod(editPayment.method || "");
+      setEditReference(editPayment.reference || "");
+      setEditNotes(editPayment.notes || "");
+    } else {
+      setEditAmount("");
+      setEditPaidAmount("");
+      setEditDate("");
+      setEditMethod("");
+      setEditReference("");
+      setEditNotes("");
+    }
+  }, [editPayment]);
+
   function loadPayments() {
     setLoading(true);
     setError("");
@@ -472,7 +490,17 @@ export default function PaymentsPage({ user }) {
           onClick={() => setEditPayment(null)}>
           <div style={{ background: "var(--bg-modal)", borderRadius: 16, padding: 24, margin: 16, width: 420 }}
             onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: "var(--text-heading)" }}>Editar Pagamento {editPayment.receiptNumber}</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "var(--text-heading)" }}>Editar Pagamento {editPayment.receiptNumber}</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Sócio</div>
+                <div style={{ fontWeight: 600 }}>{editPayment.member.user.name}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Quota</div>
+                <div>{editPayment.membership ? `${editPayment.membership.year} — ${formatCurrency(editPayment.membership.amount)} (${editPayment.membership.status})` : "—"}</div>
+              </div>
+            </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor Total</label>
               <input type="number" step="0.01" value={editAmount} onChange={(e) => setEditAmount(e.target.value)}
