@@ -305,6 +305,7 @@ export default function PaymentsPage({ user }) {
             <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
               <th style={thStyle}>Data</th>
               <th style={thStyle}>Recibo</th>
+              <th style={thStyle}>Detalhe</th>
               <th style={thStyle}>Sócio</th>
               <th style={thStyle}>Método</th>
               <th style={thStyle}>Valor</th>
@@ -319,6 +320,11 @@ export default function PaymentsPage({ user }) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                 <td style={tdStyle}>{formatDate(p.date)}</td>
                 <td style={{ ...tdStyle, fontWeight: 600, fontFamily: "monospace" }}>{p.receiptNumber}</td>
+                <td style={tdStyle} title={p.notes || p.reference || ""}>
+                  {p.notes ? (p.notes.length > 60 ? p.notes.slice(0, 60) + "…" : p.notes)
+                    : p.reference ? (p.reference.length > 60 ? p.reference.slice(0, 60) + "…" : p.reference)
+                    : "—"}
+                </td>
                 <td style={tdStyle}>{p.member.user.name}</td>
                 <td style={{ ...tdStyle, display: "flex", alignItems: "center", gap: 6 }}>
                   <span>{METHOD_ICONS[p.method]}</span>
