@@ -123,7 +123,21 @@ router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
       },
     });
     if (!member) return res.status(404).json({ error: "Sócio não encontrado." });
-    res.json(member);
+
+    // Calculate balance for this member (credits - debits)
+    const debits = await prisma.accountEntry.aggregate({
+      where: { memberId: member.id, type: "debit" },
+      _sum: { amount: true },
+    });
+    const credits = await prisma.accountEntry.aggregate({
+      where: { memberId: member.id, type: "credit", paymentId: { not: null } },
+      _sum: { amount: true },
+    });
+    const totalDebit = Number(debits._sum.amount) || 0;
+    const totalCredit = Number(credits._sum.amount) || 0;
+    const balance = totalCredit - totalDebit;
+
+    res.json({ ...member, balance });
   } catch (err) {
     console.error("[GET /api/members/:id]", err);
     res.status(500).json({ error: "Erro ao obter dados do sócio." });
