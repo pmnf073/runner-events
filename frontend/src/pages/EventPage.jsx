@@ -89,7 +89,12 @@ export default function EventPage() {
             <span style={{ fontSize: 20 }}>📅</span>
             <div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>Data</div>
-              <div style={{ fontWeight: 500, color: V("--text-primary") }}>{date.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+              <div style={{ fontWeight: 500, color: V("--text-primary") }}>{(() => {
+                const dd = String(date.getDate()).padStart(2, "0");
+                const mm = String(date.getMonth() + 1).padStart(2, "0");
+                const yyyy = date.getFullYear();
+                return `${dd}/${mm}/${yyyy}`;
+              })()}</div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>
                 {date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
                 {endDate && ` — ${endDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`}

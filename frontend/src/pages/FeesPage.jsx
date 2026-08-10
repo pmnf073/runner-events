@@ -71,7 +71,7 @@ export default function FeesPage({ user }) {
       .then(async (r) => {
         if (r.ok) setMembers(await r.json());
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   async function handleSaveConfig() {
@@ -144,7 +144,12 @@ export default function FeesPage({ user }) {
   }
 
   function formatDate(iso) {
-    return new Date(iso).toLocaleDateString("pt-PT");
+    if (!iso) return "—";
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
 
   function fillConfigForEdit(cfg) {
@@ -176,8 +181,10 @@ export default function FeesPage({ user }) {
       </h1>
 
       {success && (
-        <div style={{ padding: "10px 16px", borderRadius: 10, background: "#22c55e18", border: "1px solid #22c55e44",
-          color: "#22c55e", fontSize: 14, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{
+          padding: "10px 16px", borderRadius: 10, background: "#22c55e18", border: "1px solid #22c55e44",
+          color: "#22c55e", fontSize: 14, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center"
+        }}>
           <span>{success}</span>
           <button onClick={() => setSuccess("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#22c55e" }}>✕</button>
         </div>
@@ -255,10 +262,12 @@ export default function FeesPage({ user }) {
           </button>
         </div>
         {generateResult && (
-          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, fontSize: 14,
+          <div style={{
+            marginTop: 12, padding: "10px 14px", borderRadius: 10, fontSize: 14,
             background: generateResult.error ? "#ef444418" : "#22c55e18",
             border: `1px solid ${generateResult.error ? "#ef444444" : "#22c55e44"}`,
-            color: generateResult.error ? "#ef4444" : "#22c55e" }}>
+            color: generateResult.error ? "#ef4444" : "#22c55e"
+          }}>
             {generateResult.error ||
               `✅ ${generateResult.created} quotas criadas · ${generateResult.skipped} ignoradas (já existem) · ${generateResult.total} sócios ativos`}
           </div>
@@ -285,8 +294,10 @@ export default function FeesPage({ user }) {
           Configurações Guardadas
         </h2>
         {configurations.map((cfg) => (
-          <div key={cfg.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)" }}>
+          <div key={cfg.id} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)"
+          }}>
             <div>
               <span style={{ fontWeight: 700, marginRight: 12 }}>{cfg.year}</span>
               <span style={{ color: "var(--text-secondary)" }}>{parseFloat(cfg.amount).toFixed(2)} €</span>
