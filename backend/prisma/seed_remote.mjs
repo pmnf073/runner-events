@@ -2,10 +2,16 @@
 const BASE = 'https://runner-events-api.onrender.com';
 
 async function login() {
+  const email = process.env.SEED_ADMIN_EMAIL;
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  if (!email || !password) {
+    console.error('Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD before running this script.');
+    process.exit(1);
+  }
   const lr = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'alvercaurbanrunners@gmail.com', password: 'Testing!123' })
+    body: JSON.stringify({ email, password })
   });
   const ld = await lr.json();
   if (!ld.token) { console.error('Login failed:', ld); process.exit(1); }

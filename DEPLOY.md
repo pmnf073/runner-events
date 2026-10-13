@@ -30,7 +30,8 @@
    PORT=3001
    ```
 5. **Pos deploy:** `npx prisma migrate deploy` (ou via Render shell)
-6. Seedar admin: `node prisma/seed.mjs`
+6. Seedar admin: `SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... node prisma/seed.mjs`
+   (ou definir as duas variaveis no ambiente do Render / no `.env`)
 
 ## 3. Frontend — Vercel (Free, ilimitado)
 
