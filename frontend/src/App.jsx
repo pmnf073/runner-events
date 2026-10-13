@@ -14,6 +14,7 @@ import MembersPage from "./pages/MembersPage";
 import FeesPage from "./pages/FeesPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -251,6 +252,15 @@ function AppInner() {
                       </>
                     )}
 
+                    {/* Accounts with a local password */}
+                    {user.hasPassword && (
+                      <>
+                        <SubmenuLink to="/change-password" label="Alterar password" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>} />
+                        <SubmenuDivider />
+                      </>
+                    )}
+
                     {/* Logout */}
                     <button onClick={handleLogout}
                       style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 16px", background: "none", border: "none", color: "var(--text-primary)", fontSize: 14, cursor: "pointer", transition: "background 0.2s" }}
@@ -292,6 +302,7 @@ function AppInner() {
           <Route path="/members" element={<MembersPage user={user} />} />
           <Route path="/fees" element={<FeesPage user={user} />} />
           <Route path="/payments" element={<PaymentsPage user={user} />} />
+          <Route path="/change-password" element={<ChangePasswordPage user={user} />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>

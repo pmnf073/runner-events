@@ -213,19 +213,57 @@ router.get("/me", async (req, res) => {
       const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
       const user = await prisma.user.findUnique({
         where: { id: payload.id },
-        select: { id: true, email: true, name: true, role: true, status: true, avatar: true },
+        select: { id: true, email: true, name: true, role: true, status: true, avatar: true, password: true },
       });
-      if (user) return res.json({ authenticated: true, user });
+      if (user) {
+        const { password, ...safeUser } = user;
+        return res.json({ authenticated: true, user: { ...safeUser, hasPassword: Boolean(password) } });
+      }
     } catch {}
   }
   // Fallback: session
   if (req.user) {
     return res.json({
       authenticated: true,
-      user: { id: req.user.id, email: req.user.email, name: req.user.name, role: req.user.role, avatar: req.user.avatar },
+      user: { id: req.user.id, email: req.user.email, name: req.user.name, role: req.user.role, avatar: req.user.avatar, hasPassword: Boolean(req.user.password) },
     });
   }
   res.json({ authenticated: false });
+});
+
+// ─── Change Password (authenticated user) ───
+router.post("/change-password", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return res.status(401).json({ error: "Auth required" });
+  let payload;
+  try {
+    payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
+  } catch {
+    return res.status(401).json({ error: "Token inválido" });
+  }
+
+  const { currentPassword, newPassword } = req.body;
+  if (typeof currentPassword !== "string" || typeof newPassword !== "string" || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: "Password atual e nova password sao obrigatorias" });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "Password deve ter pelo menos 8 caracteres" });
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user) return res.status(401).json({ error: "Token inválido" });
+    if (!user.password) return res.status(400).json({ error: "Esta conta usa login social e nao tem password." });
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) return res.status(400).json({ error: "Password atual incorreta" });
+    if (await bcrypt.compare(newPassword, user.password)) {
+      return res.status(400).json({ error: "A nova password tem de ser diferente da atual" });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Erro interno" });
+  }
 });
 
 // ─── Logout ───
