@@ -105,6 +105,35 @@ router.get("/fees", requireAdminOrOrganizer, async (req, res) => {
   }
 });
 
+/* ── GET /api/members/stats — quick stats for admin dashboard (must stay before /:id) ── */
+router.get("/stats", requireAdminOrOrganizer, async (req, res) => {
+  try {
+    const totalMembers = await prisma.member.count();
+    const activeMembers = await prisma.member.count({ where: { status: "active" } });
+    const suspendedMembers = await prisma.member.count({ where: { status: "suspended" } });
+    const currentYear = new Date().getFullYear();
+
+    const paidThisYear = await prisma.membership.count({
+      where: { year: currentYear, status: "paid" },
+    });
+    const pendingThisYear = await prisma.membership.count({
+      where: { year: currentYear, status: "pending" },
+    });
+
+    res.json({
+      totalMembers,
+      activeMembers,
+      suspendedMembers,
+      currentYear,
+      paidThisYear,
+      pendingThisYear,
+    });
+  } catch (err) {
+    console.error("[GET /api/members/stats]", err);
+    res.status(500).json({ error: "Erro ao obter estatísticas." });
+  }
+});
+
 /* ── GET /api/members/:id — single member detail ── */
 router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
   try {
@@ -337,35 +366,6 @@ router.post("/fees/sync-account-entries", requireAdminOrOrganizer, async (_req, 
   } catch (err) {
     console.error("[POST /api/fees/sync-account-entries]", err);
     res.status(500).json({ error: "Erro ao sincronizar a conta corrente." });
-  }
-});
-
-/* ── GET /api/members/stats — quick stats for admin dashboard ── */
-router.get("/stats", requireAdminOrOrganizer, async (req, res) => {
-  try {
-    const totalMembers = await prisma.member.count();
-    const activeMembers = await prisma.member.count({ where: { status: "active" } });
-    const suspendedMembers = await prisma.member.count({ where: { status: "suspended" } });
-    const currentYear = new Date().getFullYear();
-
-    const paidThisYear = await prisma.membership.count({
-      where: { year: currentYear, status: "paid" },
-    });
-    const pendingThisYear = await prisma.membership.count({
-      where: { year: currentYear, status: "pending" },
-    });
-
-    res.json({
-      totalMembers,
-      activeMembers,
-      suspendedMembers,
-      currentYear,
-      paidThisYear,
-      pendingThisYear,
-    });
-  } catch (err) {
-    console.error("[GET /api/members/stats]", err);
-    res.status(500).json({ error: "Erro ao obter estatísticas." });
   }
 });
 
