@@ -12,7 +12,9 @@ export default function OAuthCallbackPage() {
       return;
     }
     localStorage.setItem("token", token);
-    window.location.replace("/");
+    const redirect = sessionStorage.getItem("postLoginRedirect");
+    sessionStorage.removeItem("postLoginRedirect");
+    window.location.replace(redirect && redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/");
   }, [searchParams]);
 
   return (

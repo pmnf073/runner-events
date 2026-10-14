@@ -97,8 +97,8 @@ router.delete("/:eventId", auth, async (req, res) => {
   }
 });
 
-// GET /api/rsvps/:eventId — list all RSVPs for an event (public)
-router.get("/:eventId", async (req, res) => {
+// GET /api/rsvps/:eventId — list all RSVPs for an event (logged-in users)
+router.get("/:eventId", auth, async (req, res) => {
   try {
     const rsvps = await prisma.rsvp.findMany({
       where: { eventId: req.params.eventId },
