@@ -45,7 +45,7 @@ There are no tests, no linter and no type checker. Verify changes with `npm run 
 
 ## Deployment
 
-Frontend on Vercel (root `frontend/`, SPA rewrite in `vercel.json`), backend on Render (`backend/render.yaml`), database on Neon. Vercel deploys on every push to `main`. Migrations are not run by the Render build; run `npx prisma migrate deploy` after deploying a schema change.
+Frontend on Vercel (root `frontend/`, SPA rewrite in `vercel.json`), backend on Render (`backend/render.yaml`), database on Neon. Vercel deploys on every push to `main`. The Render build command (set in the Render dashboard, mirrored in `render.yaml`) runs `prisma migrate deploy` on every deploy; a failing migration aborts the deploy, so every schema change needs a migration that works against the production data.
 
 ## Architecture
 

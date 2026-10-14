@@ -4,7 +4,8 @@ services:
     name: runner-events-api
     env: node
     plan: free
-    buildCommand: npm install && npx prisma generate
+    # Same command as the Render dashboard: applies pending migrations on every deploy
+    buildCommand: npm install && ./node_modules/.bin/prisma migrate deploy && ./node_modules/.bin/prisma generate
     startCommand: npm start
     envVars:
       - key: DATABASE_URL

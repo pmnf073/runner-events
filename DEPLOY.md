@@ -17,7 +17,8 @@
 1. Criar conta em https://render.com
 2. New Web Service → conectar ao repo GitHub
 3. Configurar:
-   - **Build Command:** `cd backend && npm install && npx prisma generate`
+   - **Build Command:** `npm install && ./node_modules/.bin/prisma migrate deploy && ./node_modules/.bin/prisma generate`
+     (gera o cliente Prisma e aplica as migracoes pendentes; se uma migracao falhar, o deploy e cancelado e a versao anterior continua no ar)
    - **Start Command:** `cd backend && npm start`
    - **Root Directory:** `backend` (se Render suportar)
    - **Node Version:** 20+
@@ -29,7 +30,7 @@
    NODE_ENV=production
    PORT=3001
    ```
-5. **Pos deploy:** `npx prisma migrate deploy` (ou via Render shell)
+5. **Migracoes:** aplicadas automaticamente pelo Build Command em cada deploy.
 6. Seedar admin: `SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... node prisma/seed.mjs`
    (ou definir as duas variaveis no ambiente do Render / no `.env`)
 
