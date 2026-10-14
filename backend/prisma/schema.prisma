@@ -24,11 +24,24 @@ model User {
   invitedBy  String?
   notes      String?
   clubs      String    @default("Alverca Urban Runners")
+  emailOptOut   Boolean @default(false) // no reminders or club announcements by email
+  calendarToken String? @unique         // secret for the personal ICS subscription URL
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   rsvps      Rsvp[]
   registrations Registration[]
   member     Member?
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // sha256 of the token sent by email
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
 }
 
 model Registration {
@@ -168,4 +181,26 @@ model AnnualFeeConfig {
   earlybirdDeadline   DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+/* ── Audit log: who changed what in members, fees, payments and users ── */
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?                        // user who made the change (null for automatic jobs)
+  actorName String?
+  action    String                         // e.g. "payment.create", "member.delete"
+  entity    String                         // "Payment" | "Member" | "Membership" | "AnnualFeeConfig" | "User" | "Announcement"
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+/* ── Emails sent automatically, so each reminder goes out only once ── */
+model NotificationLog {
+  id     String   @id @default(cuid())
+  key    String   @unique // e.g. "fee-due-soon:<membershipId>", "event-reminder:<eventId>:<userId>"
+  sentAt DateTime @default(now())
 }

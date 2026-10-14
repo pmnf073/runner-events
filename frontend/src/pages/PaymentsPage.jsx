@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import api, { openApiFile } from "../services/api";
 import { formatCurrency, formatDate, displayDateForInput, parseInputDateToYMD } from "../utils/format";
 
 const METHOD_LABELS = {
@@ -343,7 +343,11 @@ export default function PaymentsPage({ user }) {
                     <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
                   )}
                 </td>
-                <td style={tdStyle}>
+                <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                  <button onClick={() => openApiFile(`/api/payments/${p.id}/receipt`).catch((err) => alert(err.message))} title="Recibo em PDF" style={{ color: "var(--text-primary)", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>
+                    Recibo
+                  </button>
+                  <span style={{ color: "var(--border-subtle)", margin: "0 8px" }}>|</span>
                   <button onClick={() => setEditPayment(p)} style={{ color: "#CC3333", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>
                     Editar
                   </button>

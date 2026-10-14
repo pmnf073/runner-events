@@ -1,6 +1,7 @@
 import { Router } from "express";
 import prisma from "../db.js";
 import { requireAdmin } from "../middleware/auth.js";
+import { audit } from "../services/audit.js";
 import { ALLOWED, isAllowed, isValidNif, serverError } from "../utils/http.js";
 
 const router = Router();
@@ -91,9 +92,11 @@ router.put("/users/:id/registration", async (req, res) => {
     if (!registration) {
       if (action === "approve") {
         await prisma.user.update({ where: { id: req.params.id }, data: { status: "active" } });
+        await audit(null, req, "registration.approve", "User", req.params.id);
         return res.json({ ok: true, action, note: "User activated directly" });
       } else {
         await prisma.user.update({ where: { id: req.params.id }, data: { status: "inactive" } });
+        await audit(null, req, "registration.reject", "User", req.params.id);
         return res.json({ ok: true, action, note: "User deactivated directly" });
       }
     }
@@ -112,6 +115,7 @@ router.put("/users/:id/registration", async (req, res) => {
     }
 
     await prisma.registration.update({ where: { id: registration.id }, data: updateData });
+    await audit(null, req, `registration.${action}`, "User", req.params.id, reason ? { reason } : null);
     res.json({ ok: true, action });
   } catch (e) {
     serverError(res, e);
@@ -165,6 +169,7 @@ router.put("/users/:id", async (req, res) => {
     if (notes !== undefined) updateData.notes = notes;
     if (nif !== undefined) updateData.nif = nif || null;
     const { password, ...user } = await prisma.user.update({ where: { id: req.params.id }, data: updateData });
+    await audit(null, req, "user.update", "User", user.id, { user: user.name, ...updateData });
     res.json(user);
   } catch (e) {
     serverError(res, e);
@@ -186,7 +191,8 @@ router.delete("/users/:id", async (req, res) => {
         error: "Este utilizador é sócio com pagamentos registados e não pode ser eliminado. Desativa a conta em vez disso.",
       });
     }
-    await prisma.user.delete({ where: { id: req.params.id } });
+    const deleted = await prisma.user.delete({ where: { id: req.params.id } });
+    await audit(null, req, "user.delete", "User", deleted.id, { user: deleted.name, email: deleted.email });
     res.json({ ok: true });
   } catch (e) {
     if (e.code === "P2025") return res.status(404).json({ error: "Utilizador não encontrado." });

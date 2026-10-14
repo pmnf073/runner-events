@@ -51,13 +51,22 @@ Frontend on Vercel (root `frontend/`, SPA rewrite in `vercel.json`), backend on 
 
 ### Backend
 
-`backend/src/index.js` wires middleware and mounts the routers: `/auth` and `/api/{events,rsvps,import,admin,members,payments}`. Each file in `routes/` talks to Prisma directly through the shared client in `db.js`; there is no controller or service layer.
+`backend/src/index.js` wires middleware and mounts the routers: `/auth` and `/api/{events,rsvps,import,admin,members,payments,me,calendar,dashboard,announcements}`. Each file in `routes/` talks to Prisma directly through the shared client in `db.js`; there is no controller or service layer.
 
 Authentication is a JWT (7 days, payload `{ id, email, role, status }`) sent as `Authorization: Bearer`. The frontend keeps it in `localStorage` under `token`. OAuth logins end in a redirect to the frontend route `/auth/callback` carrying the token.
 
 Authorization lives in `middleware/auth.js`. `loadUser` runs for every request and attaches `req.user` **from the database** when a valid token is present, so role and status changes apply immediately; route files use `requireUser` (active account), `requireStaff` (admin or organizer) and `requireAdmin`. `/auth/login`, `/auth/register` and `/auth/change-password` are rate-limited in memory (`middleware/rateLimit.js`). API error messages go through `serverError` (`utils/http.js`), which logs the real error and returns a generic pt-PT message; `ALLOWED` there lists the valid values of the enum-like fields.
 
 Roles are `admin`, `organizer`, `member`. User `status` is `pending` until an admin approves the `Registration`; pending, inactive and banned users cannot log in. Enum-like fields are plain strings in the Prisma schema, with the allowed values listed in comments there.
+
+### Email, reminders, receipts and audit
+
+- `services/email.js` sends through the Resend HTTP API when `RESEND_API_KEY` and `EMAIL_FROM` are set; otherwise `sendEmail` only logs. It never throws. Links in emails use `FRONTEND_URL`.
+- `services/reminders.js` runs hourly (only with email configured): fee due soon / overdue (only fees due in the last 60 days) and the day-before reminder for "going" RSVPs. `NotificationLog.key` makes each email go out once. Deleting/cancelling events emails the users who said "going". Users with `emailOptOut` get no reminders or announcements.
+- Password recovery: `/auth/forgot-password` stores the sha256 of a 1-hour token in `PasswordResetToken`; `/auth/reset-password` consumes it.
+- `/api/me` is the logged-in user's profile, membership, payments, own PDF receipts and the personal calendar token. `/api/calendar/<token>.ics` is a public ICS feed (the token replaces the login), built by `services/icsExport.js` from `services/events.js` (`listEvents`, shared with `GET /api/events`).
+- PDF receipts: `services/receipt.js` (pdfkit), served by `/api/payments/:id/receipt` (staff) and `/api/me/payments/:id/receipt`. Club details come from `CLUB_NAME`, `CLUB_NIF`, `CLUB_ADDRESS`.
+- `services/audit.js` `audit(client, req, action, entity, entityId, details)` writes `AuditLog`; pass the transaction as `client` inside one. Changes to members, payments, fees, registrations and users are audited. `/api/dashboard` (staff) holds the indicators and `/api/dashboard/audit` (admin) the log; `/api/announcements` (admin) sends emails to an audience in the background.
 
 ### Recurring events
 

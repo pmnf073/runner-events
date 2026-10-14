@@ -15,6 +15,12 @@ import FeesPage from "./pages/FeesPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ProfilePage from "./pages/ProfilePage";
+import DashboardPage from "./pages/DashboardPage";
+import AuditPage from "./pages/AuditPage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
 import api from "./services/api";
 
 /* ── Theme Toggle Button ── */
@@ -227,6 +233,10 @@ function AppInner() {
                       <>
                         <SubmenuLink to="/admin/users" label="Utilizadores" onClick={() => setUserMenuOpen(false)}
                           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>} />
+                        <SubmenuLink to="/admin/announcements" label="Comunicações" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><polyline points="22,6 12,13 2,6" /></svg>} />
+                        <SubmenuLink to="/admin/audit" label="Auditoria" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /></svg>} />
                         <SubmenuDivider />
                       </>
                     )}
@@ -234,6 +244,8 @@ function AppInner() {
                     {/* Admin + Organizer links */}
                     {isStaff && (
                       <>
+                        <SubmenuLink to="/dashboard" label="Painel" onClick={() => setUserMenuOpen(false)}
+                          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>} />
                         <SubmenuLink to="/admin" label="Eventos" onClick={() => setUserMenuOpen(false)}
                           icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>} />
                         <SubmenuLink to="/import" label="Importar" onClick={() => setUserMenuOpen(false)}
@@ -248,6 +260,10 @@ function AppInner() {
                         <SubmenuDivider />
                       </>
                     )}
+
+                    <SubmenuLink to="/profile" label="O meu perfil" onClick={() => setUserMenuOpen(false)}
+                      icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>} />
+                    {!user.hasPassword && <SubmenuDivider />}
 
                     {/* Accounts with a local password */}
                     {user.hasPassword && (
@@ -292,6 +308,12 @@ function AppInner() {
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register-success" element={<RegisterSuccessPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/profile" element={<RequireAuth user={user}><ProfilePage user={user} setUser={setUser} /></RequireAuth>} />
+          <Route path="/dashboard" element={<RequireAuth user={user}><DashboardPage user={user} /></RequireAuth>} />
+          <Route path="/admin/audit" element={<RequireAuth user={user}><AuditPage user={user} /></RequireAuth>} />
+          <Route path="/admin/announcements" element={<RequireAuth user={user}><AnnouncementsPage user={user} /></RequireAuth>} />
           <Route path="/admin/:id" element={<AdminPage user={user} />} />
           <Route path="/admin" element={<AdminPage user={user} />} />
           <Route path="/admin/users" element={<AdminUsersPage user={user} />} />

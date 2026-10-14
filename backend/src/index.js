@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { loadUser } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { syncFeed } from "./services/ics.js";
+import { runReminders } from "./services/reminders.js";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -14,6 +15,10 @@ import importRoutes from "./routes/import.js";
 import adminUsersRoutes from "./routes/admin-users.js";
 import membersRoutes from "./routes/members.js";
 import paymentsRoutes from "./routes/payments.js";
+import meRoutes from "./routes/me.js";
+import calendarRoutes from "./routes/calendar.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import announcementsRoutes from "./routes/announcements.js";
 
 dotenv.config();
 
@@ -69,6 +74,8 @@ const authLimiter = rateLimit({
 app.use("/auth/login", authLimiter);
 app.use("/auth/register", authLimiter);
 app.use("/auth/change-password", authLimiter);
+app.use("/auth/forgot-password", authLimiter);
+app.use("/auth/reset-password", authLimiter);
 
 // Routes
 app.use("/auth", authRoutes);
@@ -78,6 +85,10 @@ app.use("/api/import", importRoutes);
 app.use("/api/admin", adminUsersRoutes);
 app.use("/api/members", membersRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/me", meRoutes);
+app.use("/api/calendar", calendarRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/announcements", announcementsRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
@@ -99,6 +110,20 @@ if (TEAMUP_ICS_FEED) {
   setInterval(syncTeamUp, 60 * 60 * 1000);
   console.log("[Sync] TeamUp auto-sync enabled (hourly)");
 }
+
+/* ── Email reminders (fees, events): hourly, only when email is configured ── */
+async function remindersJob() {
+  try {
+    const result = await runReminders();
+    if (!result.skipped && (result.fees || result.events)) {
+      console.log(`[Reminders] fees ${result.fees}, events ${result.events}`);
+    }
+  } catch (err) {
+    console.error("[Reminders] Error:", err.message);
+  }
+}
+setTimeout(remindersJob, 60 * 1000).unref();
+setInterval(remindersJob, 60 * 60 * 1000).unref();
 
 app.listen(PORT, () => {
   console.log(`🏃 Backend running on http://localhost:${PORT}`);

@@ -1,15 +1,16 @@
 import { Router } from "express";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import prisma from "../db.js";
 import { requireUser, signToken } from "../middleware/auth.js";
+import { CLUB_NAME, frontendUrl, sendEmail } from "../services/email.js";
 import { isValidNif, serverError } from "../utils/http.js";
 
 const router = Router();
 
-const frontendUrl = (path) => new URL(path, process.env.FRONTEND_URL || "http://localhost:5173").toString();
 
 function redirectToFrontend(res, path, params = {}) {
   const url = new URL(path, process.env.FRONTEND_URL || "http://localhost:5173");
@@ -210,6 +211,63 @@ router.post("/change-password", requireUser, async (req, res) => {
     const hashed = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
     res.json({ ok: true });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+// ─── Forgot / reset password ───
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
+const FORGOT_PASSWORD_REPLY = {
+  ok: true,
+  message: "Se o email estiver registado, vais receber uma mensagem com um link para definir uma nova password.",
+};
+
+// Always answers the same, so the endpoint does not reveal which emails exist.
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (typeof email !== "string" || !email.trim()) return res.status(400).json({ error: "Indica o teu email." });
+  try {
+    const user = await prisma.user.findUnique({ where: { email: email.trim() } });
+    if (!user || user.status === "banned") return res.json(FORGOT_PASSWORD_REPLY);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    await prisma.$transaction([
+      prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+      prisma.passwordResetToken.create({
+        data: { userId: user.id, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
+      }),
+    ]);
+
+    const link = frontendUrl(`/reset-password?token=${token}`);
+    await sendEmail({
+      to: user.email,
+      subject: `${CLUB_NAME}: definir nova password`,
+      text: `Olá ${user.name},\n\nRecebemos um pedido para definir uma nova password na tua conta.\n\nAbre este link (válido durante 1 hora):\n${link}\n\nSe não foste tu, ignora esta mensagem; a tua password não muda.`,
+    });
+    res.json(FORGOT_PASSWORD_REPLY);
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (typeof token !== "string" || typeof password !== "string" || !token) {
+    return res.status(400).json({ error: "Link inválido." });
+  }
+  if (password.length < 8) return res.status(400).json({ error: "A password deve ter pelo menos 8 caracteres." });
+  try {
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashToken(token) }, include: { user: true } });
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      return res.status(400).json({ error: "O link expirou ou já foi usado. Pede um novo." });
+    }
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: record.userId }, data: { password: await bcrypt.hash(password, 10) } }),
+      prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+    ]);
+    res.json({ ok: true, status: record.user.status });
   } catch (err) {
     serverError(res, err);
   }
