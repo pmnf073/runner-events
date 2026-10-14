@@ -17,7 +17,6 @@ export default function EventPage() {
   const { id } = useParams();
   const [event, setEvent] = useState(null);
   const [user, setUser] = useState(null);
-  const [rsvpStatus, setRsvpStatus] = useState(null);
   const [rsvps, setRsvps] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,22 +28,29 @@ export default function EventPage() {
         setRsvps(data.rsvps || []);
       })
       .finally(() => setLoading(false));
-    api("/auth/me", { credentials: "include" })
+    api("/auth/me")
       .then((r) => r.json())
       .then((data) => {
         if (data.authenticated) setUser(data.user);
       });
   }, [id]);
 
+  const rsvpStatus = user ? rsvps.find((r) => r.userId === user.id)?.status ?? null : null;
+
+  // Clicking the option already chosen removes the answer.
   const handleRsvp = async (status) => {
     if (!user) return window.location.href = "/login";
+    if (status === rsvpStatus) {
+      const res = await api(`/api/rsvps/${id}`, { method: "DELETE" });
+      if (res.ok) setRsvps((prev) => prev.filter((r) => r.userId !== user.id));
+      return;
+    }
     const res = await api("/api/rsvps", {
       method: "POST",
       body: JSON.stringify({ eventId: id, status }),
     });
     const data = await res.json();
     if (res.ok) {
-      setRsvpStatus(status);
       setRsvps((prev) => {
         const others = prev.filter((r) => r.userId !== user.id);
         return [...others, data];
@@ -181,6 +187,7 @@ export default function EventPage() {
               <button
                 key={option.key}
                 onClick={() => handleRsvp(option.key)}
+                title={rsvpStatus === option.key ? "Clica de novo para remover a resposta" : undefined}
                 style={{
                   padding: "8px 16px",
                   borderRadius: 8,

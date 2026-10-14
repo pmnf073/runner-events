@@ -1,22 +1,20 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import prisma from "../db.js";
+import { requireUser } from "../middleware/auth.js";
+import { isAllowed, serverError } from "../utils/http.js";
 import { materializeInstance, parseVirtualEventId } from "../utils/recurrence.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 
-async function auth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Login required" });
-  }
-  try {
-    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
-    if (user) { req.user = user; return next(); }
-  } catch {}
-  return res.status(401).json({ error: "Invalid token" });
+// Resolves a real or virtual ("rec_<parent>_<date>") id to the persisted event id, if any.
+async function persistedEventId(eventId) {
+  const parsed = parseVirtualEventId(eventId);
+  if (!parsed) return eventId;
+  const found = await prisma.event.findFirst({
+    where: { parentEventId: parsed.parentEventId, recurrenceInstanceDate: parsed.occurrenceDate },
+    select: { id: true },
+  });
+  return found?.id || null;
 }
 
 async function ensurePersistedEvent(eventId) {
@@ -64,14 +62,14 @@ async function ensurePersistedEvent(eventId) {
 }
 
 // POST /api/rsvps — RSVP to an event
-router.post("/", auth, async (req, res) => {
+router.post("/", requireUser, async (req, res) => {
   try {
     const { eventId, status } = req.body;
-    if (!["going", "maybe", "not_going"].includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
+    if (!isAllowed("rsvpStatus", status)) {
+      return res.status(400).json({ error: "Resposta inválida." });
     }
     const persistedEvent = await ensurePersistedEvent(eventId);
-    if (!persistedEvent) return res.status(404).json({ error: "Event not found" });
+    if (!persistedEvent) return res.status(404).json({ error: "Evento não encontrado." });
 
     const rsvp = await prisma.rsvp.upsert({
       where: { userId_eventId: { userId: req.user.id, eventId: persistedEvent.id } },
@@ -81,32 +79,33 @@ router.post("/", auth, async (req, res) => {
     });
     res.json(rsvp);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
 // DELETE /api/rsvps/:eventId — remove RSVP
-router.delete("/:eventId", auth, async (req, res) => {
+router.delete("/:eventId", requireUser, async (req, res) => {
   try {
-    await prisma.rsvp.delete({
-      where: { userId_eventId: { userId: req.user.id, eventId: req.params.eventId } },
-    });
+    const eventId = await persistedEventId(req.params.eventId);
+    if (eventId) {
+      await prisma.rsvp.deleteMany({ where: { userId: req.user.id, eventId } });
+    }
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
 // GET /api/rsvps/:eventId — list all RSVPs for an event (logged-in users)
-router.get("/:eventId", auth, async (req, res) => {
+router.get("/:eventId", requireUser, async (req, res) => {
   try {
     const rsvps = await prisma.rsvp.findMany({
-      where: { eventId: req.params.eventId },
+      where: { eventId: (await persistedEventId(req.params.eventId)) || "" },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
     res.json(rsvps);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 

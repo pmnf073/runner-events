@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { localDateKey } from "../utils/format";
 
 const EVENT_COLORS = {
   trail: { border: "#10b981", bg: "rgba(16,185,129,0.1)", text: "#6ee7b7", dot: "#10b981" },
@@ -39,7 +40,8 @@ export default function CalendarPage({ user }) {
 
   useEffect(() => {
     const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
-    const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString();
+    // Up to the last millisecond of the month, so events on the last day are included.
+    const end = new Date(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1).getTime() - 1).toISOString();
     const params = new URLSearchParams({ start, end });
     if (filter !== "all") params.set("type", filter);
     api(`/api/events?${params}`)
@@ -73,11 +75,11 @@ export default function CalendarPage({ user }) {
 
   const getEventsForDay = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return events.filter((e) => e.date.startsWith(dateStr));
+    return events.filter((e) => localDateKey(e.date) === dateStr);
   };
 
   const groupedEvents = events.reduce((acc, event) => {
-    const dateKey = event.date.split("T")[0];
+    const dateKey = localDateKey(event.date);
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(event);
     return acc;

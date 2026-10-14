@@ -1,10 +1,14 @@
+import { zonedParts, zonedTimeToUtc } from "./timezone.js";
+
+// Occurrence days are calendar dates in the club's time zone, represented as
+// Date objects at 00:00 UTC of that date. Times of day are wall-clock times in
+// that zone, so a 19:00 training stays at 19:00 across DST changes.
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_RECURRENCE_DAYS = 365;
 const VIRTUAL_PREFIX = "rec";
 
 export function dateKey(value) {
-  const d = new Date(value);
-  return d.toISOString().slice(0, 10);
+  return localDateOnly(value).toISOString().slice(0, 10);
 }
 
 export function parseVirtualEventId(id) {
@@ -22,29 +26,29 @@ export function makeVirtualEventId(parentEventId, occurrenceDate) {
 }
 
 export function parseDaysOfWeek(raw, fallbackDate) {
-  if (!raw) return [new Date(fallbackDate).getUTCDay()];
+  if (!raw) return [localDateOnly(fallbackDate).getUTCDay()];
   const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   return [...new Set(parsed.map(Number))]
     .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
     .sort((a, b) => a - b);
 }
 
-function utcDateOnly(value) {
-  const d = new Date(value);
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+function localDateOnly(value) {
+  const p = zonedParts(value);
+  return new Date(Date.UTC(p.year, p.month - 1, p.day));
 }
 
-function withOriginalTime(day, originalDate) {
-  const source = new Date(originalDate);
-  return new Date(Date.UTC(
-    day.getUTCFullYear(),
-    day.getUTCMonth(),
-    day.getUTCDate(),
-    source.getUTCHours(),
-    source.getUTCMinutes(),
-    source.getUTCSeconds(),
-    source.getUTCMilliseconds(),
-  ));
+// The instant on the given occurrence day at the wall-clock time of originalDate.
+export function withOriginalTime(day, originalDate) {
+  const source = zonedParts(originalDate);
+  return zonedTimeToUtc({
+    year: day.getUTCFullYear(),
+    month: day.getUTCMonth() + 1,
+    day: day.getUTCDate(),
+    hour: source.hour,
+    minute: source.minute,
+    second: source.second,
+  });
 }
 
 function addDays(date, days) {
@@ -54,7 +58,7 @@ function addDays(date, days) {
 }
 
 function startOfUtcWeek(date) {
-  const d = utcDateOnly(date);
+  const d = localDateOnly(date);
   const mondayOffset = (d.getUTCDay() + 6) % 7;
   d.setUTCDate(d.getUTCDate() - mondayOffset);
   return d;
@@ -76,11 +80,11 @@ function addMonthsClamped(date, months) {
 }
 
 export function recurrenceDefaultEndDate(startDate) {
-  return addDays(utcDateOnly(startDate), DEFAULT_RECURRENCE_DAYS);
+  return addDays(localDateOnly(startDate), DEFAULT_RECURRENCE_DAYS);
 }
 
 export function eventOccurrenceDate(value) {
-  return utcDateOnly(value);
+  return localDateOnly(value);
 }
 
 export function materializeInstance(baseEvent, occurrenceDate, override = null) {
@@ -119,11 +123,11 @@ export function materializeInstance(baseEvent, occurrenceDate, override = null) 
 export function generateRecurrenceInstances(baseEvent, rangeStart, rangeEnd, overrides = []) {
   if (!baseEvent.recurrenceType) return [baseEvent];
 
-  const startDay = utcDateOnly(baseEvent.date);
-  const from = utcDateOnly(rangeStart);
-  const to = utcDateOnly(rangeEnd);
+  const startDay = localDateOnly(baseEvent.date);
+  const from = localDateOnly(rangeStart);
+  const to = localDateOnly(rangeEnd);
   const recurrenceEnd = baseEvent.recurrenceEndDate
-    ? utcDateOnly(baseEvent.recurrenceEndDate)
+    ? localDateOnly(baseEvent.recurrenceEndDate)
     : recurrenceDefaultEndDate(baseEvent.date);
   const generationEnd = recurrenceEnd < to ? recurrenceEnd : to;
   const overrideByDay = new Map(overrides.map((event) => [dateKey(event.recurrenceInstanceDate || event.date), event]));

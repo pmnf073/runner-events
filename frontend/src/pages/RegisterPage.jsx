@@ -8,7 +8,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
-    altContact: "", address: "", dob: "",
+    altContact: "", address: "", dob: "", nif: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,6 +71,10 @@ export default function RegisterPage() {
               <label style={labelStyle}>Contacto alternativo</label>
               <input type="text" name="altContact" value={form.altContact} onChange={handleChange} placeholder="Opcional" style={inputStyle} />
             </div>
+          </div>
+          <div>
+            <label style={labelStyle}>NIF</label>
+            <input type="text" name="nif" value={form.nif} onChange={handleChange} inputMode="numeric" maxLength={9} placeholder="Opcional, para os recibos das quotas" style={inputStyle} />
           </div>
           <div style={{ display: "flex", gap: 12 }}>
             <div style={{ flex: 2 }}>

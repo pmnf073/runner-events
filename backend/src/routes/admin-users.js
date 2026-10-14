@@ -1,42 +1,39 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import prisma from "../db.js";
+import { requireAdmin } from "../middleware/auth.js";
+import { ALLOWED, isAllowed, isValidNif, serverError } from "../utils/http.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
+router.use(requireAdmin);
 
-async function requireAdmin(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Auth required" });
-  }
-  try {
-    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    if (payload.role !== "admin") return res.status(403).json({ error: "Admin access required" });
-    req.user = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
-  }
+// Refuses changes that would leave the club without an active admin.
+async function wouldRemoveLastAdmin(userId, nextRole, nextStatus) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, status: true } });
+  if (!user || user.role !== "admin" || user.status !== "active") return false;
+  if ((nextRole ?? "admin") === "admin" && (nextStatus ?? "active") === "active") return false;
+  const activeAdmins = await prisma.user.count({ where: { role: "admin", status: "active" } });
+  return activeAdmins <= 1;
 }
 
 // ─── Stats (MUST be before /users/:id or Express matches "stats" as :id) ───
-router.get("/users/stats", requireAdmin, async (req, res) => {
+router.get("/users/stats", async (req, res) => {
   try {
-    const total = await prisma.user.count();
-    const pending = await prisma.user.count({ where: { status: "pending" } });
-    const active = await prisma.user.count({ where: { status: "active" } });
-    const inactive = await prisma.user.count({ where: { status: "inactive" } });
-    const banned = await prisma.user.count({ where: { status: "banned" } });
-    res.json({ total, pending, active, inactive, banned });
+    const groups = await prisma.user.groupBy({ by: ["status"], _count: { _all: true } });
+    const counts = Object.fromEntries(groups.map((g) => [g.status, g._count._all]));
+    res.json({
+      total: groups.reduce((sum, g) => sum + g._count._all, 0),
+      pending: counts.pending || 0,
+      active: counts.active || 0,
+      inactive: counts.inactive || 0,
+      banned: counts.banned || 0,
+    });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ─── List users (admin only) ───
-router.get("/users", requireAdmin, async (req, res) => {
+router.get("/users", async (req, res) => {
   try {
     const { status, role, search } = req.query;
     const where = {};
@@ -60,6 +57,7 @@ router.get("/users", requireAdmin, async (req, res) => {
         altContact: true,
         address: true,
         dob: true,
+        nif: true,
         avatar: true,
         provider: true,
         role: true,
@@ -74,16 +72,16 @@ router.get("/users", requireAdmin, async (req, res) => {
     });
     res.json(users);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ─── Approve/Reject registration (MUST be before /users/:id) ───
-router.put("/users/:id/registration", requireAdmin, async (req, res) => {
+router.put("/users/:id/registration", async (req, res) => {
   try {
     const { action, reason } = req.body;
     if (!["approve", "reject"].includes(action)) {
-      return res.status(400).json({ error: "Action must be 'approve' or 'reject'" });
+      return res.status(400).json({ error: "Ação inválida (approve ou reject)." });
     }
 
     const registration = await prisma.registration.findFirst({
@@ -116,35 +114,45 @@ router.put("/users/:id/registration", requireAdmin, async (req, res) => {
     await prisma.registration.update({ where: { id: registration.id }, data: updateData });
     res.json({ ok: true, action });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ─── Get single user ───
-router.get("/users/:id", requireAdmin, async (req, res) => {
+router.get("/users/:id", async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
       select: {
         id: true, email: true, name: true, phone: true, altContact: true,
-        address: true, dob: true, avatar: true, provider: true, role: true,
+        address: true, dob: true, nif: true, avatar: true, provider: true, role: true,
         status: true, clubs: true, notes: true, invitedBy: true,
         createdAt: true, updatedAt: true,
         rsvps: { include: { event: { select: { id: true, title: true, date: true, type: true } } } },
         registrations: true,
       },
     });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "Utilizador não encontrado." });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ─── Update user ───
-router.put("/users/:id", requireAdmin, async (req, res) => {
+router.put("/users/:id", async (req, res) => {
   try {
-    const { name, email, phone, altContact, address, dob, role, status, notes } = req.body;
+    const { name, email, phone, altContact, address, dob, role, status, notes, nif } = req.body;
+    if (role !== undefined && !isAllowed("userRole", role)) {
+      return res.status(400).json({ error: `Perfil inválido (${ALLOWED.userRole.join(", ")}).` });
+    }
+    if (status !== undefined && !isAllowed("userStatus", status)) {
+      return res.status(400).json({ error: `Estado inválido (${ALLOWED.userStatus.join(", ")}).` });
+    }
+    if (nif && !isValidNif(nif)) return res.status(400).json({ error: "NIF inválido." });
+    if (await wouldRemoveLastAdmin(req.params.id, role, status)) {
+      return res.status(400).json({ error: "Tem de existir pelo menos um administrador ativo." });
+    }
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
@@ -155,20 +163,34 @@ router.put("/users/:id", requireAdmin, async (req, res) => {
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
-    const user = await prisma.user.update({ where: { id: req.params.id }, data: updateData });
+    if (nif !== undefined) updateData.nif = nif || null;
+    const { password, ...user } = await prisma.user.update({ where: { id: req.params.id }, data: updateData });
     res.json(user);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    serverError(res, e);
   }
 });
 
 // ─── Delete user ───
-router.delete("/users/:id", requireAdmin, async (req, res) => {
+router.delete("/users/:id", async (req, res) => {
   try {
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ error: "Não podes eliminar a tua própria conta." });
+    }
+    if (await wouldRemoveLastAdmin(req.params.id, null, "inactive")) {
+      return res.status(400).json({ error: "Tem de existir pelo menos um administrador ativo." });
+    }
+    const payments = await prisma.payment.count({ where: { member: { userId: req.params.id } } });
+    if (payments > 0) {
+      return res.status(409).json({
+        error: "Este utilizador é sócio com pagamentos registados e não pode ser eliminado. Desativa a conta em vez disso.",
+      });
+    }
     await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    if (e.code === "P2025") return res.status(404).json({ error: "Utilizador não encontrado." });
+    serverError(res, e);
   }
 });
 

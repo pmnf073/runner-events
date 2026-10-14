@@ -1,21 +1,31 @@
 import express from "express";
 import prisma from "../db.js";
-import adminMiddleware from "../middleware/admin.js";
+import { requireStaff } from "../middleware/auth.js";
+import { lockSequence, recalcMembership } from "../services/ledger.js";
+import { ALLOWED, isAllowed } from "../utils/http.js";
 
 const router = express.Router();
-router.use(adminMiddleware);
-const membershipAmountDue = (membership) => Math.max(0, Number(membership.amount) - Number(membership.discount || 0));
+router.use(requireStaff);
 
-/* ── Middleware: admin or organizer ── */
-function requireStaff(req, res, next) {
-  if (!req.user || !["admin", "organizer"].includes(req.user.role)) {
-    return res.status(403).json({ error: "Acesso restrito." });
+const creditDescription = (payment) => `Pagamento #${payment.receiptNumber} (${payment.method})`;
+
+async function nextReceiptNumber(tx) {
+  await lockSequence(tx, "receiptNumber");
+  const year = new Date().getFullYear();
+  const lastReceipt = await tx.payment.findFirst({
+    where: { receiptNumber: { startsWith: `${year}-` } },
+    orderBy: { receiptNumber: "desc" },
+  });
+  let nextSeq = 1;
+  if (lastReceipt) {
+    const lastSeq = parseInt(lastReceipt.receiptNumber.split("-")[1], 10);
+    if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
   }
-  next();
+  return `${year}-${String(nextSeq).padStart(4, "0")}`;
 }
 
 /* ── GET /api/payments — all payments (with filters) ── */
-router.get("/", requireStaff, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { memberId, method, status, startDate, endDate, limit = 50, offset = 0 } = req.query;
     const where = {};
@@ -45,7 +55,7 @@ router.get("/", requireStaff, async (req, res) => {
 });
 
 /* ── GET /api/payments/:id ── */
-router.get("/:id", requireStaff, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const payment = await prisma.payment.findUnique({
       where: { id: req.params.id },
@@ -64,91 +74,62 @@ router.get("/:id", requireStaff, async (req, res) => {
 });
 
 /* ── POST /api/payments ── */
-router.post("/", requireStaff, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { memberId, membershipId, amount, paidAmount, date, method, reference, notes, receiptNumber } = req.body;
 
     if (!memberId || !amount || !method) {
-      return res.status(400).json({ error: "memberId, amount e method são obrigatórios." });
+      return res.status(400).json({ error: "Sócio, valor e método são obrigatórios." });
+    }
+    if (!(Number(amount) > 0) || (paidAmount != null && !(Number(paidAmount) >= 0))) {
+      return res.status(400).json({ error: "Valor inválido." });
+    }
+    if (!isAllowed("paymentMethod", method)) {
+      return res.status(400).json({ error: `Método inválido (${ALLOWED.paymentMethod.join(", ")}).` });
     }
 
-    // Validate member exists
     const member = await prisma.member.findUnique({ where: { id: memberId } });
     if (!member) return res.status(404).json({ error: "Sócio não encontrado." });
 
-    // If membershipId provided, validate
     if (membershipId) {
       const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
-      if (!membership) return res.status(400).json({ error: "Membership inválido." });
+      if (!membership || membership.memberId !== memberId) {
+        return res.status(400).json({ error: "A quota indicada não pertence a este sócio." });
+      }
     }
 
-    // receiptNumber must be unique, generate if not provided
-    let finalReceiptNumber = receiptNumber;
-    if (!finalReceiptNumber) {
-      // Generate like YYYY-XXXX sequential per year
-      const year = new Date().getFullYear();
-      const lastReceipt = await prisma.payment.findFirst({
-        where: { receiptNumber: { startsWith: `${year}-` } },
-        orderBy: { receiptNumber: "desc" },
+    // Payment, credit entry and membership status are written together or not at all.
+    const payment = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          memberId,
+          membershipId: membershipId || null,
+          amount: Number(amount),
+          paidAmount: paidAmount != null ? Number(paidAmount) : Number(amount),
+          date: date ? new Date(date) : new Date(),
+          method,
+          reference: reference || null,
+          receiptNumber: receiptNumber || (await nextReceiptNumber(tx)),
+          notes: notes || null,
+          createdBy: req.user.id,
+        },
+        include: { member: { include: { user: { select: { name: true } } } } },
       });
-      let nextSeq = 1;
-      if (lastReceipt) {
-        const lastSeq = parseInt(lastReceipt.receiptNumber.split("-")[1], 10);
-        if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-      }
-      finalReceiptNumber = `${year}-${String(nextSeq).padStart(4, "0")}`;
-    }
 
-    const createdByUserId = req.user.id;
+      await tx.accountEntry.create({
+        data: {
+          memberId,
+          paymentId: payment.id,
+          type: "credit",
+          description: creditDescription(payment),
+          amount: payment.paidAmount,
+          date: payment.date,
+        },
+      });
 
-    const payment = await prisma.payment.create({
-      data: {
-        memberId,
-        membershipId: membershipId || null,
-        amount: Number(amount),
-        paidAmount: paidAmount != null ? Number(paidAmount) : Number(amount),
-        date: date ? new Date(date) : new Date(),
-        method,
-        reference: reference || null,
-        receiptNumber: finalReceiptNumber,
-        notes: notes || null,
-        createdBy: createdByUserId,
-      },
-      include: { member: { include: { user: { select: { name: true } } } } },
+      if (membershipId) await recalcMembership(tx, membershipId);
+      return payment;
     });
-
-    // Create AccountEntry for the payment (credit to member account)
-    await prisma.accountEntry.create({
-      data: {
-        memberId,
-        paymentId: payment.id,
-        type: "credit",
-        description: `Pagamento #${payment.receiptNumber} (${method})`,
-        amount: payment.paidAmount,
-        date: payment.date,
-      },
-    });
-
-    // Update membership status if fully paid and linked
-    if (membershipId) {
-      const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
-      if (membership) {
-        const totalPaid = await prisma.payment.aggregate({
-          where: { membershipId },
-          _sum: { paidAmount: true },
-        });
-        const newStatus =
-          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
-          Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
-        await prisma.membership.update({
-          where: { id: membershipId },
-          data: {
-            status: newStatus,
-            paidDate: newStatus === "paid" ? new Date() : membership.paidDate,
-          },
-        });
-      }
-    }
 
     res.status(201).json(payment);
   } catch (err) {
@@ -161,15 +142,20 @@ router.post("/", requireStaff, async (req, res) => {
 });
 
 /* ── PUT /api/payments/:id ── */
-router.put("/:id", requireStaff, async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const { amount, paidAmount, date, method, reference, notes, receiptNumber } = req.body;
+    if (method !== undefined && !isAllowed("paymentMethod", method)) {
+      return res.status(400).json({ error: `Método inválido (${ALLOWED.paymentMethod.join(", ")}).` });
+    }
+    if ((amount !== undefined && !(Number(amount) > 0)) || (paidAmount !== undefined && !(Number(paidAmount) >= 0))) {
+      return res.status(400).json({ error: "Valor inválido." });
+    }
 
-    // Find existing payment
     const existing = await prisma.payment.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: "Pagamento não encontrado." });
 
-    // Prevent changing memberId or membershipId after creation (complex)
+    // memberId and membershipId are fixed after creation.
     const data = {};
     if (amount !== undefined) data.amount = Number(amount);
     if (paidAmount !== undefined) data.paidAmount = Number(paidAmount);
@@ -177,71 +163,47 @@ router.put("/:id", requireStaff, async (req, res) => {
     if (method !== undefined) data.method = method;
     if (reference !== undefined) data.reference = reference || null;
     if (notes !== undefined) data.notes = notes;
-    if (receiptNumber !== undefined) data.receiptNumber = receiptNumber;
+    if (receiptNumber) data.receiptNumber = receiptNumber;
 
-    const payment = await prisma.payment.update({
-      where: { id: req.params.id },
-      data,
-      include: { member: { include: { user: { select: { name: true } } } } },
-    });
-
-    // If membership linked, recalc status
-    if (existing.membershipId) {
-      const totalPaid = await prisma.payment.aggregate({
-        where: { membershipId: existing.membershipId },
-        _sum: { paidAmount: true },
+    const payment = await prisma.$transaction(async (tx) => {
+      const updated = await tx.payment.update({
+        where: { id: req.params.id },
+        data,
+        include: { member: { include: { user: { select: { name: true } } } } },
       });
-      const membership = await prisma.membership.findUnique({ where: { id: existing.membershipId } });
-      if (membership) {
-        const newStatus =
-          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
-          Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
-        await prisma.membership.update({
-          where: { id: existing.membershipId },
-          data: {
-            status: newStatus,
-            paidDate: newStatus === "paid" ? new Date() : membership.paidDate,
-          },
-        });
+
+      // Keep the payment's credit entry in line with the payment.
+      const credit = { amount: updated.paidAmount, date: updated.date, description: creditDescription(updated) };
+      const { count } = await tx.accountEntry.updateMany({ where: { paymentId: updated.id, type: "credit" }, data: credit });
+      if (count === 0) {
+        await tx.accountEntry.create({ data: { ...credit, memberId: updated.memberId, paymentId: updated.id, type: "credit" } });
       }
-    }
+
+      if (existing.membershipId) await recalcMembership(tx, existing.membershipId);
+      return updated;
+    });
 
     res.json(payment);
   } catch (err) {
     console.error("[PUT /api/payments/:id]", err);
     if (err.code === "P2025") return res.status(404).json({ error: "Pagamento não encontrado." });
-    if (err.code === "P2002") return res.status(400).json({ error: "Receipt number already exists." });
+    if (err.code === "P2002") return res.status(400).json({ error: "Número de recibo já existe." });
     res.status(500).json({ error: "Erro ao atualizar pagamento." });
   }
 });
 
 /* ── DELETE /api/payments/:id ── */
-router.delete("/:id", requireStaff, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const payment = await prisma.payment.findUnique({ where: { id: req.params.id } });
     if (!payment) return res.status(404).json({ error: "Pagamento não encontrado." });
 
-    // Delete the credit before the payment; deleting the payment sets paymentId to null.
-    await prisma.accountEntry.deleteMany({ where: { paymentId: req.params.id } });
-    await prisma.payment.delete({ where: { id: req.params.id } });
-
-    // Recalculate membership status if linked
-    if (payment.membershipId) {
-      const totalPaid = await prisma.payment.aggregate({
-        where: { membershipId: payment.membershipId },
-        _sum: { paidAmount: true },
-      });
-      const membership = await prisma.membership.findUnique({ where: { id: payment.membershipId } });
-      if (membership) {
-        const newStatus =
-          Number(totalPaid._sum.paidAmount) >= membershipAmountDue(membership) ? "paid" :
-          Number(totalPaid._sum.paidAmount) > 0 ? "partial" : "pending";
-        await prisma.membership.update({
-          where: { id: payment.membershipId },
-          data: { status: newStatus, paidDate: null },
-        });
-      }
-    }
+    await prisma.$transaction(async (tx) => {
+      // Delete the credit before the payment; deleting the payment sets paymentId to null.
+      await tx.accountEntry.deleteMany({ where: { paymentId: req.params.id } });
+      await tx.payment.delete({ where: { id: req.params.id } });
+      if (payment.membershipId) await recalcMembership(tx, payment.membershipId);
+    });
 
     res.json({ ok: true });
   } catch (err) {
@@ -252,7 +214,7 @@ router.delete("/:id", requireStaff, async (req, res) => {
 });
 
 /* ── GET /api/members/:memberId/payments — handy shortcut ── */
-router.get("/member/:memberId", requireStaff, async (req, res) => {
+router.get("/member/:memberId", async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
       where: { memberId: req.params.memberId },

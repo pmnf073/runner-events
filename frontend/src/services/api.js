@@ -10,6 +10,5 @@ export default function api(path, options = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const url = API_BASE ? `${API_BASE}${path}` : path;
-  const opts = { ...options, headers, credentials: API_BASE ? "include" : "include" };
-  return fetch(url, opts);
+  return fetch(url, { ...options, headers });
 }

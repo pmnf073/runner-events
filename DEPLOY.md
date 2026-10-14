@@ -30,10 +30,20 @@
    FRONTEND_PREVIEW_ORIGINS=https://runner-events-*-<scope-vercel>.vercel.app   # opcional: previews do Vercel
    NODE_ENV=production
    PORT=3001
+   TEAMUP_ICS_FEED=https://ics.teamup.com/feed/<id>/0.ics   # opcional: sincronizacao horaria
    ```
+   Sem `JWT_SECRET` o backend recusa arrancar em producao.
 5. **Migracoes:** aplicadas automaticamente pelo Build Command em cada deploy.
 6. Seedar admin: `SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... node prisma/seed.mjs`
    (ou definir as duas variaveis no ambiente do Render / no `.env`)
+
+7. **Plano free adormece:** sem pedidos durante ~15 minutos o servico para; o pedido seguinte demora
+   30-60 s e a sincronizacao horaria do TeamUp nao corre enquanto esta parado. O workflow
+   `.github/workflows/keepalive.yml` chama `/api/health` a cada 10 minutos: para o ativar, criar a
+   variavel de repositorio `BACKEND_URL` (GitHub → Settings → Secrets and variables → Actions → Variables).
+   Notas: um servico sempre acordado gasta ~744 h/mes das 750 h gratuitas da conta Render; o GitHub
+   pode atrasar execucoes agendadas e desativa-as em repositorios sem atividade durante 60 dias.
+   Alternativa: um plano pago no Render.
 
 ## 3. Frontend — Vercel (Free, ilimitado)
 
@@ -53,11 +63,12 @@
 ### Backend
 ```bash
 cd backend
-cp .env.example .env   # editar com DATABASE_URL local
+cp .env.example .env   # editar com DATABASE_URL e JWT_SECRET
 npm install
 npx prisma generate
 npx prisma migrate dev
 npm run dev
+npm test               # testes unitarios (node --test)
 ```
 
 ### Frontend

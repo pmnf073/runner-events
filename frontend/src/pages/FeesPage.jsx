@@ -1,18 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-function api(path, options = {}) {
-  const token = getToken();
-  const headers = { "Content-Type": "application/json", ...options.headers };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(API_URL + path, { ...options, headers, credentials: "include" });
-}
+import api from "../services/api";
+import { formatDate, displayDateForInput, parseInputDateToYMD } from "../utils/format";
 
 export default function FeesPage({ user }) {
   const navigate = useNavigate();
@@ -141,37 +130,6 @@ export default function FeesPage({ user }) {
     } finally {
       setSyncingAccount(false);
     }
-  }
-
-  function formatDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
-
-  function displayDateForInput(ymd) {
-    if (!ymd) return "";
-    // accept full ISO like 2026-08-10T00:00:00
-    const datePart = (ymd || "").split("T")[0];
-    if (!datePart) return "";
-    const [y, m, d] = datePart.split("-");
-    if (!y || !m || !d) return "";
-    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
-  }
-
-  function parseInputDateToYMD(input) {
-    if (!input) return "";
-    // accept dd/mm/yyyy or yyyy-mm-dd
-    if (input.includes("/")) {
-      const parts = input.split("/").map(p => p.trim());
-      if (parts.length !== 3) return "";
-      const [d, m, y] = parts;
-      return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    }
-    return input; // assume already yyyy-mm-dd
   }
 
   function fillConfigForEdit(cfg) {

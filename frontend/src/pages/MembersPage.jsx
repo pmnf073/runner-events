@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-function api(path, options = {}) {
-  const token = getToken();
-  const headers = { "Content-Type": "application/json", ...options.headers };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(API_URL + path, { ...options, headers, credentials: "include" });
-}
+import api from "../services/api";
+import { formatCurrency, formatDate } from "../utils/format";
 
 const STATUS_LABELS = {
   active: "Ativo",
@@ -177,7 +166,7 @@ export default function MembersPage({ user }) {
     if (!confirm("Tem a certeza que quer eliminar este sócio?")) return;
     try {
       const r = await api(`/api/members/${id}`, { method: "DELETE" });
-      if (!r.ok) throw new Error("Erro ao eliminar");
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Erro ao eliminar");
       loadMembers();
       if (detailId === id) {
         setDetailId(null);
@@ -195,19 +184,6 @@ export default function MembersPage({ user }) {
       setDetailId(id);
       setDetailData(data);
     } catch {}
-  }
-
-  function formatCurrency(val) {
-    return val != null ? Number(val).toFixed(2) + " €" : "0,00 €";
-  }
-
-  function formatDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
   }
 
   /* ── Detail Modal ── */
