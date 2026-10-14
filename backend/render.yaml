@@ -16,6 +16,8 @@ services:
         sync: false
       - key: FRONTEND_URLS
         sync: false
+      - key: FRONTEND_PREVIEW_ORIGINS
+        sync: false
       - key: NODE_ENV
         value: production
       - key: GOOGLE_CLIENT_ID

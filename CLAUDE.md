@@ -38,7 +38,7 @@ There are no tests, no linter and no type checker. Verify changes with `npm run 
 
 - The database is PostgreSQL only (Prisma `postgresql` provider); a local or Neon `DATABASE_URL` is required to start the backend.
 - `JWT_SECRET` signs both the JWTs and the Express session. `.env.example` lists `SESSION_SECRET`, but the code never reads it.
-- CORS: outside production only `http://localhost:5173` is allowed. In production the allow-list is `FRONTEND_URLS` (comma-separated), falling back to `FRONTEND_URL` plus hardcoded domains in `backend/src/index.js`.
+- CORS: outside production only `http://localhost:5173` is allowed. In production the allow-list is `FRONTEND_URLS` (comma-separated), falling back to `FRONTEND_URL` plus hardcoded domains in `backend/src/index.js`. `FRONTEND_PREVIEW_ORIGINS` optionally adds wildcard origins for Vercel preview deployments (`*` matches one hostname segment); previews talk to the production backend and database.
 - Google and Facebook OAuth routes are registered only when their env vars are set; otherwise they return 501.
 - Setting `TEAMUP_ICS_FEED` enables an hourly import of that ICS feed on the backend process, deduplicated by `Event.sourceUid`.
 - Frontend: `VITE_API_URL` is the backend origin in production. When it is empty, requests are relative and the Vite dev server proxies `/api` and `/auth` to `localhost:3001`.

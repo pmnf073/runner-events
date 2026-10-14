@@ -27,6 +27,7 @@
    DATABASE_URL=postgresql://user:pass@host:5432/runner_events?sslmode=require
    JWT_SECRET=<gera-um-segredo-aleatorio>
    FRONTEND_URL=https://runner-events.vercel.app
+   FRONTEND_PREVIEW_ORIGINS=https://runner-events-*-<scope-vercel>.vercel.app   # opcional: previews do Vercel
    NODE_ENV=production
    PORT=3001
    ```
@@ -43,6 +44,9 @@
    VITE_API_URL=https://runner-events-api.onrender.com
    ```
 4. Deploy automatico com push a `main`
+5. **Previews:** cada PR recebe um URL de preview. Para o preview falar com a API, marcar `VITE_API_URL`
+   tambem para o ambiente **Preview** no Vercel e definir `FRONTEND_PREVIEW_ORIGINS` no Render
+   (o `*` corresponde a parte variavel do URL). O preview usa o backend e a base de dados de producao.
 
 ## 4. Local Dev
 

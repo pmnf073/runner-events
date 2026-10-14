@@ -31,11 +31,18 @@ const corsOrigins = process.env.FRONTEND_URLS
   ? process.env.FRONTEND_URLS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : fallbackFrontendOrigins;
 
+// Vercel preview deployments: comma-separated origins where "*" matches one hostname segment,
+// e.g. https://runner-events-*-myteam.vercel.app
+const previewOriginPatterns = (process.env.FRONTEND_PREVIEW_ORIGINS || "")
+  .split(",").map((pattern) => pattern.trim()).filter(Boolean)
+  .map((pattern) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[a-z0-9-]+")}$`));
+
 app.use(cors({
   origin(origin, callback) {
     if (!origin) return callback(null, true);
     const allowedOrigins = process.env.NODE_ENV === "production" ? corsOrigins : ["http://localhost:5173"];
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (previewOriginPatterns.some((pattern) => pattern.test(origin))) return callback(null, true);
     return callback(new Error(`CORS origin not allowed: ${origin}`));
   },
   credentials: true,
