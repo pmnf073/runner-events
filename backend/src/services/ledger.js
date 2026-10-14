@@ -101,3 +101,49 @@ export async function memberBalances(memberIds) {
 export async function lockSequence(tx, name) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${name}))`;
 }
+
+// Applies a saved AnnualFeeConfig to that year's memberships: all take the new due
+// date, those without payments take the new amount, and every one is recalculated
+// because the early-bird rules may have changed. Returns how many were updated.
+export async function applyFeeToMemberships(tx, fee) {
+  const memberships = await tx.membership.findMany({
+    where: { year: fee.year, status: { not: "exempt" } },
+    select: { id: true, _count: { select: { payments: true } } },
+  });
+  for (const m of memberships) {
+    await tx.membership.update({
+      where: { id: m.id },
+      data: m._count.payments === 0 ? { amount: fee.amount, dueDate: fee.dueDate } : { dueDate: fee.dueDate },
+    });
+    await recalcMembership(tx, m.id);
+  }
+  return memberships.length;
+}
+
+// Amount still missing on each membership (id -> euros). While the early-bird
+// deadline has not passed, the discounted amount is what is due, which matches
+// the rule in recalcMembership for a payment registered today.
+export async function outstandingByMembership(memberships) {
+  if (memberships.length === 0) return new Map();
+  const [fees, paid] = await Promise.all([
+    prisma.annualFeeConfig.findMany({ where: { year: { in: [...new Set(memberships.map((m) => m.year))] } } }),
+    prisma.payment.groupBy({
+      by: ["membershipId"],
+      where: { membershipId: { in: memberships.map((m) => m.id) } },
+      _sum: { paidAmount: true },
+    }),
+  ]);
+  const feeByYear = new Map(fees.map((f) => [f.year, f]));
+  const paidById = new Map(paid.map((p) => [p.membershipId, Number(p._sum.paidAmount || 0)]));
+  const today = dateKey(new Date());
+
+  return new Map(
+    memberships.map((m) => {
+      if (m.status === "exempt" || m.status === "paid") return [m.id, 0];
+      const fee = feeByYear.get(m.year);
+      const earlybirdOpen = fee?.earlybirdDiscount && fee.earlybirdDeadline && today <= dateKey(fee.earlybirdDeadline);
+      const due = amountDue(m, earlybirdOpen ? fee.earlybirdDiscount : m.discount);
+      return [m.id, toCents(Math.max(0, due - (paidById.get(m.id) || 0)))];
+    }),
+  );
+}

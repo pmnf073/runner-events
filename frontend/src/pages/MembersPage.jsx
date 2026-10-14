@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { formatCurrency, formatDate } from "../utils/format";
+import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/format";
 
 const STATUS_LABELS = {
   active: "Ativo",
@@ -177,6 +177,25 @@ export default function MembersPage({ user }) {
     }
   }
 
+  async function membershipAction(ms, action) {
+    const question = action === "delete"
+      ? `Anular a quota de ${ms.year}? O débito é retirado da conta corrente.`
+      : action === "exempt"
+      ? `Isentar a quota de ${ms.year}? O sócio deixa de dever este valor.`
+      : `Retirar a isenção da quota de ${ms.year}?`;
+    if (!confirm(question)) return;
+    try {
+      const r = action === "delete"
+        ? await api(`/api/members/memberships/${ms.id}`, { method: "DELETE" })
+        : await api(`/api/members/memberships/${ms.id}`, { method: "PUT", body: JSON.stringify({ exempt: action === "exempt" }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Erro ao atualizar a quota");
+      loadDetail(ms.memberId);
+      loadMembers();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   async function loadDetail(id) {
     try {
       const r = await api(`/api/members/${id}`);
@@ -255,11 +274,24 @@ export default function MembersPage({ user }) {
                 <div key={ms.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0",
                   borderBottom: "1px solid var(--border-subtle)", fontSize: 14 }}>
                   <span>{ms.year}</span>
-                  <span>{formatCurrency(ms.amount)}</span>
+                  <span>{formatCurrency(ms.status === "exempt" ? 0 : Number(ms.amount) - Number(ms.discount || 0))}</span>
                   <span style={{ padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600,
                     background: ms.status === "paid" ? "#22c55e22" : ms.status === "pending" ? "#f59e0b22" : "#6b728022",
                     color: ms.status === "paid" ? "#22c55e" : ms.status === "pending" ? "#f59e0b" : "#6b7280" }}>
-                    {ms.status}
+                    {membershipStatusLabel(ms.status)}
+                  </span>
+                  <span style={{ display: "flex", gap: 8 }}>
+                    {(ms.status === "exempt" || ms._count?.payments === 0) && (
+                      <button type="button" onClick={() => membershipAction(ms, ms.status === "exempt" ? "unexempt" : "exempt")}
+                        style={linkButtonStyle}>
+                        {ms.status === "exempt" ? "Retirar isenção" : "Isentar"}
+                      </button>
+                    )}
+                    {ms._count?.payments === 0 && (
+                      <button type="button" onClick={() => membershipAction(ms, "delete")} style={linkButtonStyle}>
+                        Anular
+                      </button>
+                    )}
                   </span>
                 </div>
               ))}
@@ -538,3 +570,7 @@ function StatCard({ label, value, color }) {
 
 const thStyle = { padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 };
 const tdStyle = { padding: "10px 16px" };
+
+const linkButtonStyle = {
+  color: "#CC3333", background: "none", border: "none", fontSize: 12, cursor: "pointer", fontWeight: 600, padding: 0,
+};

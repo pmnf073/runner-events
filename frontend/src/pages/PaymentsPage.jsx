@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { openApiFile } from "../services/api";
-import { formatCurrency, formatDate, displayDateForInput, parseInputDateToYMD } from "../utils/format";
+import { formatCurrency, formatDate, displayDateForInput, parseInputDateToYMD, membershipStatusLabel } from "../utils/format";
 
 const METHOD_LABELS = {
   transfer: "Transferência",
@@ -35,7 +35,6 @@ export default function PaymentsPage({ user }) {
   const [formMemberId, setFormMemberId] = useState("");
   const [formMembershipId, setFormMembershipId] = useState("");
   const [formAmount, setFormAmount] = useState("");
-  const [formPaidAmount, setFormPaidAmount] = useState("");
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 16));
   const [formMethod, setFormMethod] = useState("transfer");
   const [formReference, setFormReference] = useState("");
@@ -46,7 +45,6 @@ export default function PaymentsPage({ user }) {
   // Edit payment modal
   const [editPayment, setEditPayment] = useState(null);
   const [editAmount, setEditAmount] = useState("");
-  const [editPaidAmount, setEditPaidAmount] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editMethod, setEditMethod] = useState("");
   const [editReference, setEditReference] = useState("");
@@ -71,15 +69,13 @@ export default function PaymentsPage({ user }) {
 
   useEffect(() => {
     if (editPayment) {
-      setEditAmount(editPayment.amount != null ? String(editPayment.amount) : "");
-      setEditPaidAmount(editPayment.paidAmount != null ? String(editPayment.paidAmount) : (editPayment.amount != null ? String(editPayment.amount) : ""));
+      setEditAmount(editPayment.paidAmount != null ? String(editPayment.paidAmount) : "");
       setEditDate(editPayment.date || "");
       setEditMethod(editPayment.method || "");
       setEditReference(editPayment.reference || "");
       setEditNotes(editPayment.notes || "");
     } else {
       setEditAmount("");
-      setEditPaidAmount("");
       setEditDate("");
       setEditMethod("");
       setEditReference("");
@@ -161,7 +157,7 @@ export default function PaymentsPage({ user }) {
           memberId: formMemberId,
           membershipId: formMembershipId || null,
           amount: parseFloat(formAmount),
-          paidAmount: formPaidAmount ? parseFloat(formPaidAmount) : parseFloat(formAmount),
+          paidAmount: parseFloat(formAmount),
           date: formDate,
           method: formMethod,
           reference: formReference || null,
@@ -188,7 +184,7 @@ export default function PaymentsPage({ user }) {
         method: "PUT",
         body: JSON.stringify({
           amount: parseFloat(editAmount),
-          paidAmount: parseFloat(editPaidAmount),
+          paidAmount: parseFloat(editAmount),
           date: editDate,
           method: editMethod,
           reference: editReference || null,
@@ -219,7 +215,6 @@ export default function PaymentsPage({ user }) {
     setFormMemberId("");
     setFormMembershipId("");
     setFormAmount("");
-    setFormPaidAmount("");
     setFormDate(new Date().toISOString().slice(0, 16));
     setFormMethod("transfer");
     setFormReference("");
@@ -235,6 +230,22 @@ export default function PaymentsPage({ user }) {
   function loadMemberMemberships(memberId) {
     const member = members.find((m) => m.id === memberId);
     return member?.memberships || [];
+  }
+
+  // Picking a member selects the oldest fee still open and fills in what is missing,
+  // so the payment settles the fee instead of only crediting the account.
+  function selectMember(memberId) {
+    setFormMemberId(memberId);
+    const open = loadMemberMemberships(memberId)
+      .filter((ms) => ms.outstanding > 0)
+      .sort((a, b) => a.year - b.year);
+    selectMembership(memberId, open[0]?.id || "");
+  }
+
+  function selectMembership(memberId, membershipId) {
+    setFormMembershipId(membershipId);
+    const ms = loadMemberMemberships(memberId).find((m) => m.id === membershipId);
+    setFormAmount(ms?.outstanding > 0 ? String(ms.outstanding) : "");
   }
 
   if (loading) {
@@ -319,9 +330,9 @@ export default function PaymentsPage({ user }) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                 <td style={tdStyle}>{formatDate(p.date)}</td>
                 <td style={{ ...tdStyle, fontWeight: 600, fontFamily: "monospace" }}>{p.receiptNumber}</td>
-                <td style={tdStyle} title={p.membership ? `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${p.membership.status})` : (p.notes || "") }>
+                <td style={tdStyle} title={p.membership ? `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${membershipStatusLabel(p.membership.status)})` : (p.notes || "") }>
                   {p.membership ? (
-                    `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${p.membership.status})`
+                    `${p.membership.year} — ${formatCurrency(p.membership.amount)} (${membershipStatusLabel(p.membership.status)})`
                   ) : p.notes ? (
                     p.notes.length > 60 ? p.notes.slice(0, 60) + "…" : p.notes
                   ) : (
@@ -384,7 +395,7 @@ export default function PaymentsPage({ user }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sócio</span>
-                  <select value={formMemberId} onChange={(e) => { setFormMemberId(e.target.value); setFormMembershipId(""); }}
+                  <select value={formMemberId} onChange={(e) => selectMember(e.target.value)}
                     required style={inputStyle}>
                     <option value="">Selecionar sócio...</option>
                     {members.map((m) => (
@@ -396,29 +407,24 @@ export default function PaymentsPage({ user }) {
                 </label>
                 {formMemberId && (
                   <label>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Quota (opcional)</span>
-                    <select value={formMembershipId} onChange={(e) => setFormMembershipId(e.target.value)}
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Quota</span>
+                    <select value={formMembershipId} onChange={(e) => selectMembership(formMemberId, e.target.value)}
                       style={inputStyle}>
-                      <option value="">Pagamento geral (sem quota)</option>
                       {loadMemberMemberships(formMemberId).map((ms) => (
                         <option key={ms.id} value={ms.id}>
-                          {ms.year} — {formatCurrency(ms.amount)} ({ms.status})
+                          {ms.year} — {membershipStatusLabel(ms.status)}{ms.outstanding > 0 ? ` (falta ${formatCurrency(ms.outstanding)})` : ""}
                         </option>
                       ))}
+                      <option value="">Outro pagamento (não é quota)</option>
                     </select>
                   </label>
                 )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <label>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor Total</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor (€)</span>
                   <input type="number" step="0.01" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} required
                     style={inputStyle} />
-                </label>
-                <label>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor Pago (opcional)</span>
-                  <input type="number" step="0.01" value={formPaidAmount} onChange={(e) => setFormPaidAmount(e.target.value)}
-                    placeholder={formAmount} style={inputStyle} />
                 </label>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
@@ -483,17 +489,12 @@ export default function PaymentsPage({ user }) {
               </div>
               <div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Quota</div>
-                <div>{editPayment.membership ? `${editPayment.membership.year} — ${formatCurrency(editPayment.membership.amount)} (${editPayment.membership.status})` : "—"}</div>
+                <div>{editPayment.membership ? `${editPayment.membership.year} — ${formatCurrency(editPayment.membership.amount)} (${membershipStatusLabel(editPayment.membership.status)})` : "—"}</div>
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor Total</label>
+              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor (€)</label>
               <input type="number" step="0.01" value={editAmount} onChange={(e) => setEditAmount(e.target.value)}
-                style={inputStyle} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor Pago</label>
-              <input type="number" step="0.01" value={editPaidAmount} onChange={(e) => setEditPaidAmount(e.target.value)}
                 style={inputStyle} />
             </div>
             <div style={{ marginBottom: 12 }}>
