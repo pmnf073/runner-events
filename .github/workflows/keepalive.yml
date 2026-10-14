@@ -1,0 +1,19 @@
+# Keeps the Render free-plan backend awake (it sleeps after ~15 minutes without
+# requests, so the first visitor waits and the hourly TeamUp sync stops).
+# Enabled only when the repository variable BACKEND_URL is set
+# (Settings → Secrets and variables → Actions → Variables), e.g.
+# https://runner-events-api.onrender.com
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    if: ${{ vars.BACKEND_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/health
+        run: curl --fail --silent --show-error --max-time 90 --retry 2 "${{ vars.BACKEND_URL }}/api/health"

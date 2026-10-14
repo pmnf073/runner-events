@@ -149,6 +149,7 @@ export default function ImportPage({ user }) {
               <>
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Importados:</strong> {feedResult.imported} eventos</p>
                 {feedResult.updated != null && feedResult.updated > 0 && <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Atualizados:</strong> {feedResult.updated} eventos</p>}
+                {feedResult.cancelled > 0 && <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Cancelados (já não estão no TeamUp):</strong> {feedResult.cancelled} eventos</p>}
                 {feedResult.skipped != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Ignorados:</strong> {feedResult.skipped}</p>}
                 {feedResult.total != null && <p style={{ margin: "2px 0", color: V("--text-secondary") }}><strong>Total no feed:</strong> {feedResult.total}</p>}
               </>

@@ -15,15 +15,7 @@ import FeesPage from "./pages/FeesPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-function api(path, options = {}) {
-  const token = localStorage.getItem("token");
-  const headers = { "Content-Type": "application/json", ...options.headers };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return fetch(API_URL + path, { ...options, headers, credentials: "include" });
-}
+import api from "./services/api";
 
 /* ── Theme Toggle Button ── */
 function ThemeToggle() {
@@ -132,13 +124,10 @@ function AppInner() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log("App init, API_URL:", API_URL, "token:", token ? "present" : "none");
     if (token) {
       api("/auth/me")
         .then(async (r) => {
-          console.log("/auth/me status:", r.status);
           const data = await r.json();
-          console.log("/auth/me data:", data);
           if (data.authenticated) setUser(data.user);
           else localStorage.removeItem("token");
         })
@@ -176,7 +165,7 @@ function AppInner() {
     setUserMenuOpen(false);
     localStorage.removeItem("token");
     setUser(null);
-    fetch(`${API_URL}/auth/logout`, { method: "POST" }).finally(() => {
+    api("/auth/logout", { method: "POST" }).finally(() => {
       window.location.href = "/";
     });
   };

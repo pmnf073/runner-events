@@ -1,7 +1,8 @@
 import { Router } from "express";
-import jwt from "jsonwebtoken";
 import prisma from "../db.js";
+import { requireAdmin, requireStaff, requireUser } from "../middleware/auth.js";
 import extractImageFromUrl from "../services/imageExtractor.js";
+import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
 import {
   dateKey,
   eventOccurrenceDate,
@@ -10,55 +11,23 @@ import {
   parseVirtualEventId,
   recurrenceDefaultEndDate,
   validateRecurrencePattern,
+  withOriginalTime,
 } from "../utils/recurrence.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
 
-async function auth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return next();
-  try {
-    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
-    if (user) { req.user = user; return next(); }
-  } catch {}
-  next();
-}
-
-// The calendar is visible only to logged-in users with an active account.
-function requireUser(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: "É necessário iniciar sessão" });
-  if (req.user.status !== "active") return res.status(403).json({ error: "Conta não ativa" });
-  next();
-}
-
-async function isAdmin(req, res, next) {
-  if (req.user && req.user.role === "admin") return next();
-
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    try {
-      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-      if (payload.role === "admin") return next();
-    } catch {}
+function eventValidationError(body, creating) {
+  if (creating && !body.title?.trim()) return "O título é obrigatório.";
+  if (creating && !body.date) return "A data é obrigatória.";
+  if (body.date && Number.isNaN(new Date(body.date).getTime())) return "Data inválida.";
+  if ((creating || body.type !== undefined) && !isAllowed("eventType", body.type)) {
+    return `Tipo de evento inválido (${ALLOWED.eventType.join(", ")}).`;
   }
-
-  return res.status(403).json({ error: "Admin access required" });
-}
-
-async function isOrganizerOrAdmin(req, res, next) {
-  if (req.user && ["admin", "organizer"].includes(req.user.role)) return next();
-
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    try {
-      const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-      if (["admin", "organizer"].includes(payload.role)) return next();
-    } catch {}
+  if (body.recurrenceType) {
+    const validation = validateRecurrencePattern(recurrenceValidationPayload(body));
+    if (!validation.isValid) return validation.errors.join(", ");
   }
-
-  return res.status(403).json({ error: "Admin or Organizer access required" });
+  return null;
 }
 
 function recurrenceValidationPayload(body) {
@@ -172,25 +141,56 @@ async function findOverride(parentId, occurrenceDate, includeRsvps = false) {
   });
 }
 
+// After "this and following" splits a series, occurrences that already have RSVPs
+// move to the new series (taking its new details) so the RSVPs stay visible. If the
+// new series has no occurrence on that day, the occurrence becomes a standalone event.
+async function moveOccurrencesWithRsvps(oldParentId, fromDay, newSeries) {
+  const kept = await prisma.event.findMany({
+    where: { parentEventId: oldParentId, recurrenceInstanceDate: { gte: fromDay } },
+  });
+  if (kept.length === 0) return;
+
+  const lastDay = kept.reduce((max, e) => (e.recurrenceInstanceDate > max ? e.recurrenceInstanceDate : max), fromDay);
+  const newDays = new Set(
+    generateRecurrenceInstances(newSeries, fromDay, lastDay).map((e) => dateKey(e.recurrenceInstanceDate)),
+  );
+
+  for (const occurrence of kept) {
+    const day = eventOccurrenceDate(occurrence.recurrenceInstanceDate);
+    if (newDays.has(dateKey(day))) {
+      const { createdBy, ...data } = copyInstanceData(newSeries, day);
+      await prisma.event.update({
+        where: { id: occurrence.id },
+        data: { ...data, recurrenceStatus: occurrence.recurrenceStatus },
+      });
+    } else {
+      await prisma.event.update({
+        where: { id: occurrence.id },
+        data: { parentEventId: null, isRecurrenceInstance: false, recurrenceInstanceDate: null },
+      });
+    }
+  }
+}
+
 function previousOccurrenceEnd(occurrenceDate) {
   const end = eventOccurrenceDate(occurrenceDate);
   end.setUTCDate(end.getUTCDate() - 1);
   return end;
 }
 
-router.post("/extract-image", isAdmin, async (req, res) => {
+router.post("/extract-image", requireAdmin, async (req, res) => {
   try {
     const { url } = req.body;
-    if (!url) return res.status(400).json({ error: "URL is required" });
+    if (!url) return res.status(400).json({ error: "O URL é obrigatório." });
 
     const imageUrl = await extractImageFromUrl(url);
     res.json({ imageUrl });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
-router.get("/", auth, requireUser, async (req, res) => {
+router.get("/", requireUser, async (req, res) => {
   try {
     const { start, end, type, club } = req.query;
     const rangeStart = start ? new Date(start) : new Date();
@@ -249,11 +249,11 @@ router.get("/", auth, requireUser, async (req, res) => {
     allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
     res.json(allEvents);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
-router.get("/:id", auth, requireUser, async (req, res) => {
+router.get("/:id", requireUser, async (req, res) => {
   try {
     const event = await prisma.event.findUnique({
       where: { id: req.params.id },
@@ -262,7 +262,7 @@ router.get("/:id", auth, requireUser, async (req, res) => {
       },
     });
     if (event) {
-      if (event.recurrenceStatus === "cancelled") return res.status(404).json({ error: "Event not found" });
+      if (event.recurrenceStatus === "cancelled") return res.status(404).json({ error: "Evento não encontrado." });
       if (event.parentEventId && event.recurrenceInstanceDate) {
         const parent = await prisma.event.findUnique({ where: { id: event.parentEventId } });
         if (parent?.recurrenceType) return res.json(materializeInstance(parent, event.recurrenceInstanceDate, event));
@@ -271,23 +271,21 @@ router.get("/:id", auth, requireUser, async (req, res) => {
     }
 
     const recurring = await findParentAndOccurrence(req.params.id);
-    if (!recurring) return res.status(404).json({ error: "Event not found" });
+    if (!recurring) return res.status(404).json({ error: "Evento não encontrado." });
 
     const override = await findOverride(recurring.parent.id, recurring.occurrenceDate, true);
-    if (override?.recurrenceStatus === "cancelled") return res.status(404).json({ error: "Event not found" });
+    if (override?.recurrenceStatus === "cancelled") return res.status(404).json({ error: "Evento não encontrado." });
 
     res.json(materializeInstance(recurring.parent, recurring.occurrenceDate, override));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
-router.post("/", isOrganizerOrAdmin, async (req, res) => {
+router.post("/", requireStaff, async (req, res) => {
   try {
-    if (req.body.recurrenceType) {
-      const validation = validateRecurrencePattern(recurrenceValidationPayload(req.body));
-      if (!validation.isValid) return res.status(400).json({ error: validation.errors.join(", ") });
-    }
+    const validationError = eventValidationError(req.body, true);
+    if (validationError) return res.status(400).json({ error: validationError });
 
     const event = await prisma.event.create({
       data: {
@@ -297,23 +295,21 @@ router.post("/", isOrganizerOrAdmin, async (req, res) => {
     });
     res.status(201).json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
-router.put("/:id", isOrganizerOrAdmin, async (req, res) => {
+router.put("/:id", requireStaff, async (req, res) => {
   try {
-    if (req.body.recurrenceType) {
-      const validation = validateRecurrencePattern(recurrenceValidationPayload(req.body));
-      if (!validation.isValid) return res.status(400).json({ error: validation.errors.join(", ") });
-    }
+    const validationError = eventValidationError(req.body, false);
+    if (validationError) return res.status(400).json({ error: validationError });
 
     const scope = req.body.recurrenceScope || "all";
     const recurring = await findParentAndOccurrence(req.params.id);
     const existing = recurring
       ? recurring.parent
       : await prisma.event.findUnique({ where: { id: req.params.id } });
-    if (!existing) return res.status(404).json({ error: "Event not found" });
+    if (!existing) return res.status(404).json({ error: "Evento não encontrado." });
 
     if (recurring && scope === "single") {
       const override = await findOverride(recurring.parent.id, recurring.occurrenceDate);
@@ -336,10 +332,11 @@ router.put("/:id", isOrganizerOrAdmin, async (req, res) => {
         where: { id: recurring.parent.id },
         data: { recurrenceEndDate: previousOccurrenceEnd(recurring.occurrenceDate) },
       });
+      const fromDay = eventOccurrenceDate(recurring.occurrenceDate);
       await prisma.event.deleteMany({
         where: {
           parentEventId: recurring.parent.id,
-          recurrenceInstanceDate: { gte: eventOccurrenceDate(recurring.occurrenceDate) },
+          recurrenceInstanceDate: { gte: fromDay },
           rsvps: { none: {} },
         },
       });
@@ -349,23 +346,22 @@ router.put("/:id", isOrganizerOrAdmin, async (req, res) => {
           createdBy: req.user?.id || recurring.parent.createdBy || "system",
         },
       });
+      await moveOccurrencesWithRsvps(recurring.parent.id, fromDay, event);
       return res.json(event);
     }
 
     const targetId = recurring ? recurring.parent.id : req.params.id;
     const bodyForUpdate = { ...req.body };
     if (recurring && bodyForUpdate.date) {
-      const parentDate = new Date(recurring.parent.date);
+      // Editing the whole series from one occurrence: keep the series' first day and
+      // take the new wall-clock time (and duration) from the edited occurrence.
       const changedDate = new Date(bodyForUpdate.date);
-      bodyForUpdate.date = new Date(Date.UTC(
-        parentDate.getUTCFullYear(),
-        parentDate.getUTCMonth(),
-        parentDate.getUTCDate(),
-        changedDate.getUTCHours(),
-        changedDate.getUTCMinutes(),
-        changedDate.getUTCSeconds(),
-        changedDate.getUTCMilliseconds(),
-      )).toISOString();
+      const seriesDate = withOriginalTime(eventOccurrenceDate(recurring.parent.date), changedDate);
+      if (bodyForUpdate.endDate) {
+        const duration = new Date(bodyForUpdate.endDate).getTime() - changedDate.getTime();
+        bodyForUpdate.endDate = new Date(seriesDate.getTime() + duration).toISOString();
+      }
+      bodyForUpdate.date = seriesDate.toISOString();
     }
     const event = await prisma.event.update({
       where: { id: targetId },
@@ -373,11 +369,11 @@ router.put("/:id", isOrganizerOrAdmin, async (req, res) => {
     });
     res.json(event);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 
-router.delete("/:id", isAdmin, async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const scope = req.query.scope || "all";
     const recurring = await findParentAndOccurrence(req.params.id);
@@ -402,6 +398,13 @@ router.delete("/:id", isAdmin, async (req, res) => {
         where: { id: recurring.parent.id },
         data: { recurrenceEndDate: previousOccurrenceEnd(recurring.occurrenceDate) },
       });
+      // Persisted occurrences after the new end would be left hidden; remove them.
+      await prisma.event.deleteMany({
+        where: {
+          parentEventId: recurring.parent.id,
+          recurrenceInstanceDate: { gte: eventOccurrenceDate(recurring.occurrenceDate) },
+        },
+      });
       return res.json({ ok: true });
     }
 
@@ -410,7 +413,7 @@ router.delete("/:id", isAdmin, async (req, res) => {
     await prisma.event.delete({ where: { id: targetId } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    serverError(res, err);
   }
 });
 

@@ -1,51 +1,14 @@
 import express from "express";
-import jwt from "jsonwebtoken";
 import prisma from "../db.js";
+import { requireAdmin, requireStaff } from "../middleware/auth.js";
+import { ensureMembershipDebit, lockSequence, memberBalances } from "../services/ledger.js";
+import { ALLOWED, isAllowed } from "../utils/http.js";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-in-production";
-
-function requireAdminOrOrganizer(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Auth required" });
-  }
-  try {
-    const payload = jwt.verify(authHeader.slice(7), JWT_SECRET);
-    if (!["admin", "organizer"].includes(payload.role)) {
-      return res.status(403).json({ error: "Acesso restrito." });
-    }
-    req.user = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: "Token inválido" });
-  }
-}
-
-const membershipDebitDescription = (year) => `Anuidade ${year}`;
-const membershipAmountDue = (membership) => Math.max(0, Number(membership.amount) - Number(membership.discount || 0));
-
-async function ensureMembershipDebit(membership) {
-  const description = membershipDebitDescription(membership.year);
-  const existing = await prisma.accountEntry.findFirst({
-    where: { memberId: membership.memberId, type: "debit", description },
-  });
-  if (existing) return false;
-
-  await prisma.accountEntry.create({
-    data: {
-      memberId: membership.memberId,
-      type: "debit",
-      description,
-      amount: membershipAmountDue(membership),
-      date: membership.createdAt,
-    },
-  });
-  return true;
-}
+router.use(requireStaff);
 
 /* ── GET /api/members — list all members with user data ── */
-router.get("/", requireAdminOrOrganizer, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const members = await prisma.member.findMany({
       include: {
@@ -70,22 +33,8 @@ router.get("/", requireAdminOrOrganizer, async (req, res) => {
       orderBy: { memberNumber: "asc" },
     });
 
-    // Calculate balance per member
-    const membersWithBalance = await Promise.all(
-      members.map(async (m) => {
-        const debits = await prisma.accountEntry.aggregate({
-          where: { memberId: m.id, type: "debit" },
-          _sum: { amount: true },
-        });
-        const credits = await prisma.accountEntry.aggregate({
-          where: { memberId: m.id, type: "credit", paymentId: { not: null } },
-          _sum: { amount: true },
-        });
-        const balance =
-          (Number(credits._sum.amount) || 0) - (Number(debits._sum.amount) || 0);
-        return { ...m, balance };
-      })
-    );
+    const balances = await memberBalances(members.map((m) => m.id));
+    const membersWithBalance = members.map((m) => ({ ...m, balance: balances.get(m.id).balance }));
 
     res.json(membersWithBalance);
   } catch (err) {
@@ -95,30 +44,27 @@ router.get("/", requireAdminOrOrganizer, async (req, res) => {
 });
 
 /* ── GET /api/members/fees ── */
-router.get("/fees", requireAdminOrOrganizer, async (req, res) => {
+router.get("/fees", async (req, res) => {
   try {
     const fees = await prisma.annualFeeConfig.findMany({ orderBy: { year: "desc" } });
     res.json(fees);
   } catch (err) {
-    console.error("[GET /api/fees]", err);
+    console.error("[GET /api/members/fees]", err);
     res.status(500).json({ error: "Erro ao listar configurações." });
   }
 });
 
 /* ── GET /api/members/stats — quick stats for admin dashboard (must stay before /:id) ── */
-router.get("/stats", requireAdminOrOrganizer, async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
-    const totalMembers = await prisma.member.count();
-    const activeMembers = await prisma.member.count({ where: { status: "active" } });
-    const suspendedMembers = await prisma.member.count({ where: { status: "suspended" } });
     const currentYear = new Date().getFullYear();
-
-    const paidThisYear = await prisma.membership.count({
-      where: { year: currentYear, status: "paid" },
-    });
-    const pendingThisYear = await prisma.membership.count({
-      where: { year: currentYear, status: "pending" },
-    });
+    const [totalMembers, activeMembers, suspendedMembers, paidThisYear, pendingThisYear] = await Promise.all([
+      prisma.member.count(),
+      prisma.member.count({ where: { status: "active" } }),
+      prisma.member.count({ where: { status: "suspended" } }),
+      prisma.membership.count({ where: { year: currentYear, status: "paid" } }),
+      prisma.membership.count({ where: { year: currentYear, status: "pending" } }),
+    ]);
 
     res.json({
       totalMembers,
@@ -135,7 +81,7 @@ router.get("/stats", requireAdminOrOrganizer, async (req, res) => {
 });
 
 /* ── GET /api/members/:id — single member detail ── */
-router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const member = await prisma.member.findUnique({
       where: { id: req.params.id },
@@ -153,19 +99,7 @@ router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
     });
     if (!member) return res.status(404).json({ error: "Sócio não encontrado." });
 
-    // Calculate balance for this member (credits - debits)
-    const debits = await prisma.accountEntry.aggregate({
-      where: { memberId: member.id, type: "debit" },
-      _sum: { amount: true },
-    });
-    const credits = await prisma.accountEntry.aggregate({
-      where: { memberId: member.id, type: "credit", paymentId: { not: null } },
-      _sum: { amount: true },
-    });
-    const totalDebit = Number(debits._sum.amount) || 0;
-    const totalCredit = Number(credits._sum.amount) || 0;
-    const balance = totalCredit - totalDebit;
-
+    const { balance } = (await memberBalances([member.id])).get(member.id);
     res.json({ ...member, balance });
   } catch (err) {
     console.error("[GET /api/members/:id]", err);
@@ -174,24 +108,24 @@ router.get("/:id", requireAdminOrOrganizer, async (req, res) => {
 });
 
 /* ── POST /api/members — activate/convert user to member ── */
-router.post("/", requireAdminOrOrganizer, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { userId, notes } = req.body;
     if (!userId) return res.status(400).json({ error: "userId é obrigatório." });
 
-    // Get next member number
-    const maxNum = await prisma.member.aggregate({ _max: { memberNumber: true } });
-    const nextNumber = (maxNum._max.memberNumber || 0) + 1;
-
-    const member = await prisma.member.create({
-      data: {
-        userId,
-        memberNumber: nextNumber,
-        notes: notes || null,
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
+    const member = await prisma.$transaction(async (tx) => {
+      await lockSequence(tx, "memberNumber");
+      const maxNum = await tx.member.aggregate({ _max: { memberNumber: true } });
+      return tx.member.create({
+        data: {
+          userId,
+          memberNumber: (maxNum._max.memberNumber || 0) + 1,
+          notes: notes || null,
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
     });
 
     res.status(201).json(member);
@@ -200,14 +134,23 @@ router.post("/", requireAdminOrOrganizer, async (req, res) => {
     if (err.code === "P2002") {
       return res.status(400).json({ error: "Utilizador já é sócio." });
     }
+    if (err.code === "P2003") {
+      return res.status(400).json({ error: "Utilizador não encontrado." });
+    }
     res.status(500).json({ error: "Erro ao criar sócio." });
   }
 });
 
 /* ── PUT /api/members/:id — update member associativo data ── */
-router.put("/:id", requireAdminOrOrganizer, async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const { status, position, notes, resignationDate } = req.body;
+    if (status !== undefined && !isAllowed("memberStatus", status)) {
+      return res.status(400).json({ error: `Estado inválido (${ALLOWED.memberStatus.join(", ")}).` });
+    }
+    if (position && !isAllowed("memberPosition", position)) {
+      return res.status(400).json({ error: `Cargo inválido (${ALLOWED.memberPosition.join(", ")}).` });
+    }
     const data = {};
     if (status !== undefined) data.status = status;
     if (position !== undefined) data.position = position || null;
@@ -232,9 +175,15 @@ router.put("/:id", requireAdminOrOrganizer, async (req, res) => {
   }
 });
 
-/* ── DELETE /api/members/:id — remove member (cascade to user via relation) ── */
-router.delete("/:id", requireAdminOrOrganizer, async (req, res) => {
+/* ── DELETE /api/members/:id — remove the member record (the user account stays) ── */
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    const payments = await prisma.payment.count({ where: { memberId: req.params.id } });
+    if (payments > 0) {
+      return res.status(409).json({
+        error: "Este sócio tem pagamentos registados e não pode ser eliminado. Muda o estado para \"Demitiu-se\" ou \"Excluído\".",
+      });
+    }
     await prisma.member.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
@@ -247,24 +196,13 @@ router.delete("/:id", requireAdminOrOrganizer, async (req, res) => {
 });
 
 /* ── GET /api/members/balance/:id — get current balance ── */
-router.get("/balance/:id", requireAdminOrOrganizer, async (req, res) => {
+router.get("/balance/:id", async (req, res) => {
   try {
-    const debits = await prisma.accountEntry.aggregate({
-      where: { memberId: req.params.id, type: "debit" },
-      _sum: { amount: true },
-    });
-    const credits = await prisma.accountEntry.aggregate({
-      where: { memberId: req.params.id, type: "credit", paymentId: { not: null } },
-      _sum: { amount: true },
-    });
-    const totalDebit = Number(debits._sum.amount) || 0;
-    const totalCredit = Number(credits._sum.amount) || 0;
-    const balance = totalCredit - totalDebit;
-
+    const { totalDebits, totalCredits, balance } = (await memberBalances([req.params.id])).get(req.params.id);
     res.json({
       memberId: req.params.id,
-      totalDebits: totalDebit,
-      totalCredits: totalCredit,
+      totalDebits,
+      totalCredits,
       balance,
     });
   } catch (err) {
@@ -275,12 +213,16 @@ router.get("/balance/:id", requireAdminOrOrganizer, async (req, res) => {
 
 /* ── Annual Fee Configuration ── */
 
-// POST /api/fees
-router.post("/fees", requireAdminOrOrganizer, async (req, res) => {
+// POST /api/members/fees
+router.post("/fees", async (req, res) => {
   try {
-    const { year, amount, dueDate, earlybirdDiscount, earlybirdDeadline } = req.body;
+    const { amount, dueDate, earlybirdDiscount, earlybirdDeadline } = req.body;
+    const year = parseInt(req.body.year, 10);
     if (!year || amount == null || !dueDate) {
-      return res.status(400).json({ error: "year, amount e dueDate são obrigatórios." });
+      return res.status(400).json({ error: "Ano, valor e prazo são obrigatórios." });
+    }
+    if (!(Number(amount) >= 0) || (earlybirdDiscount && !(Number(earlybirdDiscount) >= 0))) {
+      return res.status(400).json({ error: "Valor inválido." });
     }
 
     const fee = await prisma.annualFeeConfig.upsert({
@@ -302,13 +244,13 @@ router.post("/fees", requireAdminOrOrganizer, async (req, res) => {
 
     res.json(fee);
   } catch (err) {
-    console.error("[POST /api/fees]", err);
+    console.error("[POST /api/members/fees]", err);
     res.status(500).json({ error: "Erro ao configurar anuidade." });
   }
 });
 
-/* ── POST /api/fees/:year/generate-memberships — generate pending memberships for all active members ── */
-router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (req, res) => {
+/* ── POST /api/members/fees/:year/generate-memberships — generate pending memberships for all active members ── */
+router.post("/fees/:year/generate-memberships", async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     if (isNaN(year)) return res.status(400).json({ error: "Ano inválido." });
@@ -334,37 +276,39 @@ router.post("/fees/:year/generate-memberships", requireAdminOrOrganizer, async (
         continue;
       }
 
-      const membership = await prisma.membership.create({
-        data: {
-          memberId: member.id,
-          year,
-          amount: feeConfig.amount,
-          dueDate: feeConfig.dueDate,
-          discount: feeConfig.earlybirdDiscount, // auto-apply early bird (can be removed later)
-        },
+      // The early-bird discount is applied when a payment is registered before the deadline.
+      await prisma.$transaction(async (tx) => {
+        const membership = await tx.membership.create({
+          data: {
+            memberId: member.id,
+            year,
+            amount: feeConfig.amount,
+            dueDate: feeConfig.dueDate,
+          },
+        });
+        await ensureMembershipDebit(tx, membership);
       });
-      await ensureMembershipDebit(membership);
       created++;
     }
 
     res.json({ created, skipped, total: activeMembers.length });
   } catch (err) {
-    console.error("[POST /api/fees/:year/generate-memberships]", err);
+    console.error("[POST /api/members/fees/:year/generate-memberships]", err);
     res.status(500).json({ error: "Erro ao gerar quotas." });
   }
 });
 
-/* ── POST /api/fees/sync-account-entries — add missing debits for existing memberships ── */
-router.post("/fees/sync-account-entries", requireAdminOrOrganizer, async (_req, res) => {
+/* ── POST /api/members/fees/sync-account-entries — add missing debits for existing memberships ── */
+router.post("/fees/sync-account-entries", async (_req, res) => {
   try {
     const memberships = await prisma.membership.findMany();
     let created = 0;
     for (const membership of memberships) {
-      if (await ensureMembershipDebit(membership)) created++;
+      if (await ensureMembershipDebit(prisma, membership)) created++;
     }
     res.json({ created, total: memberships.length });
   } catch (err) {
-    console.error("[POST /api/fees/sync-account-entries]", err);
+    console.error("[POST /api/members/fees/sync-account-entries]", err);
     res.status(500).json({ error: "Erro ao sincronizar a conta corrente." });
   }
 });

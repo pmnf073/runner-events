@@ -1,3 +1,5 @@
+> **Documento histórico.** Este é o plano inicial e está desatualizado (estrutura, esquema e alojamento mudaram). A documentação atual está em `CLAUDE.md` e `DEPLOY.md`.
+
 # 📅 Runner's Group Calendar — Project Plan
 
 ## 🎯 Overview
