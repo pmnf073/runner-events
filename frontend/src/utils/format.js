@@ -41,3 +41,9 @@ export function localDateKey(value) {
   const d = new Date(value);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+export const MEMBERSHIP_STATUS = { pending: "Por pagar", partial: "Paga em parte", paid: "Paga", exempt: "Isenta", discounted: "Com desconto" };
+
+export function membershipStatusLabel(status) {
+  return MEMBERSHIP_STATUS[status] || status;
+}

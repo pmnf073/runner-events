@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import api, { openApiFile } from "../services/api";
-import { displayDateForInput, formatCurrency, formatDate, parseInputDateToYMD } from "../utils/format";
+import { displayDateForInput, formatCurrency, formatDate, MEMBERSHIP_STATUS, parseInputDateToYMD } from "../utils/format";
 
 const V = (name) => `var(${name})`;
 
-const MEMBERSHIP_STATUS = { pending: "Por pagar", partial: "Paga em parte", paid: "Paga", exempt: "Isento", discounted: "Com desconto" };
 const MEMBER_STATUS = { active: "Ativo", suspended: "Suspenso", resigned: "Demitiu-se", excluded: "Excluído" };
 const METHOD_LABELS = { transfer: "Transferência", cash: "Numerário", mbway: "MB WAY", card: "Cartão" };
 

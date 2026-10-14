@@ -2,7 +2,15 @@ import express from "express";
 import prisma from "../db.js";
 import { requireAdmin, requireStaff } from "../middleware/auth.js";
 import { audit } from "../services/audit.js";
-import { ensureMembershipDebit, lockSequence, memberBalances } from "../services/ledger.js";
+import {
+  applyFeeToMemberships,
+  ensureMembershipDebit,
+  lockSequence,
+  memberBalances,
+  membershipDebitDescription,
+  outstandingByMembership,
+  recalcMembership,
+} from "../services/ledger.js";
 import { ALLOWED, isAllowed } from "../utils/http.js";
 
 const router = express.Router();
@@ -34,8 +42,15 @@ router.get("/", async (req, res) => {
       orderBy: { memberNumber: "asc" },
     });
 
-    const balances = await memberBalances(members.map((m) => m.id));
-    const membersWithBalance = members.map((m) => ({ ...m, balance: balances.get(m.id).balance }));
+    const [balances, outstanding] = await Promise.all([
+      memberBalances(members.map((m) => m.id)),
+      outstandingByMembership(members.flatMap((m) => m.memberships)),
+    ]);
+    const membersWithBalance = members.map((m) => ({
+      ...m,
+      memberships: m.memberships.map((ms) => ({ ...ms, outstanding: outstanding.get(ms.id) })),
+      balance: balances.get(m.id).balance,
+    }));
 
     res.json(membersWithBalance);
   } catch (err) {
@@ -93,7 +108,7 @@ router.get("/:id", async (req, res) => {
             nif: true, role: true, status: true, address: true, dob: true,
           },
         },
-        memberships: { orderBy: { year: "desc" } },
+        memberships: { orderBy: { year: "desc" }, include: { _count: { select: { payments: true } } } },
         payments: { orderBy: { createdAt: "desc" }, take: 20 },
         accountEntries: { orderBy: { createdAt: "desc" } },
       },
@@ -230,27 +245,28 @@ router.post("/fees", async (req, res) => {
       return res.status(400).json({ error: "Valor inválido." });
     }
 
-    const fee = await prisma.annualFeeConfig.upsert({
-      where: { year },
-      create: {
-        year,
-        amount: Number(amount),
-        dueDate: new Date(dueDate),
-        earlybirdDiscount: earlybirdDiscount ? Number(earlybirdDiscount) : null,
-        earlybirdDeadline: earlybirdDeadline ? new Date(earlybirdDeadline) : null,
+    const values = {
+      amount: Number(amount),
+      dueDate: new Date(dueDate),
+      earlybirdDiscount: earlybirdDiscount ? Number(earlybirdDiscount) : null,
+      earlybirdDeadline: earlybirdDeadline ? new Date(earlybirdDeadline) : null,
+    };
+    // Saving the fee also updates that year's memberships, so amounts, due dates and
+    // early-bird discounts never fall out of step with the configuration.
+    const { fee, updated } = await prisma.$transaction(
+      async (tx) => {
+        const fee = await tx.annualFeeConfig.upsert({ where: { year }, create: { year, ...values }, update: values });
+        const updated = await applyFeeToMemberships(tx, fee);
+        await audit(tx, req, "fee.configure", "AnnualFeeConfig", fee.id, {
+          year, amount: Number(amount), dueDate, earlybirdDiscount: earlybirdDiscount ?? null,
+          earlybirdDeadline: earlybirdDeadline ?? null, membershipsUpdated: updated,
+        });
+        return { fee, updated };
       },
-      update: {
-        amount: Number(amount),
-        dueDate: new Date(dueDate),
-        earlybirdDiscount: earlybirdDiscount ? Number(earlybirdDiscount) : null,
-        earlybirdDeadline: earlybirdDeadline ? new Date(earlybirdDeadline) : null,
-      },
-    });
+      { timeout: 60000 },
+    );
 
-    await audit(null, req, "fee.configure", "AnnualFeeConfig", fee.id, {
-      year, amount: Number(amount), dueDate, earlybirdDiscount: earlybirdDiscount ?? null, earlybirdDeadline: earlybirdDeadline ?? null,
-    });
-    res.json(fee);
+    res.json({ ...fee, membershipsUpdated: updated });
   } catch (err) {
     console.error("[POST /api/members/fees]", err);
     res.status(500).json({ error: "Erro ao configurar anuidade." });
@@ -307,18 +323,79 @@ router.post("/fees/:year/generate-memberships", async (req, res) => {
   }
 });
 
-/* ── POST /api/members/fees/sync-account-entries — add missing debits for existing memberships ── */
-router.post("/fees/sync-account-entries", async (_req, res) => {
+/* ── PUT /api/members/memberships/:id — exempt a membership, or undo the exemption ── */
+router.put("/memberships/:id", async (req, res) => {
   try {
-    const memberships = await prisma.membership.findMany();
-    let created = 0;
-    for (const membership of memberships) {
-      if (await ensureMembershipDebit(prisma, membership)) created++;
+    const { exempt } = req.body;
+    if (typeof exempt !== "boolean") return res.status(400).json({ error: "Indica se a quota fica isenta." });
+
+    const membership = await prisma.$transaction(async (tx) => {
+      const existing = await tx.membership.findUnique({
+        where: { id: req.params.id },
+        include: { _count: { select: { payments: true } } },
+      });
+      if (!existing) return null;
+      // A fee already (partly) paid cannot be exempted, or its payments would be left over.
+      if (exempt && existing._count.payments > 0) return { conflict: true };
+      if (exempt) {
+        // An exempt membership owes nothing: its debit stays in the ledger at 0.
+        await tx.membership.update({
+          where: { id: existing.id },
+          data: { status: "exempt", discount: null, discountReason: null, paidDate: null },
+        });
+        await ensureMembershipDebit(tx, existing);
+        await tx.accountEntry.updateMany({
+          where: { memberId: existing.memberId, type: "debit", description: membershipDebitDescription(existing.year) },
+          data: { amount: 0 },
+        });
+      } else {
+        await tx.membership.update({ where: { id: existing.id }, data: { status: "pending" } });
+        await recalcMembership(tx, existing.id);
+      }
+      await audit(tx, req, exempt ? "membership.exempt" : "membership.unexempt", "Membership", existing.id, {
+        memberId: existing.memberId, year: existing.year,
+      });
+      return tx.membership.findUnique({ where: { id: existing.id } });
+    });
+
+    if (!membership) return res.status(404).json({ error: "Quota não encontrada." });
+    if (membership.conflict) {
+      return res.status(409).json({ error: "Esta quota tem pagamentos registados e não pode ser isenta." });
     }
-    res.json({ created, total: memberships.length });
+    res.json(membership);
   } catch (err) {
-    console.error("[POST /api/members/fees/sync-account-entries]", err);
-    res.status(500).json({ error: "Erro ao sincronizar a conta corrente." });
+    console.error("[PUT /api/members/memberships/:id]", err);
+    res.status(500).json({ error: "Erro ao atualizar a quota." });
+  }
+});
+
+/* ── DELETE /api/members/memberships/:id — cancel a membership created by mistake ── */
+router.delete("/memberships/:id", async (req, res) => {
+  try {
+    const membership = await prisma.membership.findUnique({
+      where: { id: req.params.id },
+      include: { _count: { select: { payments: true } } },
+    });
+    if (!membership) return res.status(404).json({ error: "Quota não encontrada." });
+    if (membership._count.payments > 0) {
+      return res.status(409).json({
+        error: "Esta quota tem pagamentos registados e não pode ser anulada. Elimina primeiro os pagamentos ou isenta a quota.",
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.accountEntry.deleteMany({
+        where: { memberId: membership.memberId, type: "debit", description: membershipDebitDescription(membership.year) },
+      });
+      await tx.membership.delete({ where: { id: membership.id } });
+      await audit(tx, req, "membership.delete", "Membership", membership.id, {
+        memberId: membership.memberId, year: membership.year, amount: Number(membership.amount),
+      });
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /api/members/memberships/:id]", err);
+    res.status(500).json({ error: "Erro ao anular a quota." });
   }
 });
 
