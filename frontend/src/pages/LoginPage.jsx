@@ -5,6 +5,9 @@ import { useTheme } from "../ThemeContext";
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
 
+// Only same-site paths, so ?redirect= cannot send the user to another site.
+const safeRedirect = (value) => (value && value.startsWith("/") && !value.startsWith("//") ? value : "/");
+
 export default function LoginPage({ setUser }) {
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -19,7 +22,10 @@ export default function LoginPage({ setUser }) {
   const [loading, setLoading] = useState(false);
   const [pendingDialog, setPendingDialog] = useState(null);
 
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
+
   const startOAuth = (provider) => {
+    sessionStorage.setItem("postLoginRedirect", redirectTo);
     window.location.assign(`${API_URL}/auth/${provider}`);
   };
 
@@ -47,7 +53,7 @@ export default function LoginPage({ setUser }) {
       if (res.ok && data.token) {
         localStorage.setItem("token", data.token);
         setUser(data.user);
-        window.location.href = "/";
+        window.location.href = redirectTo;
       } else {
         setError(data.error || "Erro ao fazer login");
       }

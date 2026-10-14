@@ -26,6 +26,13 @@ async function auth(req, res, next) {
   next();
 }
 
+// The calendar is visible only to logged-in users with an active account.
+function requireUser(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "É necessário iniciar sessão" });
+  if (req.user.status !== "active") return res.status(403).json({ error: "Conta não ativa" });
+  next();
+}
+
 async function isAdmin(req, res, next) {
   if (req.user && req.user.role === "admin") return next();
 
@@ -183,7 +190,7 @@ router.post("/extract-image", isAdmin, async (req, res) => {
   }
 });
 
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, requireUser, async (req, res) => {
   try {
     const { start, end, type, club } = req.query;
     const rangeStart = start ? new Date(start) : new Date();
@@ -246,7 +253,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-router.get("/:id", auth, async (req, res) => {
+router.get("/:id", auth, requireUser, async (req, res) => {
   try {
     const event = await prisma.event.findUnique({
       where: { id: req.params.id },

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ThemeProvider, useTheme } from "./ThemeContext";
 import CalendarPage from "./pages/CalendarPage";
@@ -113,6 +113,14 @@ function FooterIcon({ name }) {
       <path d="M9 8.5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
+}
+
+/* ── Pages that require login: anonymous visitors go to /login and come back after ── */
+function RequireAuth({ user, children }) {
+  const location = useLocation();
+  if (user) return children;
+  const redirect = encodeURIComponent(location.pathname + location.search);
+  return <Navigate to={`/login?redirect=${redirect}`} replace />;
 }
 
 /* ── Inner App (has access to ThemeContext) ── */
@@ -289,8 +297,8 @@ function AppInner() {
       <main style={{ margin: "0 32px", padding: "24px 0", flex: 1 }}>
         <Routes>
           <Route path="/" element={<AboutPage />} />
-          <Route path="/calendar" element={<CalendarPage user={user} />} />
-          <Route path="/event/:id" element={<EventPage />} />
+          <Route path="/calendar" element={<RequireAuth user={user}><CalendarPage user={user} /></RequireAuth>} />
+          <Route path="/event/:id" element={<RequireAuth user={user}><EventPage /></RequireAuth>} />
           <Route path="/login" element={<LoginPage setUser={setUser} />} />
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           <Route path="/register" element={<RegisterPage />} />
