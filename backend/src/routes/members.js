@@ -1,6 +1,7 @@
 import express from "express";
 import prisma from "../db.js";
 import { requireAdmin, requireStaff } from "../middleware/auth.js";
+import { audit } from "../services/audit.js";
 import { ensureMembershipDebit, lockSequence, memberBalances } from "../services/ledger.js";
 import { ALLOWED, isAllowed } from "../utils/http.js";
 
@@ -116,7 +117,7 @@ router.post("/", async (req, res) => {
     const member = await prisma.$transaction(async (tx) => {
       await lockSequence(tx, "memberNumber");
       const maxNum = await tx.member.aggregate({ _max: { memberNumber: true } });
-      return tx.member.create({
+      const created = await tx.member.create({
         data: {
           userId,
           memberNumber: (maxNum._max.memberNumber || 0) + 1,
@@ -126,6 +127,8 @@ router.post("/", async (req, res) => {
           user: { select: { id: true, name: true, email: true } },
         },
       });
+      await audit(tx, req, "member.create", "Member", created.id, { memberNumber: created.memberNumber, user: created.user.name });
+      return created;
     });
 
     res.status(201).json(member);
@@ -164,6 +167,7 @@ router.put("/:id", async (req, res) => {
         user: { select: { id: true, name: true, email: true } },
       },
     });
+    await audit(null, req, "member.update", "Member", member.id, { memberNumber: member.memberNumber, user: member.user.name, ...data });
 
     res.json(member);
   } catch (err) {
@@ -184,7 +188,8 @@ router.delete("/:id", requireAdmin, async (req, res) => {
         error: "Este sócio tem pagamentos registados e não pode ser eliminado. Muda o estado para \"Demitiu-se\" ou \"Excluído\".",
       });
     }
-    await prisma.member.delete({ where: { id: req.params.id } });
+    const deleted = await prisma.member.delete({ where: { id: req.params.id }, include: { user: { select: { name: true } } } });
+    await audit(null, req, "member.delete", "Member", deleted.id, { memberNumber: deleted.memberNumber, user: deleted.user.name });
     res.json({ ok: true });
   } catch (err) {
     console.error("[DELETE /api/members/:id]", err);
@@ -242,6 +247,9 @@ router.post("/fees", async (req, res) => {
       },
     });
 
+    await audit(null, req, "fee.configure", "AnnualFeeConfig", fee.id, {
+      year, amount: Number(amount), dueDate, earlybirdDiscount: earlybirdDiscount ?? null, earlybirdDeadline: earlybirdDeadline ?? null,
+    });
     res.json(fee);
   } catch (err) {
     console.error("[POST /api/members/fees]", err);
@@ -291,6 +299,7 @@ router.post("/fees/:year/generate-memberships", async (req, res) => {
       created++;
     }
 
+    await audit(null, req, "membership.generate", "Membership", null, { year, created, skipped });
     res.json({ created, skipped, total: activeMembers.length });
   } catch (err) {
     console.error("[POST /api/members/fees/:year/generate-memberships]", err);

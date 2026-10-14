@@ -1,7 +1,9 @@
 import { Router } from "express";
 import prisma from "../db.js";
 import { requireAdmin, requireStaff, requireUser } from "../middleware/auth.js";
+import { listEvents } from "../services/events.js";
 import extractImageFromUrl from "../services/imageExtractor.js";
+import { goingToEvents, notifyCancelled } from "../services/reminders.js";
 import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
 import {
   dateKey,
@@ -199,55 +201,7 @@ router.get("/", requireUser, async (req, res) => {
     if (type) filters.type = type;
     if (club) filters.club = club;
 
-    const events = await prisma.event.findMany({
-      where: {
-        ...filters,
-        OR: [
-          {
-            parentEventId: null,
-            recurrenceType: null,
-            date: { gte: rangeStart, lte: rangeEnd },
-          },
-          {
-            parentEventId: null,
-            recurrenceType: { not: null },
-            date: { lte: rangeEnd },
-            OR: [
-              { recurrenceEndDate: null },
-              { recurrenceEndDate: { gte: rangeStart } },
-            ],
-          },
-          {
-            parentEventId: { not: null },
-            date: { gte: rangeStart, lte: rangeEnd },
-          },
-        ],
-      },
-      orderBy: { date: "asc" },
-      include: {
-        rsvps: { include: { user: { select: { id: true, name: true, avatar: true } } } },
-      },
-    });
-
-    const overridesByParent = new Map();
-    for (const event of events) {
-      if (!event.parentEventId) continue;
-      if (!overridesByParent.has(event.parentEventId)) overridesByParent.set(event.parentEventId, []);
-      overridesByParent.get(event.parentEventId).push(event);
-    }
-
-    const allEvents = [];
-    for (const event of events) {
-      if (event.parentEventId) continue;
-      if (event.recurrenceType) {
-        allEvents.push(...generateRecurrenceInstances(event, rangeStart, rangeEnd, overridesByParent.get(event.id) || []));
-      } else if (event.recurrenceStatus !== "cancelled") {
-        allEvents.push(event);
-      }
-    }
-
-    allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
-    res.json(allEvents);
+    res.json(await listEvents({ rangeStart, rangeEnd, filters }));
   } catch (err) {
     serverError(res, err);
   }
@@ -381,7 +335,9 @@ router.delete("/:id", requireAdmin, async (req, res) => {
     if (recurring && scope === "single") {
       const override = await findOverride(recurring.parent.id, recurring.occurrenceDate);
       if (override) {
+        const going = await goingToEvents({ id: override.id, recurrenceStatus: "active" });
         await prisma.event.update({ where: { id: override.id }, data: { recurrenceStatus: "cancelled" } });
+        notifyCancelled(going);
       } else {
         await prisma.event.create({
           data: {
@@ -399,18 +355,21 @@ router.delete("/:id", requireAdmin, async (req, res) => {
         data: { recurrenceEndDate: previousOccurrenceEnd(recurring.occurrenceDate) },
       });
       // Persisted occurrences after the new end would be left hidden; remove them.
-      await prisma.event.deleteMany({
-        where: {
-          parentEventId: recurring.parent.id,
-          recurrenceInstanceDate: { gte: eventOccurrenceDate(recurring.occurrenceDate) },
-        },
-      });
+      const removed = {
+        parentEventId: recurring.parent.id,
+        recurrenceInstanceDate: { gte: eventOccurrenceDate(recurring.occurrenceDate) },
+      };
+      const going = await goingToEvents({ ...removed, recurrenceStatus: "active" });
+      await prisma.event.deleteMany({ where: removed });
+      notifyCancelled(going);
       return res.json({ ok: true });
     }
 
     const targetId = recurring ? recurring.parent.id : req.params.id;
+    const going = await goingToEvents({ OR: [{ id: targetId }, { parentEventId: targetId }], recurrenceStatus: "active" });
     await prisma.event.deleteMany({ where: { parentEventId: targetId } });
     await prisma.event.delete({ where: { id: targetId } });
+    notifyCancelled(going);
     res.json({ ok: true });
   } catch (err) {
     serverError(res, err);

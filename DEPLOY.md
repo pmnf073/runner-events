@@ -33,6 +33,24 @@
    TEAMUP_ICS_FEED=https://ics.teamup.com/feed/<id>/0.ics   # opcional: sincronizacao horaria
    ```
    Sem `JWT_SECRET` o backend recusa arrancar em producao.
+
+   **Email e recibos (opcional, mas necessario para recuperar password, lembretes e comunicacoes):**
+   ```
+   RESEND_API_KEY=re_...                                   # conta em https://resend.com
+   EMAIL_FROM=Alverca Urban Runners <geral@dominio-do-clube.pt>   # dominio verificado no Resend
+   CLUB_NAME=Alverca Urban Runners                         # nome nos emails e nos recibos
+   CLUB_NIF=123456789                                      # NIF do clube no recibo (opcional)
+   CLUB_ADDRESS=Rua ..., 2615-... Alverca do Ribatejo      # morada no recibo (opcional)
+   ```
+   - Sem `RESEND_API_KEY`/`EMAIL_FROM` nada e enviado: os emails ficam so no log do backend e a pagina
+     de Comunicacoes avisa que o envio nao esta configurado.
+   - Os links nos emails usam `FRONTEND_URL`, por isso tem de ser o endereco publico do site.
+   - Com o email configurado, o backend envia de hora a hora: aviso de quota a vencer (7 dias antes),
+     aviso de quota em atraso (so quotas vencidas nos ultimos 60 dias, para nao avisar dividas antigas
+     de uma vez) e lembrete na vespera dos eventos a que o socio respondeu "Vou". Cada aviso e enviado
+     uma vez (tabela `NotificationLog`). Quem desativar os emails no perfil nao recebe lembretes nem
+     comunicacoes. Com o plano free a dormir, os avisos saem quando o servico acordar.
+   - O recibo em PDF e um comprovativo interno; nao substitui uma fatura-recibo certificada pela AT.
 5. **Migracoes:** aplicadas automaticamente pelo Build Command em cada deploy.
 6. Seedar admin: `SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... node prisma/seed.mjs`
    (ou definir as duas variaveis no ambiente do Render / no `.env`)

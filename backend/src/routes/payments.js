@@ -1,7 +1,9 @@
 import express from "express";
 import prisma from "../db.js";
 import { requireStaff } from "../middleware/auth.js";
+import { audit } from "../services/audit.js";
 import { lockSequence, recalcMembership } from "../services/ledger.js";
+import { streamReceiptPdf } from "../services/receipt.js";
 import { ALLOWED, isAllowed } from "../utils/http.js";
 
 const router = express.Router();
@@ -74,6 +76,21 @@ router.get("/:id", async (req, res) => {
 });
 
 /* ── POST /api/payments ── */
+/* ── GET /api/payments/:id/receipt — PDF receipt ── */
+router.get("/:id/receipt", async (req, res) => {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id: req.params.id },
+      include: { member: { include: { user: true } }, membership: true },
+    });
+    if (!payment) return res.status(404).json({ error: "Pagamento não encontrado." });
+    streamReceiptPdf(payment, res);
+  } catch (err) {
+    console.error("[GET /api/payments/:id/receipt]", err);
+    res.status(500).json({ error: "Erro ao gerar o recibo." });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     const { memberId, membershipId, amount, paidAmount, date, method, reference, notes, receiptNumber } = req.body;
@@ -128,6 +145,10 @@ router.post("/", async (req, res) => {
       });
 
       if (membershipId) await recalcMembership(tx, membershipId);
+      await audit(tx, req, "payment.create", "Payment", payment.id, {
+        receiptNumber: payment.receiptNumber, memberId, membershipId: membershipId || null,
+        paidAmount: Number(payment.paidAmount), method, date: payment.date,
+      });
       return payment;
     });
 
@@ -180,6 +201,13 @@ router.put("/:id", async (req, res) => {
       }
 
       if (existing.membershipId) await recalcMembership(tx, existing.membershipId);
+      const changes = {};
+      for (const key of Object.keys(data)) {
+        const before = existing[key] instanceof Date ? existing[key].toISOString() : existing[key];
+        const after = updated[key] instanceof Date ? updated[key].toISOString() : updated[key];
+        if (String(before) !== String(after)) changes[key] = { before, after };
+      }
+      await audit(tx, req, "payment.update", "Payment", updated.id, { receiptNumber: updated.receiptNumber, changes });
       return updated;
     });
 
@@ -202,6 +230,10 @@ router.delete("/:id", async (req, res) => {
       // Delete the credit before the payment; deleting the payment sets paymentId to null.
       await tx.accountEntry.deleteMany({ where: { paymentId: req.params.id } });
       await tx.payment.delete({ where: { id: req.params.id } });
+      await audit(tx, req, "payment.delete", "Payment", payment.id, {
+        receiptNumber: payment.receiptNumber, memberId: payment.memberId,
+        paidAmount: Number(payment.paidAmount), method: payment.method, date: payment.date,
+      });
       if (payment.membershipId) await recalcMembership(tx, payment.membershipId);
     });
 

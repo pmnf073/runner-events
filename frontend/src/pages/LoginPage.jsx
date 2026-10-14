@@ -95,6 +95,9 @@ export default function LoginPage({ setUser }) {
               placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
               style={{ width: "100%", background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, borderRadius: 8, padding: "12px 14px", fontSize: 14, color: V("--text-primary"), outline: "none", boxSizing: "border-box" }}
             />
+            <div style={{ textAlign: "right", marginTop: 6 }}>
+              <Link to="/forgot-password" style={{ fontSize: 13, color: V("--text-secondary"), textDecoration: "none" }}>Esqueceste-te da password?</Link>
+            </div>
           </div>
 
           {error && (
