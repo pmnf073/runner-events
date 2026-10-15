@@ -4,28 +4,18 @@ import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
-// Fotos das secções. Quando o valor é null a secção aparece sem imagem.
-// "Quem somos" é uma foto do clube (frontend/public). As restantes são fotos de
-// exemplo do Unsplash (licença Unsplash, uso gratuito), carregadas de
-// images.unsplash.com, até haver fotos do clube: para trocar, coloca o ficheiro
-// em frontend/public e substitui o src pelo caminho (ex.: "/treinos.jpg").
-const unsplash = (photo, width) =>
-  `https://images.unsplash.com/${photo}?ixlib=rb-4.1.0&auto=format&fit=crop&q=80&w=${width}`;
-
+// Imagens das secções. Quando o valor é null a secção aparece sem imagem.
+// "Quem somos" é uma foto do clube. As restantes são ilustrações provisórias nas
+// cores da equipa (frontend/public/ilustracoes) até haver fotos do clube: para
+// trocar, coloca a foto em frontend/public e substitui o src (ex.: "/treinos.jpg").
 const PHOTOS = {
   quemSomos: { src: "/IMG_20230122_093440.jpg", alt: "Alverca Urban Runners a correr junto ao Tejo" },
-  // Exemplo: Miguel A Amutio, https://unsplash.com/photos/D0LUtrVkxgo
-  treinosRegulares: { src: unsplash("photo-1716573094354-e4c3226ba887", 800), alt: "Grupo a correr numa rua" },
-  // Exemplo: Venti Views, https://unsplash.com/photos/I1EWTM5mFEM
-  treinosEspeciais: { src: unsplash("photo-1594882645126-14020914d58d", 800), alt: "Corredora num trilho ao pôr do sol" },
-  // Exemplo: Felix yu, https://unsplash.com/photos/GOm2Q40oWeU
-  eventos: { src: unsplash("photo-1766970096331-78c8af007a3b", 800), alt: "Corredor a celebrar na meta" },
-  // Exemplo: Tong Su, https://unsplash.com/photos/1xx1hq2RJts
-  comunidade: { src: unsplash("photo-1667781838690-5f32ea0ccea6", 1600), alt: "Grupo de corredores a treinar juntos" },
-  // Exemplo: Leviosa Hou, https://unsplash.com/photos/NoPGAeHyymE
-  conquistas: { src: unsplash("photo-1774557937760-e07a8e01240c", 1600), alt: "Corredores a celebrar com medalhas depois de uma prova" },
-  // Exemplo: Olek Buzunov, https://unsplash.com/photos/ok3Hy9RgY6c
-  impacto: { src: unsplash("photo-1790337609394-f4640262ba93", 1600), alt: "Adultos e crianças a correr numa prova" },
+  treinosRegulares: { src: "/ilustracoes/treinos-regulares.svg", alt: "Ilustração de um grupo a correr na cidade ao fim da tarde" },
+  treinosEspeciais: { src: "/ilustracoes/treinos-especiais.svg", alt: "Ilustração de corredores a subir um trilho na serra" },
+  eventos: { src: "/ilustracoes/eventos.svg", alt: "Ilustração de uma chegada à meta com celebração" },
+  comunidade: { src: "/ilustracoes/comunidade.svg", alt: "Ilustração de um grupo de corredores a celebrar" },
+  conquistas: { src: "/ilustracoes/conquistas.svg", alt: "Ilustração de medalhas com fitas nas cores da equipa" },
+  impacto: { src: "/ilustracoes/impacto.svg", alt: "Ilustração de adultos e crianças a correr num treino aberto" },
 };
 
 function Photo({ photo, height = 360, radius = 16, style }) {
