@@ -45,6 +45,8 @@ export default function PaymentsPage({ user }) {
   // Edit payment modal
   const [editPayment, setEditPayment] = useState(null);
   const [editAmount, setEditAmount] = useState("");
+  const [editMemberId, setEditMemberId] = useState("");
+  const [editMembershipId, setEditMembershipId] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editMethod, setEditMethod] = useState("");
   const [editReference, setEditReference] = useState("");
@@ -70,6 +72,8 @@ export default function PaymentsPage({ user }) {
   useEffect(() => {
     if (editPayment) {
       setEditAmount(editPayment.paidAmount != null ? String(editPayment.paidAmount) : "");
+      setEditMemberId(editPayment.memberId);
+      setEditMembershipId(editPayment.membershipId || "");
       setEditDate(editPayment.date || "");
       setEditMethod(editPayment.method || "");
       setEditReference(editPayment.reference || "");
@@ -185,6 +189,8 @@ export default function PaymentsPage({ user }) {
         body: JSON.stringify({
           amount: parseFloat(editAmount),
           paidAmount: parseFloat(editAmount),
+          memberId: editMemberId,
+          membershipId: editMembershipId || null,
           date: editDate,
           method: editMethod,
           reference: editReference || null,
@@ -195,6 +201,7 @@ export default function PaymentsPage({ user }) {
       if (!r.ok) throw new Error(data.error || "Erro ao atualizar");
       setEditPayment(null);
       loadPayments();
+      loadMembers();
     } catch (err) {
       setEditError(err.message);
     }
@@ -483,14 +490,31 @@ export default function PaymentsPage({ user }) {
             onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "var(--text-heading)" }}>Editar Pagamento {editPayment.receiptNumber}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Sócio</div>
-                <div style={{ fontWeight: 600 }}>{editPayment.member.user.name}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Quota</div>
-                <div>{editPayment.membership ? `${editPayment.membership.year} — ${formatCurrency(editPayment.membership.amount)} (${membershipStatusLabel(editPayment.membership.status)})` : "—"}</div>
-              </div>
+              <label>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sócio</span>
+                <select value={editMemberId} style={inputStyle}
+                  onChange={(e) => {
+                    // The fee list is the new member's: pre-select their oldest open fee.
+                    setEditMemberId(e.target.value);
+                    const open = loadMemberMemberships(e.target.value).filter((ms) => ms.outstanding > 0).sort((a, b) => a.year - b.year);
+                    setEditMembershipId(open[0]?.id || "");
+                  }}>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>#{m.memberNumber} {m.user.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Quota</span>
+                <select value={editMembershipId} onChange={(e) => setEditMembershipId(e.target.value)} style={inputStyle}>
+                  {loadMemberMemberships(editMemberId).map((ms) => (
+                    <option key={ms.id} value={ms.id}>
+                      {ms.year} — {membershipStatusLabel(ms.status)}{ms.outstanding > 0 ? ` (falta ${formatCurrency(ms.outstanding)})` : ""}
+                    </option>
+                  ))}
+                  <option value="">Outro pagamento (não é quota)</option>
+                </select>
+              </label>
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor (€)</label>
