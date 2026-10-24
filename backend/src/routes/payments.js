@@ -165,7 +165,7 @@ router.post("/", async (req, res) => {
 /* ── PUT /api/payments/:id ── */
 router.put("/:id", async (req, res) => {
   try {
-    const { amount, paidAmount, date, method, reference, notes, receiptNumber } = req.body;
+    const { amount, paidAmount, date, method, reference, notes, receiptNumber, memberId, membershipId } = req.body;
     if (method !== undefined && !isAllowed("paymentMethod", method)) {
       return res.status(400).json({ error: `Método inválido (${ALLOWED.paymentMethod.join(", ")}).` });
     }
@@ -176,8 +176,25 @@ router.put("/:id", async (req, res) => {
     const existing = await prisma.payment.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ error: "Pagamento não encontrado." });
 
-    // memberId and membershipId are fixed after creation.
+    // A payment entered against the wrong member or fee can be moved; the fee must
+    // belong to the payment's (new) member.
+    const targetMemberId = memberId || existing.memberId;
+    if (memberId && memberId !== existing.memberId && !(await prisma.member.findUnique({ where: { id: memberId } }))) {
+      return res.status(404).json({ error: "Sócio não encontrado." });
+    }
+    let targetMembershipId = existing.membershipId;
+    if (membershipId !== undefined) targetMembershipId = membershipId || null;
+    else if (targetMemberId !== existing.memberId) targetMembershipId = null; // the old fee is the other member's
+    if (targetMembershipId) {
+      const membership = await prisma.membership.findUnique({ where: { id: targetMembershipId } });
+      if (!membership || membership.memberId !== targetMemberId) {
+        return res.status(400).json({ error: "A quota indicada não pertence a este sócio." });
+      }
+    }
+
     const data = {};
+    if (targetMemberId !== existing.memberId) data.memberId = targetMemberId;
+    if (targetMembershipId !== existing.membershipId) data.membershipId = targetMembershipId;
     if (amount !== undefined) data.amount = Number(amount);
     if (paidAmount !== undefined) data.paidAmount = Number(paidAmount);
     if (date !== undefined) data.date = new Date(date);
@@ -194,13 +211,15 @@ router.put("/:id", async (req, res) => {
       });
 
       // Keep the payment's credit entry in line with the payment.
-      const credit = { amount: updated.paidAmount, date: updated.date, description: creditDescription(updated) };
+      const credit = { memberId: updated.memberId, amount: updated.paidAmount, date: updated.date, description: creditDescription(updated) };
       const { count } = await tx.accountEntry.updateMany({ where: { paymentId: updated.id, type: "credit" }, data: credit });
       if (count === 0) {
-        await tx.accountEntry.create({ data: { ...credit, memberId: updated.memberId, paymentId: updated.id, type: "credit" } });
+        await tx.accountEntry.create({ data: { ...credit, paymentId: updated.id, type: "credit" } });
       }
 
+      // Both the fee the payment left and the one it now settles follow from their payments.
       if (existing.membershipId) await recalcMembership(tx, existing.membershipId);
+      if (updated.membershipId && updated.membershipId !== existing.membershipId) await recalcMembership(tx, updated.membershipId);
       const changes = {};
       for (const key of Object.keys(data)) {
         const before = existing[key] instanceof Date ? existing[key].toISOString() : existing[key];
