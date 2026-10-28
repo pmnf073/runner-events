@@ -4,7 +4,7 @@ import passport from "passport";
 import dotenv from "dotenv";
 import { loadUser } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rateLimit.js";
-import { syncFeed } from "./services/ics.js";
+import { syncFeedAndLog } from "./services/ics.js";
 import { runReminders } from "./services/reminders.js";
 
 // Routes
@@ -98,7 +98,7 @@ const TEAMUP_ICS_FEED = process.env.TEAMUP_ICS_FEED;
 if (TEAMUP_ICS_FEED) {
   async function syncTeamUp() {
     try {
-      const { imported, updated, cancelled, total } = await syncFeed(TEAMUP_ICS_FEED);
+      const { imported, updated, cancelled, total } = await syncFeedAndLog(TEAMUP_ICS_FEED, "auto");
       console.log(`[Sync] TeamUp: imported ${imported}, updated ${updated}, cancelled ${cancelled}, total ${total}`);
     } catch (err) {
       console.error("[Sync] Error:", err.message);

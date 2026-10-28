@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import api from "../services/api";
 
 const V = (name) => `var(${name})`;
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -16,10 +17,25 @@ export default function ImportPage({ user }) {
   const [feedResult, setFeedResult] = useState(null);
   const [feedLoading, setFeedLoading] = useState(false);
   
+  const [syncStatus, setSyncStatus] = useState(null);
+
   useEffect(() => {
     const saved = localStorage.getItem("teamup_feed_url");
     if (saved) setFeedUrl(saved);
   }, []);
+
+  const loadSyncStatus = async () => {
+    try {
+      const res = await api("/api/import/sync-status");
+      if (res.ok) setSyncStatus(await res.json());
+    } catch {
+      // The status is informative only; the page works without it.
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === "admin") loadSyncStatus();
+  }, [user?.role]);
 
   const handleFeedUrlSave = () => {
     if (feedUrl.trim()) {
@@ -48,6 +64,7 @@ export default function ImportPage({ user }) {
       setFeedResult({ error: "Erro na importação: " + err.message });
     } finally {
       setFeedLoading(false);
+      loadSyncStatus();
     }
   };
 
@@ -157,7 +174,7 @@ export default function ImportPage({ user }) {
           </div>
         )}
 
-        <p style={{ margin: "12px 0 0", fontSize: 12, color: V("--text-muted") }}>ℹ️ A sincronização automática também corre de hora a hora no servidor.</p>
+        <SyncStatus status={syncStatus} />
       </div>
 
       <div
@@ -206,6 +223,37 @@ export default function ImportPage({ user }) {
           {result.errors && result.errors.length > 0 && <details><summary style={{ cursor: "pointer", color: "#ff6b6b" }}>⚠️ {result.errors.length} erro(s)</summary><ul>{result.errors.slice(0, 10).map((e, i) => <li key={i} style={{ fontSize: 13 }}>{e}</li>)}</ul></details>}
         </div>
       )}
+    </div>
+  );
+}
+
+const formatDateTime = (iso) => new Date(iso).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" });
+const SOURCE_LABEL = { auto: "automática", manual: "manual" };
+
+function SyncStatus({ status }) {
+  const line = { margin: "4px 0 0", fontSize: 12, color: V("--text-secondary") };
+  if (!status) return null;
+  const { autoSync, last, lastOk } = status;
+  return (
+    <div style={{ marginTop: 12 }}>
+      {last ? (
+        <p style={line}>
+          <strong>Última sincronização:</strong> {formatDateTime(last.finishedAt)} ({SOURCE_LABEL[last.source] || last.source}) —{" "}
+          {last.ok
+            ? `${last.imported} importados, ${last.updated} atualizados, ${last.cancelled} cancelados`
+            : <span style={{ color: "#ff6b6b" }}>falhou: {last.error}</span>}
+        </p>
+      ) : (
+        <p style={line}><strong>Última sincronização:</strong> ainda não há registo.</p>
+      )}
+      {last && !last.ok && (
+        <p style={line}><strong>Última com sucesso:</strong> {lastOk ? formatDateTime(lastOk.finishedAt) : "nenhuma registada"}</p>
+      )}
+      <p style={{ ...line, color: V("--text-muted") }}>
+        ℹ️ {autoSync
+          ? "A sincronização automática corre no arranque do servidor e de hora a hora enquanto ele estiver ativo."
+          : "A sincronização automática não está configurada no servidor (TEAMUP_ICS_FEED)."}
+      </p>
     </div>
   );
 }
