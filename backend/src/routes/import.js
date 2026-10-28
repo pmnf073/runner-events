@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { requireAdmin } from "../middleware/auth.js";
-import { importEvents, isAllowedFeedUrl, parseICS, syncFeed } from "../services/ics.js";
+import { getSyncStatus, importEvents, isAllowedFeedUrl, parseICS, syncFeedAndLog } from "../services/ics.js";
 import { serverError } from "../utils/http.js";
 
 const router = express.Router();
@@ -43,10 +43,19 @@ router.post("/import-teamup", async (req, res) => {
       return res.status(400).json({ error: "Só são aceites feeds https://ics.teamup.com/..." });
     }
 
-    const result = await syncFeed(feedUrl);
+    const result = await syncFeedAndLog(feedUrl, "manual");
     res.json({ ...result, errors: result.errors.length ? result.errors : undefined, source: "TeamUp ICS Feed" });
   } catch (err) {
     serverError(res, err, "Erro ao sincronizar o feed TeamUp.");
+  }
+});
+
+// Last TeamUp sync, automatic or manual
+router.get("/sync-status", async (_req, res) => {
+  try {
+    res.json(await getSyncStatus());
+  } catch (err) {
+    serverError(res, err);
   }
 });
 

@@ -204,3 +204,19 @@ model NotificationLog {
   key    String   @unique // e.g. "fee-due-soon:<membershipId>", "event-reminder:<eventId>:<userId>"
   sentAt DateTime @default(now())
 }
+
+/* ── TeamUp feed syncs (automatic and manual), to show when the last one ran ── */
+model SyncLog {
+  id         String   @id @default(cuid())
+  source     String   // "auto" | "manual"
+  ok         Boolean
+  imported   Int      @default(0)
+  updated    Int      @default(0)
+  cancelled  Int      @default(0)
+  total      Int      @default(0)
+  error      String?
+  startedAt  DateTime
+  finishedAt DateTime @default(now())
+
+  @@index([finishedAt])
+}

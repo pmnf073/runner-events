@@ -212,3 +212,49 @@ export async function syncFeed(feedUrl) {
   result.cancelled = await cancelEventsMissingFromFeed(events);
   return result;
 }
+
+const SYNC_LOG_DAYS = 90;
+
+// Runs syncFeed and records the outcome in SyncLog (source "auto" or "manual"),
+// so the import page can show when the last sync ran and whether it failed.
+// A failure to write the log never hides the sync result or error.
+export async function syncFeedAndLog(feedUrl, source) {
+  const startedAt = new Date();
+  let result = null;
+  let error = null;
+  try {
+    result = await syncFeed(feedUrl);
+  } catch (err) {
+    error = err;
+  }
+  try {
+    await prisma.syncLog.create({
+      data: {
+        source,
+        ok: !error,
+        imported: result?.imported ?? 0,
+        updated: result?.updated ?? 0,
+        cancelled: result?.cancelled ?? 0,
+        total: result?.total ?? 0,
+        error: error ? String(error.message || error).substring(0, 500) : null,
+        startedAt,
+      },
+    });
+    await prisma.syncLog.deleteMany({
+      where: { finishedAt: { lt: new Date(Date.now() - SYNC_LOG_DAYS * 24 * 60 * 60 * 1000) } },
+    });
+  } catch (err) {
+    console.error("[Sync] Could not write SyncLog:", err.message);
+  }
+  if (error) throw error;
+  return result;
+}
+
+// Last sync (successful or not) and last successful sync.
+export async function getSyncStatus() {
+  const [last, lastOk] = await Promise.all([
+    prisma.syncLog.findFirst({ orderBy: { finishedAt: "desc" } }),
+    prisma.syncLog.findFirst({ where: { ok: true }, orderBy: { finishedAt: "desc" } }),
+  ]);
+  return { autoSync: Boolean(process.env.TEAMUP_ICS_FEED), last, lastOk };
+}
