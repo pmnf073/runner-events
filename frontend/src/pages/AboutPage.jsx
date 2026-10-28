@@ -4,6 +4,41 @@ import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
+// Imagens das secções. Quando o valor é null a secção aparece sem imagem.
+// "Quem somos" é uma foto do clube. As restantes são ilustrações provisórias nas
+// cores da equipa (frontend/public/ilustracoes) até haver fotos do clube: para
+// trocar, coloca a foto em frontend/public e substitui o src (ex.: "/treinos.jpg").
+const PHOTOS = {
+  quemSomos: { src: "/IMG_20230122_093440.jpg", alt: "Alverca Urban Runners a correr junto ao Tejo" },
+  treinosRegulares: { src: "/ilustracoes/treinos-regulares.svg", alt: "Ilustração de um grupo a correr na cidade ao fim da tarde" },
+  treinosEspeciais: { src: "/ilustracoes/treinos-especiais.svg", alt: "Ilustração de corredores a subir um trilho na serra" },
+  eventos: { src: "/ilustracoes/eventos.svg", alt: "Ilustração de uma chegada à meta com celebração" },
+  comunidade: { src: "/ilustracoes/comunidade.svg", alt: "Ilustração de um grupo de corredores a celebrar" },
+  conquistas: { src: "/ilustracoes/conquistas.svg", alt: "Ilustração de medalhas com fitas nas cores da equipa" },
+  impacto: { src: "/ilustracoes/impacto.svg", alt: "Ilustração de adultos e crianças a correr num treino aberto" },
+};
+
+function Photo({ photo, height = 360, radius = 16, style }) {
+  if (!photo) return null;
+  return (
+    <img
+      src={photo.src}
+      alt={photo.alt}
+      loading="lazy"
+      onError={(e) => (e.currentTarget.style.display = "none")}
+      style={{
+        display: "block",
+        width: "100%",
+        height,
+        objectFit: "cover",
+        borderRadius: radius,
+        border: `1px solid ${V("--border-subtle")}`,
+        ...style,
+      }}
+    />
+  );
+}
+
 function Reveal({ children, delay = 0 }) {
   const [visible, setVisible] = useState(false);
 
@@ -292,9 +327,7 @@ export default function AboutPage() {
             </div>
           </Reveal>
           <Reveal delay={180}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: corrida de grupo em avenida de Alverca com diferentes idades.
-            </p>
+            <Photo photo={PHOTOS.quemSomos} style={{ marginTop: 24 }} />
           </Reveal>
         </div>
       </section>
@@ -314,19 +347,19 @@ export default function AboutPage() {
                 title: "Treinos regulares",
                 text: "Tercas e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os niveis.",
                 points: ["Iniciantes bem-vindos", "Progressao por objetivo", "Ambiente inclusivo"],
-                hint: "Grupo a correr em circuito urbano ao fim da tarde.",
+                photo: PHOTOS.treinosRegulares,
               },
               {
                 title: "Treinos especiais",
                 text: "Trilhos, desafios mensais e experiencias fora da rotina para trabalhar resistencia, tecnica e mentalidade.",
                 points: ["Trail running", "Desafios por equipas", "Treinos sunrise"],
-                hint: "Subida em trilho com vista panoramica.",
+                photo: PHOTOS.treinosEspeciais,
               },
               {
                 title: "Eventos",
                 text: "Destaque para o Trail Encostas de Xira e para a Sao Silvestre Pirata, alem de participacoes em provas regionais.",
                 points: ["Trail Encostas de Xira", "Sao Silvestre Pirata", "Provas de estrada e trail"],
-                hint: "Meta com celebracao coletiva e bandeiras do grupo.",
+                photo: PHOTOS.eventos,
               },
             ].map((card, idx) => (
               <Reveal delay={idx * 100 + 90} key={card.title}>
@@ -349,6 +382,7 @@ export default function AboutPage() {
                     e.currentTarget.style.borderColor = V("--border-subtle");
                   }}
                 >
+                  <Photo photo={card.photo} height={180} radius={12} style={{ marginBottom: 18 }} />
                   <h3
                     style={{
                       margin: "0 0 10px",
@@ -366,9 +400,6 @@ export default function AboutPage() {
                       <li key={point}>{point}</li>
                     ))}
                   </ul>
-                  <p style={{ margin: "14px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-                    Imagem sugerida: {card.hint}
-                  </p>
                 </article>
               </Reveal>
             ))}
@@ -412,9 +443,7 @@ export default function AboutPage() {
             ))}
           </div>
           <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: "rgba(255,255,255,0.64)", fontSize: 13 }}>
-              Imagem sugerida: foto de grupo diverso pos-treino, com celebracao espontanea.
-            </p>
+            <Photo photo={PHOTOS.comunidade} style={{ marginTop: 24, borderColor: "rgba(255,255,255,0.14)" }} />
           </Reveal>
         </div>
       </section>
@@ -475,9 +504,7 @@ export default function AboutPage() {
             ))}
           </div>
           <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: meta de prova com medalhas e abracos entre membros.
-            </p>
+            <Photo photo={PHOTOS.conquistas} style={{ marginTop: 24 }} />
           </Reveal>
         </div>
       </section>
@@ -515,9 +542,7 @@ export default function AboutPage() {
             ))}
           </div>
           <Reveal delay={380}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: treino aberto com participantes e familias.
-            </p>
+            <Photo photo={PHOTOS.impacto} style={{ marginTop: 24 }} />
           </Reveal>
         </div>
       </section>
