@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import { requireAdmin } from "../middleware/auth.js";
 import { getSyncStatus, importEvents, isAllowedFeedUrl, parseICS, syncFeedAndLog } from "../services/ics.js";
+import { fillMissingImages } from "../services/portugalRunning.js";
 import { serverError } from "../utils/http.js";
 
 const router = express.Router();
@@ -47,6 +48,17 @@ router.post("/import-teamup", async (req, res) => {
     res.json({ ...result, errors: result.errors.length ? result.errors : undefined, source: "TeamUp ICS Feed" });
   } catch (err) {
     serverError(res, err, "Erro ao sincronizar o feed TeamUp.");
+  }
+});
+
+// Looks up images on portugalrunning.com for upcoming races without one
+router.post("/portugal-running-images", async (_req, res) => {
+  try {
+    const result = await fillMissingImages({ limit: 20, force: true });
+    if (result.busy) return res.status(409).json({ error: "Já está a decorrer uma procura de imagens. Tenta daqui a pouco." });
+    res.json(result);
+  } catch (err) {
+    serverError(res, err, "Erro ao procurar imagens no Portugal Running.");
   }
 });
 

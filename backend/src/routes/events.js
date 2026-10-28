@@ -3,6 +3,7 @@ import prisma from "../db.js";
 import { requireAdmin, requireStaff, requireUser } from "../middleware/auth.js";
 import { listEvents } from "../services/events.js";
 import extractImageFromUrl from "../services/imageExtractor.js";
+import { findPortugalRunningImage } from "../services/portugalRunning.js";
 import { goingToEvents, notifyCancelled } from "../services/reminders.js";
 import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
 import {
@@ -187,6 +188,18 @@ router.post("/extract-image", requireAdmin, async (req, res) => {
 
     const imageUrl = await extractImageFromUrl(url);
     res.json({ imageUrl });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+router.post("/portugal-running-image", requireAdmin, async (req, res) => {
+  try {
+    const { title, date } = req.body;
+    if (!title) return res.status(400).json({ error: "O título é obrigatório." });
+
+    const found = await findPortugalRunningImage(title, date);
+    res.json(found || { imageUrl: null, pageUrl: null });
   } catch (err) {
     serverError(res, err);
   }

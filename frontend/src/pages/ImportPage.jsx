@@ -19,6 +19,9 @@ export default function ImportPage({ user }) {
   
   const [syncStatus, setSyncStatus] = useState(null);
 
+  const [imagesResult, setImagesResult] = useState(null);
+  const [imagesLoading, setImagesLoading] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem("teamup_feed_url");
     if (saved) setFeedUrl(saved);
@@ -36,6 +39,20 @@ export default function ImportPage({ user }) {
   useEffect(() => {
     if (user?.role === "admin") loadSyncStatus();
   }, [user?.role]);
+
+  const handleFindImages = async () => {
+    setImagesLoading(true);
+    setImagesResult(null);
+    try {
+      const res = await api("/api/import/portugal-running-images", { method: "POST" });
+      const data = await res.json();
+      setImagesResult(res.ok ? data : { error: data.error || "Erro ao procurar imagens." });
+    } catch {
+      setImagesResult({ error: "Erro ao procurar imagens." });
+    } finally {
+      setImagesLoading(false);
+    }
+  };
 
   const handleFeedUrlSave = () => {
     if (feedUrl.trim()) {
@@ -175,6 +192,40 @@ export default function ImportPage({ user }) {
         )}
 
         <SyncStatus status={syncStatus} />
+      </div>
+
+      <div style={{ background: V("--card-bg"), border: `1px solid ${V("--border")}`, borderRadius: 12, padding: 20, marginBottom: 32 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: V("--text-heading") }}>🖼️ Imagens do Portugal Running</h2>
+        <p style={{ fontSize: 13, color: V("--text-secondary"), margin: "0 0 12px" }}>
+          Procura em portugalrunning.com as próximas provas sem imagem. Só é usada a imagem quando o nome da prova coincide; também corre automaticamente depois de cada sincronização.
+        </p>
+        <button
+          onClick={handleFindImages}
+          disabled={imagesLoading}
+          style={{
+            background: imagesLoading ? V("--text-muted") : "#374151",
+            color: "#fff", padding: "10px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, border: "none", cursor: imagesLoading ? "not-allowed" : "pointer", width: "100%",
+          }}
+        >
+          {imagesLoading ? "A procurar..." : "🔎 Procurar imagens agora"}
+        </button>
+        {imagesResult && (
+          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
+            {imagesResult.error ? (
+              <p style={{ margin: 0, color: "#ff6b6b" }}>❌ {imagesResult.error}</p>
+            ) : (
+              <>
+                <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Provas verificadas:</strong> {imagesResult.checked}</p>
+                <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Imagens encontradas:</strong> {imagesResult.found}</p>
+                {imagesResult.events?.map((e) => (
+                  <p key={e.id} style={{ margin: "2px 0", fontSize: 13, color: V("--text-secondary") }}>
+                    {e.title} → <a href={e.pageUrl} target="_blank" rel="noreferrer" style={{ color: V("--accent") }}>{e.pageUrl}</a>
+                  </p>
+                ))}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div
