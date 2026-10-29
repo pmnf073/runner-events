@@ -22,6 +22,8 @@ test("namesMatch is strict", () => {
   assert.ok(!namesMatch("Treino de pista", "Corrida Sporting"));
   assert.ok(namesMatch("Sintra Trail – Cruz Alta 2026 (1 Nov) – Guia e Percursos", "Sintra Trail Cruz Alta"));
   assert.ok(!namesMatch("Sintra Trail – Monte da Lua 2026 – Guia", "Sintra Trail Cruz Alta"));
+  assert.ok(namesMatch("Castelo de Vide Sky Race 2026 – Guia e Percurso", "Castelo de Vide Skyrace"));
+  assert.ok(!namesMatch("Trail", "Tra il"));
 });
 
 test("slugCandidates follow the site's slugs", () => {
