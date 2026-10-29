@@ -23,11 +23,15 @@ function isPrivateAddress(address) {
 }
 
 // DNS lookup used by the request itself, so the checked address is the one connected to.
-function publicOnlyLookup(hostname, options, callback) {
-  dns.lookup(hostname, { ...options, all: false }, (err, address, family) => {
+// Node (18.13+, autoSelectFamily) calls it with `all: true` and then expects a list.
+export function publicOnlyLookup(hostname, options, callback) {
+  dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
     if (err) return callback(err);
-    if (isPrivateAddress(address)) return callback(new Error("Endereço não permitido"));
-    callback(null, address, family);
+    if (!addresses.length || addresses.some(({ address }) => isPrivateAddress(address))) {
+      return callback(new Error("Endereço não permitido"));
+    }
+    if (options.all) return callback(null, addresses);
+    callback(null, addresses[0].address, addresses[0].family);
   });
 }
 
