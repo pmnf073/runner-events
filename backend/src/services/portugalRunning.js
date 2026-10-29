@@ -64,13 +64,22 @@ function prefixKeys(title) {
   return parts.map((_, i) => keyOf(parts.slice(0, i + 1).join(" ")));
 }
 
-// Two names match when their keys before the first separator are equal, or when
-// the whole of one name equals the other up to one of its separators. Keys need
-// at least two words, so a single generic word ("Trail", "Corrida") never matches.
+// Words of the name before the first separator, in order and without spaces, so
+// "Castelo de Vide Skyrace" and "Castelo de Vide Sky Race" are the same name.
+function compactName(title) {
+  const list = words(baseName(title)).filter((w) => !STOP_WORDS.has(w));
+  return list.length >= 2 ? list.join("") : null;
+}
+
+// Two names match when their keys before the first separator are equal (or the
+// same letters split into different words), or when the whole of one name equals
+// the other up to one of its separators. Keys need at least two words, so a
+// single generic word ("Trail", "Corrida") never matches.
 export function namesMatch(a, b) {
   const keysA = prefixKeys(a);
   const keysB = prefixKeys(b);
-  return [
+  const compact = compactName(a);
+  return compact === compactName(b) && compact !== null || [
     [keysA[0], keysB[0]],
     [keysA.at(-1), keysB],
     [keysB.at(-1), keysA],
@@ -211,19 +220,28 @@ export async function findPortugalRunningImage(title, date) {
     if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: page.url };
   }
 
-  const searchPath = `/wp-json/wp/v2/search?per_page=10&search=${encodeURIComponent(eventNameKey(title))}`;
-  if (!(await allowedByRobots(searchPath))) return null;
-  const response = await get(searchPath);
-  if (!response?.ok) return null;
-  const results = await response.json().catch(() => []);
-  if (!Array.isArray(results)) return null;
-  for (const result of results) {
-    let url;
-    try { url = new URL(result.url); } catch { continue; }
-    if (url.hostname !== SITE_HOST || !url.pathname.startsWith("/eventos/")) continue;
-    if (!namesMatch(decodeEntities(String(result.title || "")), title)) continue;
-    const page = await fetchPage(url.pathname);
-    if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: page.url };
+  // WordPress search needs every word, so a name the site writes differently
+  // ("Skyrace" / "Sky Race") is searched again without its last word.
+  const terms = words(baseName(title)).filter((w) => !STOP_WORDS.has(w));
+  const searches = [terms.join(" ")];
+  if (terms.length >= 3) searches.push(terms.slice(0, -1).join(" "));
+  const tried = new Set();
+  for (const search of searches) {
+    const searchPath = `/wp-json/wp/v2/search?per_page=10&search=${encodeURIComponent(search)}`;
+    if (!(await allowedByRobots(searchPath))) return null;
+    const response = await get(searchPath);
+    if (!response?.ok) return null;
+    const results = await response.json().catch(() => []);
+    if (!Array.isArray(results)) return null;
+    for (const result of results) {
+      let url;
+      try { url = new URL(result.url); } catch { continue; }
+      if (url.hostname !== SITE_HOST || !url.pathname.startsWith("/eventos/") || tried.has(url.pathname)) continue;
+      tried.add(url.pathname);
+      if (!namesMatch(decodeEntities(String(result.title || "")), title)) continue;
+      const page = await fetchPage(url.pathname);
+      if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: page.url };
+    }
   }
   return null;
 }
