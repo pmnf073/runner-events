@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { eventNameKey, namesMatch, parseRobots, readEventPage, slugCandidates, yearInTitle } from "../src/services/portugalRunning.js";
+import { eventNameKey, namesMatch, pageMatches, parseRobots, readEventPage, robotsAllows, slugCandidates, yearInTitle } from "../src/services/portugalRunning.js";
 
 test("eventNameKey ignores editions, years, distances, accents and filler words", () => {
   assert.equal(eventNameKey("6ª Corrida CIMPOR 2026 (25 Out)"), "cimpor corrida");
@@ -20,6 +20,8 @@ test("namesMatch is strict", () => {
   assert.ok(!namesMatch("Corrida da Mulher Porto", "Corrida da Mulher Lisboa"));
   assert.ok(!namesMatch("Trail", "Trail 2026"));
   assert.ok(!namesMatch("Treino de pista", "Corrida Sporting"));
+  assert.ok(namesMatch("Sintra Trail – Cruz Alta 2026 (1 Nov) – Guia e Percursos", "Sintra Trail Cruz Alta"));
+  assert.ok(!namesMatch("Sintra Trail – Monte da Lua 2026 – Guia", "Sintra Trail Cruz Alta"));
 });
 
 test("slugCandidates follow the site's slugs", () => {
@@ -56,5 +58,42 @@ Disallow:
 
 User-agent: BadBot
 Disallow: /`);
-  assert.deepEqual(rules, ["/wp-admin/"]);
+  assert.deepEqual(rules, [
+    { allow: false, path: "/wp-admin/" },
+    { allow: true, path: "/wp-admin/admin-ajax.php" },
+  ]);
+});
+
+// The "User-agent: *" group of www.portugalrunning.com/robots.txt (2026-10-29).
+test("robotsAllows handles wildcards, Allow and the longest match", () => {
+  const rules = parseRobots(`User-agent: *
+Allow: /wp-admin/admin-ajax.php
+Allow: /wp-includes/*.js
+Allow: /wp-content/uploads/
+Disallow: /wp-admin/
+Disallow: /?s=
+Disallow: /*/*?replytocom=`);
+  assert.ok(robotsAllows(rules, "/eventos/corrida-cimpor/"));
+  assert.ok(robotsAllows(rules, "/wp-json/wp/v2/search?per_page=10&search=cimpor%20corrida"));
+  assert.ok(robotsAllows(rules, "/wp-admin/admin-ajax.php"));
+  assert.ok(!robotsAllows(rules, "/wp-admin/options.php"));
+  assert.ok(!robotsAllows(rules, "/?s=corrida"));
+  assert.ok(!robotsAllows(rules, "/eventos/x/?replytocom=1"));
+  assert.ok(!robotsAllows(parseRobots("User-agent: *\nDisallow: /eventos/*.php$"), "/eventos/a.php"));
+  assert.ok(robotsAllows(parseRobots("User-agent: *\nDisallow: /eventos/*.php$"), "/eventos/a.php?x"));
+});
+
+// Past editions keep the year-less slug and an old poster, often with no year in
+// the title; the EventON date block (data-syr) gives the edition year.
+test("pageMatches rejects a past edition by its date year", () => {
+  const html = (year) => `<meta property="og:title" content="São Silvestre de Almada: Data, Inscrições e Percurso | Portugal Running" />
+    <meta property="og:image" content="https://www.portugalrunning.com/wp-content/uploads/2019/12/almada.png" />
+    <span class='evoet_dayblock evcal_cblock ' data-smon='dezembro' data-syr='${year}'>`;
+  const old = readEventPage(html(2019));
+  assert.equal(old.year, 2019);
+  assert.ok(!pageMatches(old, "São Silvestre de Almada", 2026));
+  assert.ok(pageMatches(readEventPage(html(2026)), "São Silvestre de Almada", 2026));
+  const noYear = readEventPage(`<meta property="og:title" content="Corrida Sporting 2025" /><meta property="og:image" content="x.jpg" />`);
+  assert.ok(!pageMatches(noYear, "Corrida Sporting", 2026));
+  assert.ok(pageMatches(noYear, "Corrida Sporting", 2025));
 });

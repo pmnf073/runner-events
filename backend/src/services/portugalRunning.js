@@ -32,28 +32,49 @@ function words(title) {
     .filter((w) => w && !/^(19|20)\d\d$/.test(w) && !/^\d+$/.test(w) && !(ROMAN.test(w) && w !== "lx"));
 }
 
-// Name without a leading "Prova:" and without what follows ":" or " - "
-// (SEO suffixes such as ": Data, Guia e Inscrições", or the town).
-function baseName(title) {
+// Name split at ":" and " - " (SEO suffixes such as ": Data, Guia e Inscrições",
+// the town, or part of the name as in "Sintra Trail – Cruz Alta"), without a
+// leading "Prova:".
+function nameParts(title) {
   return String(title || "")
     .replace(/ª|º/g, "")
     .replace(/^\s*prova\s*[:–-]\s*/i, "")
-    .split(/:|\s[|–-]\s/)[0];
+    .split(/:|\s[|–-]\s/);
+}
+
+function baseName(title) {
+  return nameParts(title)[0];
+}
+
+function keyOf(text) {
+  return [...new Set(words(text).filter((w) => !STOP_WORDS.has(w)))].sort().join(" ");
 }
 
 // "6ª Corrida CIMPOR 2026 (10 km)" and "Corrida Cimpor" both give "cimpor corrida":
 // accents, case, years, edition numbers (6ª, XXXI), distances, text in brackets
 // and filler words are ignored, and the remaining words are sorted.
 export function eventNameKey(title) {
-  const base = baseName(title);
-  return [...new Set(words(base).filter((w) => !STOP_WORDS.has(w)))].sort().join(" ");
+  return keyOf(baseName(title));
 }
 
-// Two names match only when their keys are equal and have at least two words,
-// so a single generic word ("Trail", "Corrida") never matches.
+// Keys of the name up to each separator: "Sintra Trail – Cruz Alta 2026 – Guia"
+// gives "sintra trail", "alta cruz sintra trail" and "alta cruz guia sintra trail".
+function prefixKeys(title) {
+  const parts = nameParts(title);
+  return parts.map((_, i) => keyOf(parts.slice(0, i + 1).join(" ")));
+}
+
+// Two names match when their keys before the first separator are equal, or when
+// the whole of one name equals the other up to one of its separators. Keys need
+// at least two words, so a single generic word ("Trail", "Corrida") never matches.
 export function namesMatch(a, b) {
-  const key = eventNameKey(a);
-  return key.split(" ").length >= 2 && key === eventNameKey(b);
+  const keysA = prefixKeys(a);
+  const keysB = prefixKeys(b);
+  return [
+    [keysA[0], keysB[0]],
+    [keysA.at(-1), keysB],
+    [keysB.at(-1), keysA],
+  ].some(([key, other]) => key.split(" ").length >= 2 && (Array.isArray(other) ? other.includes(key) : key === other));
 }
 
 export function yearInTitle(title) {
@@ -84,14 +105,19 @@ function decodeEntities(text) {
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ");
 }
 
-// Titles and image of an event page: og:title, the <h1> and og:image.
+// Titles, image and edition year of an event page: og:title, the <h1>, og:image
+// and the year of the event's date block (data-syr, from the EventON plugin).
+// Pages of past editions keep their slug and old poster, and their titles often
+// have no year, so data-syr is what tells them apart.
 export function readEventPage(html) {
   const ogTitle = metaContent(html, "property", "og:title");
   const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1]?.replace(/<[^>]+>/g, "");
   const image = metaContent(html, "property", "og:image") || metaContent(html, "name", "twitter:image");
+  const year = /data-syr=["'](\d{4})["']/.exec(html)?.[1];
   return {
     titles: [ogTitle, h1].filter(Boolean).map((t) => decodeEntities(t).trim()),
     image: image ? decodeEntities(image) : null,
+    year: year ? Number(year) : null,
   };
 }
 
@@ -104,7 +130,7 @@ async function get(path) {
   return response;
 }
 
-// Disallow rules of the "User-agent: *" group, read once a day.
+// Allow/Disallow rules of the "User-agent: *" group, read once a day.
 let robots = { rules: null, at: 0 };
 
 export function parseRobots(text) {
@@ -123,9 +149,26 @@ export function parseRobots(text) {
       continue;
     }
     inAgents = false;
-    if (applies && field === "disallow" && match[2].trim()) rules.push(match[2].trim());
+    if (applies && (field === "allow" || field === "disallow") && match[2].trim()) {
+      rules.push({ allow: field === "allow", path: match[2].trim() });
+    }
   }
   return rules;
+}
+
+// RFC 9309: "*" matches any characters, "$" ends the pattern, the longest
+// matching rule wins and Allow wins a tie.
+export function robotsAllows(rules, path) {
+  let best = null;
+  for (const rule of rules) {
+    const anchored = rule.path.endsWith("$");
+    const pattern = (anchored ? rule.path.slice(0, -1) : rule.path)
+      .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\*/g, ".*");
+    if (!new RegExp(`^${pattern}${anchored ? "$" : ""}`).test(path)) continue;
+    if (!best || rule.path.length > best.path.length || (rule.path.length === best.path.length && rule.allow)) best = rule;
+  }
+  return !best || best.allow;
 }
 
 async function allowedByRobots(path) {
@@ -137,21 +180,23 @@ async function allowedByRobots(path) {
       return false;
     }
   }
-  return !robots.rules.some((rule) => path.startsWith(rule.replace(/\*.*$/, "")));
+  return robotsAllows(robots.rules, path);
 }
 
 async function fetchPage(path) {
   if (!(await allowedByRobots(path))) return null;
   const response = await get(path);
   if (!response?.ok) return null;
-  return readEventPage(await response.text());
+  return { ...readEventPage(await response.text()), url: response.url };
 }
 
-// The page must name the same race and, when its title has a year, the same year
-// as the event (an old edition's poster is not used).
-function pageMatches(page, title, year) {
+// The page must name the same race and be the same edition: its date year (or,
+// without one, the year in its title) must be the event's year, so an old
+// edition's poster is not used.
+export function pageMatches(page, title, year) {
   if (!page?.image) return false;
-  return page.titles.some((t) => namesMatch(t, title) && (!year || !yearInTitle(t) || yearInTitle(t) === year));
+  if (year && page.year && page.year !== year) return false;
+  return page.titles.some((t) => namesMatch(t, title) && (!year || page.year || !yearInTitle(t) || yearInTitle(t) === year));
 }
 
 // Returns { imageUrl, pageUrl } for the race with this name, or null when no page
@@ -163,7 +208,7 @@ export async function findPortugalRunningImage(title, date) {
   for (const slug of slugCandidates(title)) {
     const path = `/eventos/${slug}/`;
     const page = await fetchPage(path);
-    if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: `${SITE}${path}` };
+    if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: page.url };
   }
 
   const searchPath = `/wp-json/wp/v2/search?per_page=10&search=${encodeURIComponent(eventNameKey(title))}`;
@@ -178,7 +223,7 @@ export async function findPortugalRunningImage(title, date) {
     if (url.hostname !== SITE_HOST || !url.pathname.startsWith("/eventos/")) continue;
     if (!namesMatch(decodeEntities(String(result.title || "")), title)) continue;
     const page = await fetchPage(url.pathname);
-    if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: `${SITE}${url.pathname}` };
+    if (pageMatches(page, title, year)) return { imageUrl: page.image, pageUrl: page.url };
   }
   return null;
 }
