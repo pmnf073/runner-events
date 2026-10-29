@@ -52,7 +52,7 @@ Frontend on Vercel (root `frontend/`, SPA rewrite in `vercel.json`), backend on 
 
 ### Backend
 
-`backend/src/index.js` wires middleware and mounts the routers: `/auth` and `/api/{events,rsvps,import,admin,members,payments,me,calendar,dashboard,announcements}`. Each file in `routes/` talks to Prisma directly through the shared client in `db.js`; there is no controller or service layer.
+`backend/src/index.js` wires middleware and mounts the routers: `/auth` and `/api/{events,rsvps,import,admin,members,payments,me,calendar,dashboard,announcements,attendance}`. Each file in `routes/` talks to Prisma directly through the shared client in `db.js`; there is no controller or service layer.
 
 Authentication is a JWT (7 days, payload `{ id, email, role, status }`) sent as `Authorization: Bearer`. The frontend keeps it in `localStorage` under `token`. OAuth logins end in a redirect to the frontend route `/auth/callback` carrying the token.
 
@@ -75,10 +75,10 @@ This is the part that needs several files to understand (`utils/recurrence.js`, 
 
 - A recurring series is one `Event` row with `recurrenceType` set (`weekly`, `biweekly`, `monthly`). Occurrences are **not stored**; `GET /api/events` expands them for the requested `start`/`end` range.
 - A generated occurrence has a virtual id `rec_<parentId>_<YYYY-MM-DD>`. Any endpoint that takes an event id must accept both real and virtual ids (`parseVirtualEventId`, `findParentAndOccurrence`).
-- An occurrence becomes a real row (with `parentEventId` and `recurrenceInstanceDate`) only when it diverges from the series: edited alone, cancelled (`recurrenceStatus: "cancelled"`), or given an RSVP (`ensurePersistedEvent`).
+- An occurrence becomes a real row (with `parentEventId` and `recurrenceInstanceDate`) only when it diverges from the series: edited alone, cancelled (`recurrenceStatus: "cancelled"`), or given an RSVP or an attendance (`ensurePersistedEvent` in `services/eventInstances.js`).
 - `PUT /api/events/:id` takes `recurrenceScope`: `single` writes an override row, `future` ends the series the day before and creates a new series, `all` (default) updates the parent.
 - Occurrence days are calendar dates in `Europe/Lisbon`, represented as `Date`s at 00:00 UTC of that date; times of day are Lisbon wall-clock times (`utils/timezone.js`), so a 19:00 series stays at 19:00 across DST changes.
-- `future` moves occurrences that already have RSVPs to the new series (or makes them standalone events if the new pattern skips that day).
+- `future` moves occurrences that already have RSVPs or attendances to the new series (or makes them standalone events if the new pattern skips that day).
 
 ### Membership and payments
 
@@ -87,6 +87,10 @@ This is the part that needs several files to understand (`utils/recurrence.js`, 
 Money columns are `Decimal(10,2)`; `db.js` makes Prisma `Decimal`s serialize as JSON numbers, so the API returns plain numbers. Wrap them in `Number()` before doing arithmetic.
 
 The Prisma model for RSVPs is `Rsvp` (table `"RSVP"`), accessed as `prisma.rsvp`.
+
+### Training attendance
+
+`Attendance` records who actually came to a training (`type: "training"`); members only RSVP, and admins and organizers mark attendance (`/api/attendance`, from 30 min before the start, correctable afterwards). Other members see only counts and whether they were marked. `utils/attendance.js` holds the pure rules (tested): weeks are Monday–Sunday in Lisbon, the streak counts consecutive weeks with at least one attended training, and weeks with no training held (none scheduled or all cancelled) do not break it; badges are computed from the attendances, not stored. `AttendanceGoal` is the club's goal per month (`YYYY-MM`), set by the staff and shown on the calendar.
 
 ### Frontend
 

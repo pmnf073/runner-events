@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../services/api";
+import AttendancePanel from "../components/AttendancePanel";
 
 const TYPE_LABELS = {
   trail: "🏔️ Trilho",
@@ -65,12 +66,17 @@ export default function EventPage() {
   const endDate = event.endDate ? new Date(event.endDate) : null;
   const goingCount = rsvps.filter((r) => r.status === "going").length;
   const maybeCount = rsvps.filter((r) => r.status === "maybe").length;
+  const isStaff = Boolean(user && (user.role === "admin" || user.role === "organizer"));
+  // Staff mark attendance at the training on a phone, so the list comes first for them.
+  const attendance = user && <AttendancePanel eventId={id} rsvps={rsvps} isStaff={isStaff} />;
 
   return (
     <div className="max-w-3xl mx-auto">
       <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none" }}
         onMouseEnter={e => e.target.style.textDecoration = "underline"}
         onMouseLeave={e => e.target.style.textDecoration = "none"}>← Voltar ao calendário</Link>
+
+      {isStaff && attendance}
 
       {/* Event Header */}
       <div style={{ background: V("--bg-card"), borderRadius: 12, border: `1px solid ${V("--border-subtle")}`, padding: 24, marginBottom: 24 }}>
@@ -231,8 +237,10 @@ export default function EventPage() {
         )}
       </div>
 
+      {!isStaff && <div style={{ marginTop: 24 }}>{attendance}</div>}
+
       {/* Edit Button for Admin/Organizer */}
-      {user && (user.role === "admin" || user.role === "organizer") && (
+      {isStaff && (
         <div style={{ marginTop: 24, textAlign: "center" }}>
           <Link to={`/admin/${id}`} style={{ background: "#CC3333", color: "#fff", padding: "8px 16px", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 500, transition: "background 0.2s" }}
             onMouseEnter={(e) => e.target.style.background = "#be0000"}

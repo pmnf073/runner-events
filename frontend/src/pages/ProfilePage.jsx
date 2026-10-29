@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api, { openApiFile } from "../services/api";
+import MyTrainings from "../components/MyTrainings";
 import { displayDateForInput, formatCurrency, formatDate, MEMBERSHIP_STATUS, parseInputDateToYMD } from "../utils/format";
 
 const V = (name) => `var(${name})`;
@@ -109,6 +110,8 @@ export default function ProfilePage({ user, setUser }) {
     <div style={{ maxWidth: 860, margin: "0 auto" }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color: V("--text-heading"), marginBottom: 4 }}>O meu perfil</h1>
       <p style={{ fontSize: 14, color: V("--text-muted"), marginBottom: 24 }}>{profile.email}</p>
+
+      <MyTrainings card={card} h2={h2} />
 
       <form onSubmit={save} style={card}>
         <h2 style={h2}>Dados pessoais</h2>

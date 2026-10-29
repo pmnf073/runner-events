@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { localDateKey } from "../utils/format";
+import TrainingHighlights from "../components/TrainingHighlights";
 
 const EVENT_COLORS = {
   trail: { border: "#10b981", bg: "rgba(16,185,129,0.1)", text: "#6ee7b7", dot: "#10b981" },
@@ -124,6 +125,8 @@ export default function CalendarPage({ user }) {
 
   return (
     <div>
+      <TrainingHighlights user={user} />
+
       {/* Title + Filter + View toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
         <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>

@@ -305,6 +305,7 @@ router.put("/:id", requireStaff, async (req, res) => {
           parentEventId: recurring.parent.id,
           recurrenceInstanceDate: { gte: fromDay },
           rsvps: { none: {} },
+          attendances: { none: {} },
         },
       });
       const event = await prisma.event.create({

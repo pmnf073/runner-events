@@ -106,14 +106,14 @@ export default function DashboardPage({ user }) {
 
       <section style={card}>
         <h2 style={{ ...h2, marginBottom: 4 }}>Participação nos últimos eventos</h2>
-        <p style={{ fontSize: 13, color: V("--text-muted"), margin: "0 0 12px" }}>Respostas "Vou" e "Talvez" dadas antes do evento, não presenças confirmadas.</p>
+        <p style={{ fontSize: 13, color: V("--text-muted"), margin: "0 0 12px" }}>"Vou" e "Talvez" são respostas dadas antes do evento; "Presentes" são as presenças marcadas nos treinos.</p>
         {data.recentEvents.length === 0 ? (
-          <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Ainda não há eventos passados com respostas.</p>
+          <p style={{ fontSize: 14, color: V("--text-secondary"), margin: 0 }}>Ainda não há eventos passados com respostas ou presenças.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr><th style={th}>Data</th><th style={th}>Evento</th><th style={th}>Vou</th><th style={th}>Talvez</th></tr>
+                <tr><th style={th}>Data</th><th style={th}>Evento</th><th style={th}>Vou</th><th style={th}>Talvez</th><th style={th}>Presentes</th></tr>
               </thead>
               <tbody>
                 {data.recentEvents.map((e) => (
@@ -122,6 +122,7 @@ export default function DashboardPage({ user }) {
                     <td style={td}><Link to={`/event/${e.id}`} style={{ color: V("--text-primary") }}>{e.title}</Link></td>
                     <td style={{ ...td, fontWeight: 600 }}>{e.going}</td>
                     <td style={td}>{e.maybe}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{e.attended || "—"}</td>
                   </tr>
                 ))}
               </tbody>

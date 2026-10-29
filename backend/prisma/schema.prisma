@@ -29,6 +29,7 @@ model User {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   rsvps      Rsvp[]
+  attendances Attendance[]
   registrations Registration[]
   member     Member?
   passwordResetTokens PasswordResetToken[]
@@ -86,6 +87,7 @@ model Event {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   rsvps       Rsvp[]
+  attendances Attendance[]
 
   @@index([parentEventId, recurrenceInstanceDate])
 }
@@ -101,6 +103,27 @@ model Rsvp {
 
   @@unique([userId, eventId])
   @@map("RSVP")
+}
+
+/* ── Attendance at trainings: who actually showed up, not only who said they would ── */
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  markedBy  String?  // staff user (admin or organizer) who marked it
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+/* ── Club-wide attendance goal for a month, set by the staff ── */
+model AttendanceGoal {
+  month     String   @id // "YYYY-MM" in Europe/Lisbon
+  target    Int
+  updatedAt DateTime @updatedAt
 }
 
 /* ── Membership Management ── */

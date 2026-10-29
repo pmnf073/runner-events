@@ -19,6 +19,7 @@ import meRoutes from "./routes/me.js";
 import calendarRoutes from "./routes/calendar.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import announcementsRoutes from "./routes/announcements.js";
+import attendanceRoutes from "./routes/attendance.js";
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ app.use("/api/me", meRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/announcements", announcementsRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
