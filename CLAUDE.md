@@ -32,7 +32,7 @@ npm run dev
 npm run build
 ```
 
-Backend unit tests (pure logic: recurrence, ICS parsing, NIF, Portugal Running name matching) run with `npm test` in `backend/` (`node --test`, files in `backend/test/`). There is no linter and no type checker. Verify frontend changes with `npm run build` in `frontend/` and by running the app.
+Backend unit tests (pure logic: recurrence, ICS parsing, NIF, Portugal Running name matching, the image extractor's DNS check) run with `npm test` in `backend/` (`node --test`, files in `backend/test/`). There is no linter and no type checker. Verify frontend changes with `npm run build` in `frontend/` and by running the app.
 
 ## Environment
 
