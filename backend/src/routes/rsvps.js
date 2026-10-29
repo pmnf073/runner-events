@@ -2,64 +2,9 @@ import { Router } from "express";
 import prisma from "../db.js";
 import { requireUser } from "../middleware/auth.js";
 import { isAllowed, serverError } from "../utils/http.js";
-import { materializeInstance, parseVirtualEventId } from "../utils/recurrence.js";
+import { ensurePersistedEvent, persistedEventId } from "../services/eventInstances.js";
 
 const router = Router();
-
-// Resolves a real or virtual ("rec_<parent>_<date>") id to the persisted event id, if any.
-async function persistedEventId(eventId) {
-  const parsed = parseVirtualEventId(eventId);
-  if (!parsed) return eventId;
-  const found = await prisma.event.findFirst({
-    where: { parentEventId: parsed.parentEventId, recurrenceInstanceDate: parsed.occurrenceDate },
-    select: { id: true },
-  });
-  return found?.id || null;
-}
-
-async function ensurePersistedEvent(eventId) {
-  const existing = await prisma.event.findUnique({ where: { id: eventId } });
-  if (existing) return existing;
-
-  const parsed = parseVirtualEventId(eventId);
-  if (!parsed) return null;
-
-  const parent = await prisma.event.findUnique({ where: { id: parsed.parentEventId } });
-  if (!parent || !parent.recurrenceType) return null;
-
-  const found = await prisma.event.findFirst({
-    where: {
-      parentEventId: parent.id,
-      recurrenceInstanceDate: parsed.occurrenceDate,
-    },
-  });
-  if (found) return found.recurrenceStatus === "cancelled" ? null : found;
-
-  const instance = materializeInstance(parent, parsed.occurrenceDate);
-  return prisma.event.create({
-    data: {
-      title: instance.title,
-      description: instance.description,
-      date: new Date(instance.date),
-      endDate: instance.endDate ? new Date(instance.endDate) : null,
-      location: instance.location,
-      lat: instance.lat,
-      lng: instance.lng,
-      type: instance.type,
-      club: instance.club,
-      distance: instance.distance,
-      elevation: instance.elevation,
-      gpxUrl: instance.gpxUrl,
-      url: instance.url,
-      imageUrl: instance.imageUrl,
-      createdBy: instance.createdBy,
-      parentEventId: parent.id,
-      isRecurrenceInstance: true,
-      recurrenceInstanceDate: parsed.occurrenceDate,
-      recurrenceStatus: "active",
-    },
-  });
-}
 
 // POST /api/rsvps — RSVP to an event
 router.post("/", requireUser, async (req, res) => {

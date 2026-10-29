@@ -26,10 +26,10 @@ router.get("/", async (_req, res) => {
         FROM "Payment" WHERE "date" >= ${since}
         GROUP BY 1 ORDER BY 1`,
       prisma.event.findMany({
-        where: { date: { lt: now }, recurrenceStatus: "active", rsvps: { some: {} } },
+        where: { date: { lt: now }, recurrenceStatus: "active", OR: [{ rsvps: { some: {} } }, { attendances: { some: {} } }] },
         orderBy: { date: "desc" },
         take: 10,
-        select: { id: true, title: true, date: true, rsvps: { select: { status: true } } },
+        select: { id: true, title: true, date: true, rsvps: { select: { status: true } }, _count: { select: { attendances: true } } },
       }),
     ]);
 
@@ -63,6 +63,7 @@ router.get("/", async (_req, res) => {
         date: e.date,
         going: e.rsvps.filter((r) => r.status === "going").length,
         maybe: e.rsvps.filter((r) => r.status === "maybe").length,
+        attended: e._count.attendances,
       })),
     });
   } catch (err) {
