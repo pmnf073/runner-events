@@ -170,6 +170,29 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
     }
   };
 
+  const [searchingPR, setSearchingPR] = useState(false);
+  const handlePortugalRunning = async () => {
+    if (!form.title) return;
+    setSearchingPR(true);
+    try {
+      const res = await api("/api/events/portugal-running-image", {
+        method: "POST",
+        body: JSON.stringify({ title: form.title, date: form.date || undefined }),
+      });
+      const data = await res.json();
+      if (data.imageUrl) {
+        setForm((p) => ({ ...p, imageUrl: data.imageUrl, url: p.url || data.pageUrl }));
+      } else {
+        alert("Não foi encontrada no Portugal Running uma prova com este nome.");
+      }
+    } catch (error) {
+      console.error("Error searching Portugal Running:", error);
+      alert("Erro ao procurar no Portugal Running.");
+    } finally {
+      setSearchingPR(false);
+    }
+  };
+
   const handleLocalImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -334,6 +357,10 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
           <label style={formLabel}>Imagem do Evento</label>
           <input type="url" value={form.imageUrl || ""} onChange={(e) => handleChange("imageUrl", e.target.value)}
             placeholder="https://example.com/image.jpg" style={formInput} />
+          <button type="button" onClick={handlePortugalRunning} disabled={searchingPR || !form.title}
+            style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, borderRadius: 6, border: "1px solid var(--border-input)", color: "var(--text-secondary)", background: "transparent", cursor: searchingPR || !form.title ? "not-allowed" : "pointer", opacity: searchingPR || !form.title ? 0.5 : 1 }}>
+            {searchingPR ? "⏳ A procurar..." : "🔎 Procurar no Portugal Running pelo nome"}
+          </button>
           <label style={{ ...formLabel, marginTop: 10 }}>Ou escolhe uma imagem do computador</label>
           <input type="file" accept="image/*" onChange={handleLocalImage} disabled={processingImage}
             style={{ ...formInput, padding: "6px 8px", cursor: processingImage ? "wait" : "pointer" }} />

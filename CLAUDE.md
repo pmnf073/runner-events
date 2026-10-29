@@ -32,7 +32,7 @@ npm run dev
 npm run build
 ```
 
-Backend unit tests (pure logic: recurrence, ICS parsing, NIF) run with `npm test` in `backend/` (`node --test`, files in `backend/test/`). There is no linter and no type checker. Verify frontend changes with `npm run build` in `frontend/` and by running the app.
+Backend unit tests (pure logic: recurrence, ICS parsing, NIF, Portugal Running name matching) run with `npm test` in `backend/` (`node --test`, files in `backend/test/`). There is no linter and no type checker. Verify frontend changes with `npm run build` in `frontend/` and by running the app.
 
 ## Environment
 
@@ -41,6 +41,7 @@ Backend unit tests (pure logic: recurrence, ICS parsing, NIF) run with `npm test
 - CORS: outside production only `http://localhost:5173` is allowed. In production the allow-list is `FRONTEND_URLS` (comma-separated), falling back to `FRONTEND_URL` plus hardcoded domains in `backend/src/index.js`. `FRONTEND_PREVIEW_ORIGINS` optionally adds wildcard origins for Vercel preview deployments (`*` matches one hostname segment); previews talk to the production backend and database.
 - Google and Facebook OAuth routes are registered only when their env vars are set; otherwise they return 501.
 - Setting `TEAMUP_ICS_FEED` enables an hourly import of that ICS feed on the backend process (`services/ics.js`): events are matched by `Event.sourceUid` and updated, and future imported events missing from the feed are marked `recurrenceStatus: "cancelled"`. Every sync, automatic or manual, is recorded in `SyncLog` (`syncFeedAndLog`, rows older than 90 days are pruned) and shown on the import page through `GET /api/import/sync-status`. On Render's free plan the process sleeps when idle, so the hourly timer only runs while the backend is awake. The import endpoints only fetch `https://ics.teamup.com/...` or the configured feed.
+- After every sync, `services/portugalRunning.js` looks up upcoming events without an image on `www.portugalrunning.com` in the background (up to 10 per run, misses retried after a week, robots.txt respected) and fills `imageUrl` (and `url` when empty) only when the event name and the page title reduce to the same words (`namesMatch`) and the page is the same edition (year of the EventON date block, `data-syr`; past editions keep the year-less slug and their old poster). `PORTUGAL_RUNNING_IMAGES=false` turns the automatic lookup off; the import page and the event form have manual buttons.
 - Frontend: `VITE_API_URL` is the backend origin in production. When it is empty, requests are relative and the Vite dev server proxies `/api` and `/auth` to `localhost:3001`.
 
 ## Deployment

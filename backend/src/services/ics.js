@@ -1,5 +1,6 @@
 import prisma from "../db.js";
 import { CLUB_TIME_ZONE, zonedTimeToUtc } from "../utils/timezone.js";
+import { autoImagesEnabled, fillMissingImages } from "./portugalRunning.js";
 
 // ICS (iCalendar) parsing and import, shared by the file upload, the manual
 // TeamUp sync and the hourly TeamUp sync.
@@ -247,6 +248,12 @@ export async function syncFeedAndLog(feedUrl, source) {
     console.error("[Sync] Could not write SyncLog:", err.message);
   }
   if (error) throw error;
+  // Images for new races are looked up in the background, after the sync.
+  if (autoImagesEnabled()) {
+    fillMissingImages()
+      .then(({ checked, found }) => { if (checked) console.log(`[Portugal Running] checked ${checked}, found ${found}`); })
+      .catch((err) => console.error("[Portugal Running]", err.message));
+  }
   return result;
 }
 
