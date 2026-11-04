@@ -50,6 +50,9 @@ jobs:
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null
           "$SDKMANAGER" "build-tools;$BUILD_TOOLS" "platforms;$PLATFORM" > /dev/null
+          # Bubblewrap only accepts an SDK folder with bin/ (or tools/) at its root,
+          # the layout of the SDK it installs itself; the runner keeps it in cmdline-tools/latest.
+          [ -e "$ANDROID_HOME/bin" ] || ln -s cmdline-tools/latest/bin "$ANDROID_HOME/bin"
 
       - name: Bubblewrap
         run: |
