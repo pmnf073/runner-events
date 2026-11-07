@@ -13,6 +13,11 @@ const EVENT_COLORS = {
   meeting: { border: "#6b7280", bg: "rgba(107,114,128,0.1)", text: "#9ca3af", dot: "#6b7280" },
 };
 
+// How far back and ahead the search looks, and how many results each section shows.
+const SEARCH_MONTHS_BACK = 12;
+const SEARCH_MONTHS_AHEAD = 24;
+const SEARCH_LIMIT = 50;
+
 const EVENT_LABELS = {
   trail: "Trilho",
   urban: "Urbano",
@@ -30,6 +35,11 @@ export default function CalendarPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("grid");
   const [isMobile, setIsMobile] = useState(false);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const searchQuery = search.trim();
+  const isSearching = searchQuery.length >= 2;
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
@@ -50,6 +60,35 @@ export default function CalendarPage({ user }) {
       .then(setEvents)
       .finally(() => setLoading(false));
   }, [currentDate, filter]);
+
+  // Search across months, independently of the month being shown. Debounced so
+  // that typing does not fire one request per key; stale answers are ignored.
+  useEffect(() => {
+    if (!isSearching) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - SEARCH_MONTHS_BACK, 1).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth() + SEARCH_MONTHS_AHEAD + 1, 1).toISOString();
+      const params = new URLSearchParams({ start, end, q: searchQuery });
+      if (filter !== "all") params.set("type", filter);
+      api(`/api/events?${params}`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => { if (!cancelled) setSearchResults(Array.isArray(data) ? data : []); })
+        .catch(() => { if (!cancelled) setSearchResults([]); })
+        .finally(() => { if (!cancelled) setSearching(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [searchQuery, isSearching, filter]);
+
+  const nowMs = Date.now();
+  const upcomingResults = (searchResults || []).filter((e) => new Date(e.endDate || e.date).getTime() >= nowMs);
+  const pastResults = (searchResults || []).filter((e) => new Date(e.endDate || e.date).getTime() < nowMs).reverse();
 
   const effectiveViewMode = isMobile ? "list" : viewMode;
 
@@ -130,7 +169,24 @@ export default function CalendarPage({ user }) {
       {/* Title + Filter + View toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
         <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ position: "absolute", left: 10, color: cssVar("--text-muted"), pointerEvents: "none" }} aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setSearch(""); }}
+              placeholder="Pesquisar eventos..."
+              aria-label="Pesquisar eventos por nome, local ou data"
+              maxLength={100}
+              style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px 8px 32px", fontSize: 14, color: cssVar("--text-primary"), width: isMobile ? "min(100%, 320px)" : 240, minWidth: 0 }}
+            />
+          </div>
           {!isMobile && (
           <div style={{ display: "flex", border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, overflow: "hidden" }}>
             <button onClick={() => setViewMode("grid")} style={headerBtn(viewMode === "grid")} title="Grelha">
@@ -155,6 +211,70 @@ export default function CalendarPage({ user }) {
         </div>
       </div>
 
+      {/* SEARCH RESULTS */}
+      {isSearching && (
+        <div className="calendar-search-results">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 14, color: cssVar("--text-secondary") }}>
+              {searching || searchResults === null
+                ? "A pesquisar..."
+                : `${searchResults.length} ${searchResults.length === 1 ? "resultado" : "resultados"} para "${searchQuery}"`}
+            </span>
+            <button onClick={() => setSearch("")}
+              style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: cssVar("--text-primary"), cursor: "pointer" }}>
+              Limpar pesquisa
+            </button>
+          </div>
+          {!searching && searchResults !== null && searchResults.length === 0 && (
+            <div style={{ textAlign: "center", padding: 48, color: cssVar("--text-muted") }}>
+              Nenhum evento encontrado entre os últimos {SEARCH_MONTHS_BACK} meses e os próximos {SEARCH_MONTHS_AHEAD} meses
+            </div>
+          )}
+          {!searching && [
+            { key: "upcoming", label: "Próximos", items: upcomingResults },
+            { key: "past", label: "Anteriores", items: pastResults },
+          ].filter((section) => section.items.length > 0).map((section) => (
+            <div key={section.key} style={{ marginBottom: 24 }}>
+              <h3 style={{ fontSize: 12, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 1.5, margin: "0 0 8px" }}>
+                {section.label} ({section.items.length})
+              </h3>
+              <div className="calendar-list-day" style={{ background: cssVar("--bg-card"), border: `1px solid ${cssVar("--border-subtle")}` }}>
+                {section.items.slice(0, SEARCH_LIMIT).map((event) => {
+                  const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
+                  return (
+                    <Link key={event.id} to={`/event/${event.id}`}
+                      className="calendar-list-event"
+                      style={{ textDecoration: "none", borderBottom: `1px solid ${cssVar("--border-subtle")}`, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = cssVar("--hover-bg")}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div className="calendar-list-event-main">
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
+                        <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                          <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
+                          {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
+                        </span>
+                      </div>
+                      <div className="calendar-list-event-meta">
+                        <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatDate(localDateKey(event.date)).full} {formatEventTime(event.date)}</span>
+                        <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: ec.bg, color: ec.text, fontWeight: 500 }}>
+                          {EVENT_LABELS[event.type] || event.type}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              {section.items.length > SEARCH_LIMIT && (
+                <div style={{ fontSize: 12, color: cssVar("--text-muted"), marginTop: 8 }}>
+                  A mostrar {SEARCH_LIMIT} de {section.items.length}. Escreva mais palavras para refinar a pesquisa.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isSearching && (<>
       {/* Month navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <button onClick={prevMonth}
@@ -248,6 +368,8 @@ export default function CalendarPage({ user }) {
           )}
         </div>
       )}
+
+      </>)}
 
       {/* Loading overlay */}
       {loading && (

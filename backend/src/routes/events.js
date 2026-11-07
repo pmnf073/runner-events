@@ -6,6 +6,7 @@ import extractImageFromUrl from "../services/imageExtractor.js";
 import { findPortugalRunningImage } from "../services/portugalRunning.js";
 import { goingToEvents, notifyCancelled } from "../services/reminders.js";
 import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
+import { eventMatchesSearch } from "../utils/search.js";
 import {
   dateKey,
   eventOccurrenceDate,
@@ -207,14 +208,18 @@ router.post("/portugal-running-image", requireAdmin, async (req, res) => {
 
 router.get("/", requireUser, async (req, res) => {
   try {
-    const { start, end, type, club } = req.query;
+    const { start, end, type, club, q } = req.query;
     const rangeStart = start ? new Date(start) : new Date();
     const rangeEnd = end ? new Date(end) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
     const filters = {};
     if (type) filters.type = type;
     if (club) filters.club = club;
 
-    res.json(await listEvents({ rangeStart, rangeEnd, filters }));
+    const events = await listEvents({ rangeStart, rangeEnd, filters });
+    // Free-text search runs after the expansion, so overridden occurrences are
+    // matched by their own title and location.
+    const query = typeof q === "string" ? q.slice(0, 100) : "";
+    res.json(query.trim() ? events.filter((e) => eventMatchesSearch(e, query)) : events);
   } catch (err) {
     serverError(res, err);
   }
