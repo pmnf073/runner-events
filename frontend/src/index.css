@@ -278,6 +278,11 @@ body {
   padding: 14px 20px 14px 72px;
 }
 
+/* Search results have no date column to leave room for. */
+.calendar-search-results .calendar-list-event {
+  padding-left: 20px;
+}
+
 .calendar-list-event-main {
   display: flex;
   align-items: center;
