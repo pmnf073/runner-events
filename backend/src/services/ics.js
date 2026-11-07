@@ -99,15 +99,43 @@ export function parseICSDate(prop) {
   return zonedTimeToUtc({ year: +year, month: +month, day: +day, hour: +hour, minute: +minute, second: +(second || 0) }, timeZone);
 }
 
-function guessType(title) {
-  const t = title.toLowerCase();
-  if (t.includes("prova") || t.includes("trail") || t.includes("corsa") || t.includes("sao silvestre") || t.includes("monte gordo") || t.includes("montejunto")) return "race";
-  if (t.includes("caminhada")) return "social";
-  if (t.includes("treino")) return "training";
-  if (t.includes("reuniao") || t.includes("staff")) return "meeting";
-  if (t.includes("limpeza") || t.includes("aniversario")) return "social";
-  if (t.includes("entrega") || t.includes("dorsai")) return "race";
-  return "training";
+// Lower case, without accents, so "Reunião" matches "reuniao".
+function normalize(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+// CATEGORIES is a comma-separated list (commas inside a name are escaped).
+function readCategories(prop) {
+  if (!prop?.value) return [];
+  return prop.value
+    .split(/(?<!\\),/)
+    .map((name) => normalize(name.replace(/\\,/g, ",")).trim())
+    .filter(Boolean);
+}
+
+const TRAIL_WORDS = /trail|trilho|sky ?race|ultra/;
+
+// The TeamUp sub-calendar (CATEGORIES) is the most reliable signal: road races
+// are "Provas de Estrada" and trail races "Provas de Trail". Club events and
+// events without a known category are typed by their title. An event is only a
+// training when its title says so.
+export function guessType(title, categories = []) {
+  const t = normalize(title);
+  const road = categories.includes("provas de estrada");
+  const trail = categories.includes("provas de trail");
+  if (road && trail) return TRAIL_WORDS.test(t) ? "trail" : "urban";
+  if (trail) return "trail";
+  if (road) return "urban";
+
+  if (/reuniao|staff/.test(t)) return "meeting";
+  if (/treino/.test(t)) return "training";
+  if (/caminhada|limpeza|aniversario|jantar|almoco|convivio/.test(t)) return "social";
+  if (/entrega|dorsa/.test(t)) return "race";
+  if (TRAIL_WORDS.test(t)) return "trail";
+  return "race";
 }
 
 export function parseICS(icsContent) {
@@ -125,7 +153,7 @@ export function parseICS(icsContent) {
       date: date.toISOString(),
       endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null,
       location: cleanText(props.LOCATION?.value)?.substring(0, 200) || null,
-      type: guessType(title),
+      type: guessType(title, readCategories(props.CATEGORIES)),
       club: CLUB,
       sourceUid: props.UID?.value?.trim() || null,
     });
