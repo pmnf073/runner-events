@@ -42,7 +42,9 @@ async function sendOne(subscription, body) {
     const result = await webpush.sendNotification(
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
       body,
-      { TTL: 12 * 60 * 60 },
+      // "high" asks the push service (FCM on Android) to wake a phone in Doze; with the
+      // default "normal" an idle phone may only show the notification much later.
+      { TTL: 12 * 60 * 60, urgency: "high" },
     );
     return { ok: true, statusCode: result?.statusCode };
   } catch (err) {
