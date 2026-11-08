@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { googleCalendarUrl, downloadEventIcs } from "../utils/calendarLinks";
 import AttendancePanel from "../components/AttendancePanel";
 
 const TYPE_LABELS = {
@@ -16,6 +17,11 @@ const V = (name) => `var(${name})`;
 
 export default function EventPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Coming from inside the site (e.g. the calendar on another month or with a
+  // search), go back to that page instead of opening the calendar from scratch.
+  const cameFromSite = location.key !== "default";
   const [event, setEvent] = useState(null);
   const [user, setUser] = useState(null);
   const [rsvps, setRsvps] = useState([]);
@@ -62,6 +68,11 @@ export default function EventPage() {
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><div className="animate-spin" style={{ width: 32, height: 32, borderRadius: "50%", borderTop: "2px solid #CC3333" }}></div></div>;
   if (!event) return <div style={{ textAlign: "center", padding: 48, color: V("--text-secondary") }}>Evento não encontrado</div>;
 
+  const calendarButton = {
+    display: "inline-flex", alignItems: "center", minHeight: 40, padding: "8px 14px", borderRadius: 8,
+    fontSize: 14, fontWeight: 500, textDecoration: "none", cursor: "pointer",
+    background: V("--bg-input"), color: V("--text-primary"), border: `1px solid ${V("--border-subtle")}`,
+  };
   const date = new Date(event.date);
   const endDate = event.endDate ? new Date(event.endDate) : null;
   const goingCount = rsvps.filter((r) => r.status === "going").length;
@@ -72,7 +83,8 @@ export default function EventPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none" }}
+      <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none", minHeight: 32 }}
+        onClick={(e) => { if (cameFromSite) { e.preventDefault(); navigate(-1); } }}
         onMouseEnter={e => e.target.style.textDecoration = "underline"}
         onMouseLeave={e => e.target.style.textDecoration = "none"}>← Voltar ao calendário</Link>
 
@@ -149,6 +161,17 @@ export default function EventPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Add to calendar */}
+        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 14, color: V("--text-secondary"), width: "100%" }}>Adicionar ao calendário</span>
+          <a href={googleCalendarUrl(event, window.location.href)} target="_blank" rel="noopener noreferrer" style={calendarButton}>
+            Google Calendar
+          </a>
+          <button type="button" onClick={() => downloadEventIcs(event, window.location.href)} style={calendarButton}>
+            Apple / Outlook (.ics)
+          </button>
         </div>
 
         {/* Description */}
