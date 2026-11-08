@@ -1,6 +1,8 @@
 // "Adicionar ao calendário" for a single event: a Google Calendar link and an
 // .ics file (Apple Calendar, Outlook, and most Android calendar apps).
 
+import { isAllDayEvent, allDayRange } from "./format";
+
 // Events without an end time get this duration.
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
@@ -19,12 +21,21 @@ function descriptionFor(event, pageUrl) {
   return [event.description, pageUrl].filter(Boolean).join("\n\n");
 }
 
+// All-day: "20261108" style dates, the end being the day after the last.
+function allDayDates(event) {
+  const { first, last } = allDayRange(event);
+  const dayAfter = new Date(`${last}T00:00:00Z`);
+  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  return { start: first.replace(/-/g, ""), end: dayAfter.toISOString().slice(0, 10).replace(/-/g, "") };
+}
+
 export function googleCalendarUrl(event, pageUrl) {
   const { start, end } = eventRange(event);
+  const allDay = isAllDayEvent(event) ? allDayDates(event) : null;
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: event.title || "",
-    dates: `${utcStamp(start)}/${utcStamp(end)}`,
+    dates: allDay ? `${allDay.start}/${allDay.end}` : `${utcStamp(start)}/${utcStamp(end)}`,
     details: descriptionFor(event, pageUrl),
   });
   if (event.location) params.set("location", event.location);
@@ -57,8 +68,9 @@ export function buildEventIcs(event, pageUrl) {
     "BEGIN:VEVENT",
     `UID:${icsText(event.id)}@alverca-urban-runners`,
     `DTSTAMP:${utcStamp(new Date())}`,
-    `DTSTART:${utcStamp(start)}`,
-    `DTEND:${utcStamp(end)}`,
+    ...(isAllDayEvent(event)
+      ? [`DTSTART;VALUE=DATE:${allDayDates(event).start}`, `DTEND;VALUE=DATE:${allDayDates(event).end}`]
+      : [`DTSTART:${utcStamp(start)}`, `DTEND:${utcStamp(end)}`]),
     `SUMMARY:${icsText(event.title)}`,
   ];
   if (event.location) lines.push(`LOCATION:${icsText(event.location)}`);

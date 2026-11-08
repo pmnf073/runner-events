@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { googleCalendarUrl, downloadEventIcs } from "../utils/calendarLinks";
+import { isAllDayEvent, allDayRange, displayDateForInput } from "../utils/format";
 import AttendancePanel from "../components/AttendancePanel";
 
 const TYPE_LABELS = {
@@ -148,6 +149,7 @@ export default function EventPage() {
     background: V("--bg-input"), color: V("--text-primary"), border: `1px solid ${V("--border-subtle")}`,
   };
   const date = new Date(event.date);
+  const allDay = isAllDayEvent(event);
   const endDate = event.endDate ? new Date(event.endDate) : null;
   const goingCount = rsvps.filter((r) => r.status === "going").length;
   const maybeCount = rsvps.filter((r) => r.status === "maybe").length;
@@ -188,14 +190,20 @@ export default function EventPage() {
             <div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>Data</div>
               <div style={{ fontWeight: 500, color: V("--text-primary") }}>{(() => {
+                if (allDay) {
+                  const { first, last } = allDayRange(event);
+                  return first === last ? displayDateForInput(first) : `${displayDateForInput(first)} a ${displayDateForInput(last)}`;
+                }
                 const dd = String(date.getDate()).padStart(2, "0");
                 const mm = String(date.getMonth() + 1).padStart(2, "0");
                 const yyyy = date.getFullYear();
                 return `${dd}/${mm}/${yyyy}`;
               })()}</div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>
-                {date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
-                {endDate && ` — ${endDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`}
+                {allDay ? "Dia inteiro (hora por anunciar)" : <>
+                  {date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+                  {endDate && ` — ${endDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`}
+                </>}
               </div>
             </div>
           </div>

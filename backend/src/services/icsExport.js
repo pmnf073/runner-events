@@ -5,6 +5,22 @@ import { CLUB_NAME, frontendUrl } from "./email.js";
 const escapeText = (value) =>
   String(value ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 
+// All-day events are stored at 00:00 UTC of their day (end, if any, at 00:00 UTC
+// of the day after the last); they are exported as DATE values.
+const isUtcMidnight = (d) => d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0;
+const dateStamp = (d) => d.toISOString().slice(0, 10).replace(/-/g, "");
+
+function eventTimes(event) {
+  const start = new Date(event.date);
+  const storedEnd = event.endDate ? new Date(event.endDate) : null;
+  if (isUtcMidnight(start) && (!storedEnd || (isUtcMidnight(storedEnd) && storedEnd > start))) {
+    const end = storedEnd || new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    return [`DTSTART;VALUE=DATE:${dateStamp(start)}`, `DTEND;VALUE=DATE:${dateStamp(end)}`];
+  }
+  const end = storedEnd || new Date(start.getTime() + 60 * 60 * 1000);
+  return [`DTSTART:${utcStamp(start)}`, `DTEND:${utcStamp(end)}`];
+}
+
 const utcStamp = (value) => new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
 // Lines longer than 75 octets continue on the next line, starting with a space.
@@ -39,15 +55,12 @@ export function buildCalendar(events, { name = CLUB_NAME } = {}) {
     "REFRESH-INTERVAL;VALUE=DURATION:PT6H",
   ];
   for (const event of events) {
-    const start = new Date(event.date);
-    const end = event.endDate ? new Date(event.endDate) : new Date(start.getTime() + 60 * 60 * 1000);
     const url = frontendUrl(`/event/${event.id}`);
     lines.push(
       "BEGIN:VEVENT",
       `UID:${event.id}@runner-events`,
       `DTSTAMP:${now}`,
-      `DTSTART:${utcStamp(start)}`,
-      `DTEND:${utcStamp(end)}`,
+      ...eventTimes(event),
       `SUMMARY:${escapeText(event.title)}`,
       ...(event.location ? [`LOCATION:${escapeText(event.location)}`] : []),
       `DESCRIPTION:${escapeText([event.description, url].filter(Boolean).join("\n\n"))}`,
