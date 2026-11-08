@@ -1,6 +1,6 @@
 {
   "packageId": "pt.alvercaurbanrunners.app",
-  "host": "alvercaurbanrunners.pt",
+  "host": "www.alvercaurbanrunners.pt",
   "name": "Alverca Urban Runners",
   "launcherName": "AUR",
   "display": "standalone",
@@ -14,10 +14,10 @@
   "backgroundColor": "#081420",
   "enableNotifications": true,
   "startUrl": "/calendar",
-  "iconUrl": "https://alvercaurbanrunners.pt/icons/icon-512.png",
-  "maskableIconUrl": "https://alvercaurbanrunners.pt/icons/icon-maskable-512.png",
-  "webManifestUrl": "https://alvercaurbanrunners.pt/manifest.webmanifest",
-  "fullScopeUrl": "https://alvercaurbanrunners.pt/",
+  "iconUrl": "https://www.alvercaurbanrunners.pt/icons/icon-512.png",
+  "maskableIconUrl": "https://www.alvercaurbanrunners.pt/icons/icon-maskable-512.png",
+  "webManifestUrl": "https://www.alvercaurbanrunners.pt/manifest.webmanifest",
+  "fullScopeUrl": "https://www.alvercaurbanrunners.pt/",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
