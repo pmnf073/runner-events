@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
         {!token ? (
           <p style={{ fontSize: 14, color: V("--text-secondary") }}>Link inválido. <Link to="/forgot-password" style={{ color: "#CC3333" }}>Pede um novo</Link>.</p>
         ) : done ? (
-          <div style={{ fontSize: 14, color: "#10b981" }}>
+          <div style={{ fontSize: 14, color: "var(--c-success)" }}>
             Password definida.{" "}
             {done === "pending"
               ? "A tua conta ainda aguarda aprovação de um administrador."
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
               <label style={labelStyle}>Confirmar password</label>
               <input type="password" value={form.confirm} onChange={(e) => setForm({ ...form, confirm: e.target.value })} required minLength={8} autoComplete="new-password" style={inputStyle} />
             </div>
-            {error && <div style={{ fontSize: 13, color: "#f87171" }}>{error}{error.includes("expirou") && <> <Link to="/forgot-password" style={{ color: "#CC3333" }}>Pedir novo link</Link></>}</div>}
+            {error && <div style={{ fontSize: 13, color: "var(--c-danger)" }}>{error}{error.includes("expirou") && <> <Link to="/forgot-password" style={{ color: "#CC3333" }}>Pedir novo link</Link></>}</div>}
             <button type="submit" disabled={loading}
               style={{ width: "100%", background: "#CC3333", color: "#fff", padding: 12, borderRadius: 8, fontSize: 15, fontWeight: 500, border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1 }}>
               {loading ? "A guardar..." : "Guardar password"}

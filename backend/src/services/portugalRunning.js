@@ -11,8 +11,8 @@ const TIMEOUT_MS = 8000;
 const PAUSE_MS = 1000;
 const RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const ROBOTS_TTL_MS = 24 * 60 * 60 * 1000;
-// The TeamUp import types most races as "training" (see guessType in ics.js), so
-// every type except meetings and social events is tried, minus club trainings.
+// Every type except meetings and social events is tried, minus club trainings
+// (older imports typed many races as "training", see guessType in ics.js).
 const SKIPPED_TYPES = ["meeting", "social"];
 const SKIPPED_TITLES = /treino|reuni|entrega/i;
 

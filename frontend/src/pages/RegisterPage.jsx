@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTheme } from "../ThemeContext";
+import SocialLoginButtons from "../components/SocialLoginButtons";
+import DateInput from "../components/DateInput";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
 
 export default function RegisterPage() {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "", email: "", password: "", phone: "",
@@ -18,8 +22,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!form.name || !form.email || !form.password) return setError("Nome, email e password sao obrigatorios");
-    if (form.password.length < 8) return setError("Password deve ter pelo menos 8 caracteres");
+    if (!form.name || !form.email || !form.password) return setError("Nome, email e password são obrigatórios");
+    if (form.password.length < 8) return setError("A password deve ter pelo menos 8 caracteres");
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
@@ -30,83 +34,91 @@ export default function RegisterPage() {
       if (!res.ok) return setError(data.error || "Erro ao criar conta");
       navigate("/register-success", { state: { email: form.email } });
     } catch {
-      setError("Erro de ligacao. Tenta outra vez.");
+      setError("Erro de ligação. Tenta outra vez.");
     } finally { setLoading(false); }
   };
 
   const inputStyle = {
-    width: "100%", padding: "10px 12px",
+    width: "100%", padding: "11px 12px",
     background: V("--bg-input"), border: `1px solid ${V("--border-input")}`,
-    borderRadius: 8, color: V("--text-primary"), fontSize: 14, outline: "none", boxSizing: "border-box",
+    borderRadius: 8, color: V("--text-primary"), fontSize: 15, outline: "none", boxSizing: "border-box",
   };
 
-  const labelStyle = { fontSize: 13, color: V("--text-secondary") };
+  const labelStyle = { display: "block", fontSize: 13, fontWeight: 500, color: V("--text-secondary"), marginBottom: 6 };
   const startOAuth = (provider) => window.location.assign(`${API_URL}/auth/${provider}`);
 
   return (
-    <div style={{ minHeight: "100vh", background: V("--bg-page"), color: V("--text-primary"), display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ maxWidth: 480, width: "100%" }}>
-        <h1 style={{ fontSize: 28, color: "#CC3333", textAlign: "center", marginBottom: 4 }}>ALVERCA URBAN RUNNERS</h1>
-        <p style={{ fontSize: 14, color: V("--text-secondary"), textAlign: "center", marginBottom: 24 }}>Criar conta — Junta-te ao grupo</p>
+    <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 24px" }}>
+      <div style={{ background: V("--bg-header"), borderRadius: 16, border: `1px solid ${V("--border-subtle")}`, padding: "28px 22px", width: "100%", maxWidth: 480, boxSizing: "border-box" }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <img src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" style={{ height: 56, width: "auto", margin: "0 auto 12px", display: "block" }} />
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--c-brand-text)", margin: "0 0 4px" }}>Alverca Urban Runners</h1>
+          <p style={{ fontSize: 14, color: V("--text-secondary"), margin: "6px 0 0" }}>Criar conta: junta-te ao grupo</p>
+        </div>
+
+        <SocialLoginButtons onSelect={startOAuth} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
+          <div style={{ flex: 1, height: 1, background: V("--border-subtle") }} />
+          <span style={{ fontSize: 13, color: V("--text-secondary") }}>ou com o teu email</span>
+          <div style={{ flex: 1, height: 1, background: V("--border-subtle") }} />
+        </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={labelStyle}>Nome completo *</label>
-            <input type="text" name="name" value={form.name} onChange={handleChange} required placeholder="O teu nome" style={inputStyle} />
+            <label htmlFor="reg-name" style={labelStyle}>Nome completo *</label>
+            <input id="reg-name" type="text" name="name" value={form.name} onChange={handleChange} required autoComplete="name" placeholder="O teu nome" style={inputStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Email *</label>
-            <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="email@exemplo.com" style={inputStyle} />
+            <label htmlFor="reg-email" style={labelStyle}>Email *</label>
+            <input id="reg-email" type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" placeholder="email@exemplo.com" style={inputStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Password * (min 8 caracteres)</label>
-            <input type="password" name="password" value={form.password} onChange={handleChange} required placeholder="A tua password" style={inputStyle} />
+            <label htmlFor="reg-password" style={labelStyle}>Password * (mínimo 8 caracteres)</label>
+            <input id="reg-password" type="password" name="password" value={form.password} onChange={handleChange} required minLength={8} autoComplete="new-password" placeholder="A tua password" style={inputStyle} />
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Telefone *</label>
-              <input type="tel" name="phone" value={form.phone} onChange={handleChange} required placeholder="912345678" style={inputStyle} />
+          <div className="register-row">
+            <div>
+              <label htmlFor="reg-phone" style={labelStyle}>Telefone *</label>
+              <input id="reg-phone" type="tel" name="phone" value={form.phone} onChange={handleChange} required autoComplete="tel" placeholder="912345678" style={inputStyle} />
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Contacto alternativo</label>
-              <input type="text" name="altContact" value={form.altContact} onChange={handleChange} placeholder="Opcional" style={inputStyle} />
+            <div>
+              <label htmlFor="reg-alt" style={labelStyle}>Contacto alternativo</label>
+              <input id="reg-alt" type="text" name="altContact" value={form.altContact} onChange={handleChange} placeholder="Opcional" style={inputStyle} />
             </div>
           </div>
           <div>
-            <label style={labelStyle}>NIF</label>
-            <input type="text" name="nif" value={form.nif} onChange={handleChange} inputMode="numeric" maxLength={9} placeholder="Opcional, para os recibos das quotas" style={inputStyle} />
+            <label htmlFor="reg-address" style={labelStyle}>Morada *</label>
+            <input id="reg-address" type="text" name="address" value={form.address} onChange={handleChange} required autoComplete="street-address" placeholder="Rua, código postal, localidade" style={inputStyle} />
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 2 }}>
-              <label style={labelStyle}>Morada *</label>
-              <input type="text" name="address" value={form.address} onChange={handleChange} required placeholder="Rua, CP, Localidade" style={inputStyle} />
+          <div className="register-row">
+            <div>
+              <label htmlFor="reg-dob" style={labelStyle}>Data de nascimento</label>
+              <DateInput id="reg-dob" birthDate value={form.dob} onChange={(dob) => setForm((f) => ({ ...f, dob }))} autoComplete="bday" style={inputStyle} />
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Data de nascimento</label>
-              <input type="text" name="dob" value={(function(d){ if(!d) return ""; const datePart=(d||"").split("T")[0]; const [y,m,dd]=datePart.split("-"); return dd?`${dd.padStart(2,'0')}/${m.padStart(2,'0')}/${y}` : "" })(form.dob)} onChange={(e)=>{ const v=e.target.value; const newVal = v.includes('/') ? (function(p){ const parts=p.split('/').map(x=>x.trim()); if(parts.length!==3) return ""; return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` })(v) : v; handleChange({ target: { name: 'dob', value: newVal } }) }} style={{ ...inputStyle, color: V("--text-primary") }} />
+            <div>
+              <label htmlFor="reg-nif" style={labelStyle}>NIF</label>
+              <input id="reg-nif" type="text" name="nif" value={form.nif} onChange={handleChange} inputMode="numeric" maxLength={9} placeholder="Opcional" style={inputStyle} />
             </div>
           </div>
+          <p style={{ fontSize: 12, color: V("--text-secondary"), margin: "-6px 0 0" }}>O NIF só é usado nos recibos das quotas.</p>
 
-          {error && <p style={{ color: "#ef4444", fontSize: 14, textAlign: "center", margin: 0 }}>{error}</p>}
+          {error && <p role="alert" style={{ color: "var(--c-danger)", fontSize: 14, textAlign: "center", margin: 0 }}>{error}</p>}
 
-          <button type="submit" disabled={loading} style={{ padding: "12px 0", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "A criar conta..." : "Criar Conta"}
+          <button type="submit" disabled={loading} style={{ padding: "13px 0", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "A criar conta..." : "Criar conta"}
           </button>
         </form>
 
-        <div style={{ marginTop: 20 }}>
-          <div style={{ borderTop: `1px solid ${V("--border-subtle")}`, margin: "16px 0", position: "relative" }}>
-            <span style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", background: V("--bg-page"), padding: "0 16px", color: V("--text-muted"), fontSize: 13 }}>ou</span>
-          </div>
-          <button type="button" onClick={() => startOAuth("google")} style={{ ...inputStyle, cursor: "pointer", fontSize: 13, color: V("--text-primary"), textAlign: "center" }}>Continuar com Google</button>
-          <button type="button" onClick={() => startOAuth("facebook")} style={{ ...inputStyle, cursor: "pointer", fontSize: 13, color: "#fff", background: "#1877F2", border: "none", textAlign: "center", marginTop: 8 }}>Continuar com Facebook</button>
-        </div>
-
-        <p style={{ fontSize: 13, color: V("--text-secondary"), textAlign: "center", marginTop: 20 }}>
-          Ja tens conta?{" "}
-          <Link to="/login" style={{ color: "#CC3333", textDecoration: "none" }}>Entrar</Link>
+        <p style={{ fontSize: 14, color: V("--text-secondary"), textAlign: "center", marginTop: 20, marginBottom: 0 }}>
+          Já tens conta?{" "}
+          <Link to="/login" style={{ color: "var(--c-brand-text)", fontWeight: 600, textDecoration: "none" }}>Entrar</Link>
         </p>
       </div>
+      <style>{`
+        .register-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 420px) { .register-row { grid-template-columns: 1fr; } }
+      `}</style>
     </div>
   );
 }

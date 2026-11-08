@@ -260,7 +260,7 @@ export default function MembersPage({ user }) {
             </div>
             <div>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Saldo</div>
-              <div style={{ fontWeight: 600, color: m.balance >= 0 ? "#22c55e" : "#ef4444" }}>
+              <div style={{ fontWeight: 600, color: m.balance >= 0 ? "var(--c-success)" : "var(--c-danger)" }}>
                 {formatCurrency(m.balance)}
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function MembersPage({ user }) {
                   <span>{formatCurrency(ms.status === "exempt" ? 0 : Number(ms.amount) - Number(ms.discount || 0))}</span>
                   <span style={{ padding: "2px 8px", borderRadius: 9999, fontSize: 11, fontWeight: 600,
                     background: ms.status === "paid" ? "#22c55e22" : ms.status === "pending" ? "#f59e0b22" : "#6b728022",
-                    color: ms.status === "paid" ? "#22c55e" : ms.status === "pending" ? "#f59e0b" : "#6b7280" }}>
+                    color: ms.status === "paid" ? "var(--c-success)" : ms.status === "pending" ? "var(--c-warning)" : "#6b7280" }}>
                     {membershipStatusLabel(ms.status)}
                   </span>
                   <span style={{ display: "flex", gap: 8 }}>
@@ -307,7 +307,7 @@ export default function MembersPage({ user }) {
                   borderBottom: "1px solid var(--border-subtle)", fontSize: 14 }}>
                   <span>{formatDate(p.date)}</span>
                   <span>{p.method}</span>
-                  <span style={{ fontWeight: 600, color: "#22c55e" }}>{formatCurrency(p.paidAmount)}</span>
+                  <span style={{ fontWeight: 600, color: "var(--c-success)" }}>{formatCurrency(p.paidAmount)}</span>
                   {p.receiptNumber && (
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🧾 {p.receiptNumber}</span>
                   )}
@@ -322,7 +322,7 @@ export default function MembersPage({ user }) {
               Editar
             </button>
             <button onClick={() => handleDelete(m.id)}
-              style={{ padding: "8px 16px", background: "var(--bg-card)", color: "#ef4444", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500 }}>
+              style={{ padding: "8px 16px", background: "var(--bg-card)", color: "var(--c-danger)", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 500 }}>
               Eliminar
             </button>
           </div>
@@ -393,7 +393,7 @@ export default function MembersPage({ user }) {
         + Ativar novo sócio
       </button>
 
-      {error && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{error}</p>}
+      {error && <p style={{ color: "var(--c-danger)", fontSize: 14, marginBottom: 16 }}>{error}</p>}
 
       {/* Members Table */}
       <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -431,7 +431,7 @@ export default function MembersPage({ user }) {
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{m.user.name}</td>
                   <td style={tdStyle}>{m.user.email}</td>
                   <td style={{ ...tdStyle, textAlign: "center" }}>{memStatus}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 600, color: m.balance >= 0 ? "#22c55e" : "#ef4444" }}>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 600, color: m.balance >= 0 ? "var(--c-success)" : "var(--c-danger)" }}>
                     {m.balance != null ? m.balance.toFixed(2) + " €" : "—"}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "center" }}>
@@ -488,7 +488,7 @@ export default function MembersPage({ user }) {
               <textarea value={convertNotes} onChange={(e) => setConvertNotes(e.target.value)} rows={2}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }} />
             </label>
-            {convertError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{convertError}</p>}
+            {convertError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{convertError}</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => setShowConvertModal(false)}
                 style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -538,7 +538,7 @@ export default function MembersPage({ user }) {
               <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3}
                 style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14, resize: "vertical" }} />
             </label>
-            {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
+            {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => setEditMember(null)}
                 style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>

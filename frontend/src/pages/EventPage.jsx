@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { googleCalendarUrl, downloadEventIcs } from "../utils/calendarLinks";
+import { isAllDayEvent, allDayRange, displayDateForInput } from "../utils/format";
 import AttendancePanel from "../components/AttendancePanel";
+import StaffRsvpEditor from "../components/StaffRsvpEditor";
 
 const TYPE_LABELS = {
   trail: "🏔️ Trilho",
@@ -13,13 +16,74 @@ const TYPE_LABELS = {
 };
 
 const V = (name) => `var(${name})`;
+const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+const RSVP_OPTIONS = [
+  { key: "going", label: "✅ Vou", active: "#059669" },
+  { key: "maybe", label: "🤔 Talvez", active: "#d97706" },
+  { key: "not_going", label: "❌ Não vou", active: "#dc2626" },
+];
+
+// The invitation above the answer buttons. For trainings it names the club's
+// attendance goal for the training's month (the one shown on the calendar);
+// attendance, not the RSVP, is what counts towards it.
+function rsvpInvite({ event, goal, rsvpStatus }) {
+  if (event.type === "training" && goal?.target) {
+    const month = MONTHS[Number(goal.month.slice(5)) - 1];
+    const missing = Math.max(0, goal.target - goal.count);
+    const progress = `${goal.count} de ${goal.target}`;
+    if (missing === 0) return `Meta de ${month} atingida (${progress} presenças). Confirma a tua presença e continua a puxar pela equipa!`;
+    return rsvpStatus === "going"
+      ? `Contamos contigo! Faltam ${missing} presenças para a meta de ${month} (${progress}).`
+      : `Confirma a tua presença, aparece no treino e ajuda a equipa a atingir a meta de ${month}: faltam ${missing} presenças (${progress}).`;
+  }
+  if (rsvpStatus === "going") return "Contamos contigo!";
+  if (event.type === "training") return "Confirma a tua presença e ajuda a equipa a saber com quantos conta no treino.";
+  return "Confirma a tua presença, participa e ajuda a equipa a saber com quem conta.";
+}
+
+function RsvpButtons({ rsvpStatus, onAnswer, large }) {
+  return (
+    <div className={large ? "rsvp-buttons rsvp-buttons-large" : "rsvp-buttons"}>
+      {RSVP_OPTIONS.map((option) => {
+        const active = rsvpStatus === option.key;
+        return (
+          <button key={option.key} type="button" onClick={() => onAnswer(option.key)} aria-pressed={active}
+            title={active ? "Toca de novo para remover a resposta" : undefined}
+            style={{
+              background: active ? option.active : V("--bg-input"),
+              color: active ? "#fff" : V("--text-primary"),
+              border: `1px solid ${active ? option.active : V("--border-subtle")}`,
+            }}>
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function EventPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Coming from inside the site (e.g. the calendar on another month or with a
+  // search), go back to that page instead of opening the calendar from scratch.
+  const cameFromSite = location.key !== "default";
   const [event, setEvent] = useState(null);
   const [user, setUser] = useState(null);
   const [rsvps, setRsvps] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [goal, setGoal] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     api(`/api/events/${id}`)
@@ -27,6 +91,15 @@ export default function EventPage() {
       .then((data) => {
         setEvent(data);
         setRsvps(data.rsvps || []);
+        // The goal of the training's own month.
+        if (data?.type === "training" && data.date) {
+          const d = new Date(data.date);
+          const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          api(`/api/attendance/goal?month=${month}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((g) => { if (g?.month) setGoal(g); })
+            .catch(() => {});
+        }
       })
       .finally(() => setLoading(false));
     api("/auth/me")
@@ -36,7 +109,29 @@ export default function EventPage() {
       });
   }, [id]);
 
+  const isUpcoming = Boolean(event?.date) && new Date(event.endDate || event.date).getTime() >= Date.now();
+  // On a phone the answer buttons sit in a bar fixed at the bottom of the screen.
+  const showActionBar = Boolean(isMobile && user && isUpcoming);
+  useEffect(() => {
+    if (!showActionBar) return;
+    document.body.classList.add("has-action-bar");
+    return () => document.body.classList.remove("has-action-bar");
+  }, [showActionBar]);
+
   const rsvpStatus = user ? rsvps.find((r) => r.userId === user.id)?.status ?? null : null;
+
+  const [staffError, setStaffError] = useState("");
+  const removeRsvp = async (rsvp) => {
+    if (!confirm(`Remover ${rsvp.user.name} da lista de quem vai?`)) return;
+    setStaffError("");
+    const res = await api(`/api/rsvps/${id}/users/${rsvp.userId}`, { method: "DELETE" }).catch(() => null);
+    if (res?.ok) return setRsvps((prev) => prev.filter((r) => r.userId !== rsvp.userId));
+    const data = res ? await res.json().catch(() => null) : null;
+    if (!res) setStaffError("Sem ligação. Tenta outra vez.");
+    else if (data?.error) setStaffError(data.error);
+    else if (res.status === 404) setStaffError("O servidor ainda não tem esta função (falta atualizar o backend).");
+    else setStaffError(`Não foi possível remover (erro ${res.status}).`);
+  };
 
   // Clicking the option already chosen removes the answer.
   const handleRsvp = async (status) => {
@@ -62,7 +157,13 @@ export default function EventPage() {
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><div className="animate-spin" style={{ width: 32, height: 32, borderRadius: "50%", borderTop: "2px solid #CC3333" }}></div></div>;
   if (!event) return <div style={{ textAlign: "center", padding: 48, color: V("--text-secondary") }}>Evento não encontrado</div>;
 
+  const calendarButton = {
+    display: "inline-flex", alignItems: "center", minHeight: 40, padding: "8px 14px", borderRadius: 8,
+    fontSize: 14, fontWeight: 500, textDecoration: "none", cursor: "pointer",
+    background: V("--bg-input"), color: V("--text-primary"), border: `1px solid ${V("--border-subtle")}`,
+  };
   const date = new Date(event.date);
+  const allDay = isAllDayEvent(event);
   const endDate = event.endDate ? new Date(event.endDate) : null;
   const goingCount = rsvps.filter((r) => r.status === "going").length;
   const maybeCount = rsvps.filter((r) => r.status === "maybe").length;
@@ -72,7 +173,8 @@ export default function EventPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none" }}
+      <Link to="/calendar" className="text-primary-light" style={{ fontSize: 14, marginBottom: 16, display: "inline-block", textDecoration: "none", minHeight: 32 }}
+        onClick={(e) => { if (cameFromSite) { e.preventDefault(); navigate(-1); } }}
         onMouseEnter={e => e.target.style.textDecoration = "underline"}
         onMouseLeave={e => e.target.style.textDecoration = "none"}>← Voltar ao calendário</Link>
 
@@ -85,7 +187,7 @@ export default function EventPage() {
             <span style={{ fontSize: 14, fontWeight: 500, color: V("--text-secondary") }}>{TYPE_LABELS[event.type] || event.type}</span>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 4, color: V("--text-heading") }}>{event.title}</h1>
           </div>
-          <span style={{ background: V("--hover-bg"), padding: "4px 12px", borderRadius: 9999, fontSize: 14, color: V("--text-secondary") }}>{event.club}</span>
+          {event.club && <span style={{ background: V("--hover-bg"), padding: "4px 12px", borderRadius: 9999, fontSize: 14, color: V("--text-secondary") }}>{event.club}</span>}
         </div>
 
         {/* Event Image */}
@@ -102,14 +204,20 @@ export default function EventPage() {
             <div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>Data</div>
               <div style={{ fontWeight: 500, color: V("--text-primary") }}>{(() => {
+                if (allDay) {
+                  const { first, last } = allDayRange(event);
+                  return first === last ? displayDateForInput(first) : `${displayDateForInput(first)} a ${displayDateForInput(last)}`;
+                }
                 const dd = String(date.getDate()).padStart(2, "0");
                 const mm = String(date.getMonth() + 1).padStart(2, "0");
                 const yyyy = date.getFullYear();
                 return `${dd}/${mm}/${yyyy}`;
               })()}</div>
               <div style={{ fontSize: 14, color: V("--text-secondary") }}>
-                {date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
-                {endDate && ` — ${endDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`}
+                {allDay ? "Dia inteiro (hora por anunciar)" : <>
+                  {date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
+                  {endDate && ` — ${endDate.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`}
+                </>}
               </div>
             </div>
           </div>
@@ -145,15 +253,26 @@ export default function EventPage() {
               <span style={{ fontSize: 20 }}>🔗</span>
               <div>
                 <div style={{ fontSize: 14, color: V("--text-secondary") }}>URL</div>
-                <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 500, color: "#36C2CE", wordBreak: "break-all" }}>{event.url}</a>
+                <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 500, color: "var(--c-accent)", wordBreak: "break-all" }}>{event.url}</a>
               </div>
             </div>
           )}
         </div>
 
+        {/* Add to calendar */}
+        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 14, color: V("--text-secondary"), width: "100%" }}>Adicionar ao calendário</span>
+          <a href={googleCalendarUrl(event, window.location.href)} target="_blank" rel="noopener noreferrer" style={calendarButton}>
+            Google Calendar
+          </a>
+          <button type="button" onClick={() => downloadEventIcs(event, window.location.href)} style={calendarButton}>
+            Apple / Outlook (.ics)
+          </button>
+        </div>
+
         {/* Description */}
         {event.description && (
-          <div style={{ marginTop: 24, padding: 16, background: `${V("--bg-card")}`, opacity: 0.5, borderRadius: 8 }}>
+          <div style={{ marginTop: 24, padding: 16, background: V("--bg-input"), borderRadius: 8 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: V("--text-secondary"), marginBottom: 8 }}>Descrição</h3>
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
@@ -184,60 +303,55 @@ export default function EventPage() {
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: V("--text-heading") }}>Participação</h3>
 
         {user ? (
-          <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-            {[
-              { key: "going", label: "✅ Vou", active: "#059669" },
-              { key: "maybe", label: "🤔 Talvez", active: "#d97706" },
-              { key: "not_going", label: "❌ Não vou", active: "#dc2626" },
-            ].map((option) => (
-              <button
-                key={option.key}
-                onClick={() => handleRsvp(option.key)}
-                title={rsvpStatus === option.key ? "Clica de novo para remover a resposta" : undefined}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  transition: "background 0.2s",
-                  background: rsvpStatus === option.key ? option.active : V("--bg-input"),
-                  color: "#fff",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={e => { if (rsvpStatus !== option.key) e.target.style.background = V("--hover-bg"); }}
-                onMouseLeave={e => { if (rsvpStatus !== option.key) e.target.style.background = V("--bg-input"); }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          showActionBar ? null : (
+            <div style={{ marginBottom: 20 }}>
+              {isUpcoming && <p style={{ fontSize: 15, color: V("--text-primary"), margin: "0 0 12px", lineHeight: 1.45 }}>{rsvpInvite({ event, goal, rsvpStatus })}</p>}
+              <RsvpButtons rsvpStatus={rsvpStatus} onAnswer={handleRsvp} />
+            </div>
+          )
         ) : (
           <p style={{ fontSize: 14, color: V("--text-secondary"), marginBottom: 16 }}>
-            <Link to="/login" style={{ color: "#36C2CE", textDecoration: "none" }}>Inicia sessão</Link> para confirmar participação.
+            <Link to="/login" style={{ color: "var(--c-accent)", textDecoration: "none" }}>Inicia sessão</Link> para confirmar participação.
           </p>
         )}
 
         {/* RSVP Summary */}
         <div style={{ display: "flex", gap: 24, fontSize: 14, marginBottom: 16 }}>
-          <span style={{ color: "#34d399", fontWeight: 500 }}>✅ {goingCount} vão</span>
-          <span style={{ color: "#fbbf24", fontWeight: 500 }}>🤔 {maybeCount} talvez</span>
+          <span style={{ color: "var(--c-success)", fontWeight: 500 }}>✅ {goingCount} vão</span>
+          <span style={{ color: "var(--c-warning)", fontWeight: 500 }}>🤔 {maybeCount} talvez</span>
         </div>
 
-        {/* Attendees List */}
+        {/* Attendees List (admins and organizers can remove people) */}
         {rsvps.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isStaff ? 4 : 8 }}>
             {rsvps.filter((r) => r.status === "going").map((rsvp) => (
-              <div key={rsvp.userId} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14 }}>
+              <div key={rsvp.userId} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, minHeight: isStaff ? 40 : undefined }}>
                 {rsvp.user.avatar && <img src={rsvp.user.avatar} alt="" style={{ width: 24, height: 24, borderRadius: "50%" }} />}
-                <span style={{ color: V("--text-primary") }}>{rsvp.user.name}</span>
+                <span style={{ color: V("--text-primary"), flex: 1, minWidth: 0 }}>{rsvp.user.name}</span>
+                {isStaff && (
+                  <button type="button" onClick={() => removeRsvp(rsvp)} aria-label={`Remover ${rsvp.user.name}`}
+                    style={{ minHeight: 36, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                      background: "transparent", color: V("--text-secondary"), border: `1px solid ${V("--border-subtle")}` }}>
+                    Remover
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
+        {staffError && <p style={{ color: "var(--c-danger)", fontSize: 14, margin: "8px 0 0" }}>{staffError}</p>}
+        {isStaff && <StaffRsvpEditor eventId={id} rsvps={rsvps} onChange={setRsvps} />}
       </div>
 
       {!isStaff && <div style={{ marginTop: 24 }}>{attendance}</div>}
+
+      {showActionBar && (
+        <div className="rsvp-action-bar" role="region" aria-label="Confirmar presença"
+          style={{ background: V("--bg-header"), borderTop: `1px solid ${V("--border-subtle")}` }}>
+          <p style={{ color: V("--text-primary") }}>{rsvpInvite({ event, goal, rsvpStatus })}</p>
+          <RsvpButtons rsvpStatus={rsvpStatus} onAnswer={handleRsvp} large />
+        </div>
+      )}
 
       {/* Edit Button for Admin/Organizer */}
       {isStaff && (

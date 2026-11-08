@@ -1,19 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
-import { displayDateForInput, parseInputDateToYMD } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
 
 const STATUS_COLORS = {
-  pending: { bg: "rgba(234,179,8,0.15)", text: "#eab308" },
-  active: { bg: "rgba(34,197,94,0.15)", text: "#22c55e" },
+  pending: { bg: "rgba(234,179,8,0.15)", text: "var(--c-warning)" },
+  active: { bg: "rgba(34,197,94,0.15)", text: "var(--c-success)" },
   inactive: { bg: "rgba(156,163,175,0.15)", text: "#9ca3af" },
-  banned: { bg: "rgba(239,68,68,0.15)", text: "#ef4444" },
+  banned: { bg: "rgba(239,68,68,0.15)", text: "var(--c-danger)" },
 };
 
 const ROLE_COLORS = {
-  admin: { bg: "rgba(239,68,68,0.15)", text: "#ef4444" },
-  organizer: { bg: "rgba(59,130,246,0.15)", text: "#3b82f6" },
+  admin: { bg: "rgba(239,68,68,0.15)", text: "var(--c-danger)" },
+  organizer: { bg: "rgba(59,130,246,0.15)", text: "var(--c-info)" },
   member: { bg: "rgba(156,163,175,0.15)", text: "#9ca3af" },
 };
 
@@ -143,9 +143,9 @@ export default function AdminUsersPage() {
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Total", val: stats.total || 0, color: "#60a5fa" },
-          { label: "Pendentes", val: stats.pending || 0, color: "#eab308" },
-          { label: "Ativos", val: stats.active || 0, color: "#22c55e" },
+          { label: "Total", val: stats.total || 0, color: "var(--c-info)" },
+          { label: "Pendentes", val: stats.pending || 0, color: "var(--c-warning)" },
+          { label: "Ativos", val: stats.active || 0, color: "var(--c-success)" },
           { label: "Inativos", val: stats.inactive || 0, color: V("--text-secondary") },
         ].map((s) => (
           <div key={s.label} style={{ background: V("--bg-card"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}`, padding: "12px 16px", textAlign: "center" }}>
@@ -199,7 +199,7 @@ export default function AdminUsersPage() {
                     {user.email}{user.phone ? ` · ${user.phone}` : ""}
                   </div>
                   {user._count?.rsvps > 0 && (
-                    <div style={{ fontSize: 11, color: "#60a5fa" }}>{user._count.rsvps} RSVPs</div>
+                    <div style={{ fontSize: 11, color: "var(--c-info)" }}>{user._count.rsvps} RSVPs</div>
                   )}
                 </div>
 
@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
               {/* Reject panel */}
               {rejectId === user.id && (
                 <div style={{ background: V("--bg-input"), borderRadius: 8, padding: 16, marginTop: 12 }}>
-                  <p style={{ color: "#f87171", fontSize: 14, margin: "0 0 8px" }}>Desativar utilizador — {user.name}</p>
+                  <p style={{ color: "var(--c-danger)", fontSize: 14, margin: "0 0 8px" }}>Desativar utilizador — {user.name}</p>
                   <input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo (opcional)" style={{ ...inputStyle, marginBottom: 8 }} />
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => { setRejectId(null); setRejectReason(""); }} style={{ ...actionBtn, background: "#374151", color: "#e5e7eb" }}>Cancelar</button>
@@ -245,7 +245,7 @@ export default function AdminUsersPage() {
                     <div><label style={labelStyle}>Telefone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} /></div>
                     <div><label style={labelStyle}>Contacto Alternativo</label><input value={editForm.altContact} onChange={(e) => setEditForm({ ...editForm, altContact: e.target.value })} style={inputStyle} /></div>
                     <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Morada</label><input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Data de Nascimento</label><input type="text" value={displayDateForInput(editForm.dob)} onChange={(e) => setEditForm({ ...editForm, dob: parseInputDateToYMD(e.target.value) })} placeholder="dd/mm/aaaa" style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Data de Nascimento</label><DateInput birthDate value={editForm.dob} onChange={(dob) => setEditForm({ ...editForm, dob })} style={inputStyle} /></div>
                     <div><label style={labelStyle}>NIF</label><input value={editForm.nif} onChange={(e) => setEditForm({ ...editForm, nif: e.target.value })} inputMode="numeric" maxLength={9} placeholder="Para recibos" style={inputStyle} /></div>
                     <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Notas</label><textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} /></div>
                   </div>

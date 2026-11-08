@@ -1,7 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { openApiFile } from "../services/api";
-import { formatCurrency, formatDate, displayDateForInput, parseInputDateToYMD, membershipStatusLabel } from "../utils/format";
+import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/format";
+import DatePicker from "react-datepicker";
+import { format } from "date-fns";
+import DateInput, { CalendarIcon } from "../components/DateInput";
+
+// Payment date/time strings are "YYYY-MM-DDTHH:mm"; the picker works on a Date with the same wall-clock fields.
+const strToDate = (s) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(s || "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) : null;
+};
+const dateToStr = (d) => (d ? format(d, "yyyy-MM-dd'T'HH:mm") : "");
+const dateTimePickerProps = {
+  locale: "pt", showTimeSelect: true, timeFormat: "HH:mm", timeIntervals: 5, timeCaption: "Hora",
+  dateFormat: "dd/MM/yyyy HH:mm", placeholderText: "dd/mm/aaaa hh:mm",
+  showIcon: true, icon: <CalendarIcon size={16} />, toggleCalendarOnIconClick: true,
+};
 
 const METHOD_LABELS = {
   transfer: "Transferência",
@@ -301,11 +316,11 @@ export default function PaymentsPage({ user }) {
           <option value="card">Cartão</option>
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="text" value={displayDateForInput(dateFrom)} onChange={(e) => setDateFrom(parseInputDateToYMD(e.target.value))}
-            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <DateInput value={dateFrom} onChange={setDateFrom}
+            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
           <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>até</span>
-          <input type="text" value={displayDateForInput(dateTo)} onChange={(e) => setDateTo(parseInputDateToYMD(e.target.value))}
-            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <DateInput value={dateTo} onChange={setDateTo}
+            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
         </div>
         <button onClick={() => { setSearch(""); setMethodFilter(""); setDateFrom(""); setDateTo(""); }}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14 }}>
@@ -313,7 +328,7 @@ export default function PaymentsPage({ user }) {
         </button>
       </div>
 
-      {error && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{error}</p>}
+      {error && <p style={{ color: "var(--c-danger)", fontSize: 14, marginBottom: 16 }}>{error}</p>}
 
       {/* Payments Table */}
       <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
@@ -351,10 +366,10 @@ export default function PaymentsPage({ user }) {
                   <span>{METHOD_ICONS[p.method]}</span>
                   {METHOD_LABELS[p.method] || p.method}
                 </td>
-                <td style={{ ...tdStyle, fontWeight: 600, color: "#22c55e" }}>{formatCurrency(p.paidAmount)}</td>
+                <td style={{ ...tdStyle, fontWeight: 600, color: "var(--c-success)" }}>{formatCurrency(p.paidAmount)}</td>
                 <td style={tdStyle}>
                   {p.membership ? (
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 9999, background: "#3b82f622", color: "#3b82f6" }}>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 9999, background: "#3b82f622", color: "var(--c-info)" }}>
                       {p.membership.year}
                     </span>
                   ) : (
@@ -370,7 +385,7 @@ export default function PaymentsPage({ user }) {
                     Editar
                   </button>
                   <span style={{ color: "var(--border-subtle)", margin: "0 8px" }}>|</span>
-                  <button onClick={() => handleDelete(p.id)} style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
+                  <button onClick={() => handleDelete(p.id)} style={{ color: "var(--c-danger)", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
                     🗑️
                   </button>
                 </td>
@@ -437,8 +452,8 @@ export default function PaymentsPage({ user }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Data/Hora</span>
-                  <input type="datetime-local" value={formDate} onChange={(e) => setFormDate(e.target.value)} required
-                    style={inputStyle} />
+                  <DatePicker {...dateTimePickerProps} selected={strToDate(formDate)} onChange={(d) => setFormDate(dateToStr(d))} required
+                    customInput={<input style={{ ...inputStyle, paddingLeft: 36 }} />} />
                 </label>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Método</span>
@@ -464,8 +479,8 @@ export default function PaymentsPage({ user }) {
                     style={{ ...inputStyle, resize: "vertical" }} />
                 </label>
               </div>
-              {formError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{formError}</p>}
-              {formSuccess && <p style={{ color: "#22c55e", fontSize: 13, marginBottom: 12 }}>{formSuccess}</p>}
+              {formError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{formError}</p>}
+              {formSuccess && <p style={{ color: "var(--c-success)", fontSize: 13, marginBottom: 12 }}>{formSuccess}</p>}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button type="button" onClick={() => setShowModal(false)}
                   style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -523,8 +538,8 @@ export default function PaymentsPage({ user }) {
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Data/Hora</label>
-              <input type="datetime-local" value={editDate.slice(0, 16)} onChange={(e) => setEditDate(e.target.value)}
-                style={inputStyle} />
+              <DatePicker {...dateTimePickerProps} selected={strToDate(editDate)} onChange={(d) => setEditDate(dateToStr(d))}
+                customInput={<input style={{ ...inputStyle, paddingLeft: 36 }} />} />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Método</label>
@@ -545,7 +560,7 @@ export default function PaymentsPage({ user }) {
               <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={2}
                 style={{ ...inputStyle, resize: "vertical" }} />
             </div>
-            {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
+            {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => setEditPayment(null)}
                 style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>

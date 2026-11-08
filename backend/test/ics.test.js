@@ -56,3 +56,66 @@ test("only TeamUp feeds are fetched", () => {
   assert.equal(isAllowedFeedUrl("http://169.254.169.254/latest/meta-data"), false);
   assert.equal(isAllowedFeedUrl("not a url"), false);
 });
+
+test("types events by TeamUp category first, then by title", () => {
+  const feed = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:road@teamup
+SUMMARY:Meia Maratona de Lisboa
+CATEGORIES:Provas de Estrada
+DTSTART:20270307T090000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:trail@teamup
+SUMMARY:Trilhos dos Templários
+CATEGORIES:Provas de Trail
+DTSTART:20260927T080000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:mixed-urban@teamup
+SUMMARY:Eco Meia Maratona do Lizandro
+CATEGORIES:Provas de Estrada,Provas de Trail
+DTSTART:20260621T080000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:mixed-trail@teamup
+SUMMARY:Torres Vedras Night Run Urban Trail
+CATEGORIES:Provas de Estrada,Provas de Trail
+DTSTART:20261024T200000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:club-training@teamup
+SUMMARY:1.º Treino TEX
+CATEGORIES:Eventos Alverca Urban Runners
+DTSTART:20260719T080000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:club-race@teamup
+SUMMARY:TEX - Trail Encostas de Xira 5.0
+CATEGORIES:Eventos Alverca Urban Runners
+DTSTART:20260913T080000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:club-meeting@teamup
+SUMMARY:Reunião de staff
+CATEGORIES:Eventos Alverca Urban Runners
+DTSTART:20260913T200000Z
+END:VEVENT
+BEGIN:VEVENT
+UID:no-category@teamup
+SUMMARY:São Silvestre de Almada
+DTSTART:20261212T180000Z
+END:VEVENT
+END:VCALENDAR`;
+  const types = Object.fromEntries(parseICS(feed).map((e) => [e.sourceUid, e.type]));
+  assert.deepEqual(types, {
+    "road@teamup": "urban",
+    "trail@teamup": "trail",
+    "mixed-urban@teamup": "urban",
+    "mixed-trail@teamup": "trail",
+    "club-training@teamup": "training",
+    "club-race@teamup": "trail",
+    "club-meeting@teamup": "meeting",
+    "no-category@teamup": "race",
+  });
+});

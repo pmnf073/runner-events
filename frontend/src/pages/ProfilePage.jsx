@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import api, { openApiFile } from "../services/api";
 import MyTrainings from "../components/MyTrainings";
-import { displayDateForInput, formatCurrency, formatDate, MEMBERSHIP_STATUS, parseInputDateToYMD } from "../utils/format";
+import { formatCurrency, formatDate, MEMBERSHIP_STATUS } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const V = (name) => `var(${name})`;
 
@@ -121,7 +122,7 @@ export default function ProfilePage({ user, setUser }) {
           {field("altContact", "Contacto alternativo")}
           <div>
             <label style={labelStyle}>Data de nascimento</label>
-            <input value={displayDateForInput(form.dob)} onChange={(e) => setForm({ ...form, dob: parseInputDateToYMD(e.target.value) })} placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput birthDate value={form.dob} onChange={(dob) => setForm({ ...form, dob })} style={inputStyle} />
           </div>
           {field("nif", "NIF (para os recibos)", { inputMode: "numeric", maxLength: 9 })}
           <div style={{ gridColumn: "1 / -1" }}>{field("address", "Morada")}</div>
@@ -134,8 +135,8 @@ export default function ProfilePage({ user, setUser }) {
         </label>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
           <button type="submit" disabled={saving} style={{ ...button, opacity: saving ? 0.5 : 1 }}>{saving ? "A guardar..." : "Guardar"}</button>
-          {message && <span style={{ fontSize: 14, color: "#10b981" }}>{message}</span>}
-          {error && <span style={{ fontSize: 14, color: "#f87171" }}>{error}</span>}
+          {message && <span style={{ fontSize: 14, color: "var(--c-success)" }}>{message}</span>}
+          {error && <span style={{ fontSize: 14, color: "var(--c-danger)" }}>{error}</span>}
         </div>
       </form>
 
@@ -149,7 +150,7 @@ export default function ProfilePage({ user, setUser }) {
               <div><div style={labelStyle}>Número</div><strong>#{member.memberNumber}</strong></div>
               <div><div style={labelStyle}>Estado</div><strong>{MEMBER_STATUS[member.status] || member.status}</strong></div>
               <div><div style={labelStyle}>Sócio desde</div><strong>{formatDate(member.joinedAt)}</strong></div>
-              <div><div style={labelStyle}>Saldo</div><strong style={{ color: member.balance < 0 ? "#f87171" : "#10b981" }}>{formatCurrency(member.balance)}</strong></div>
+              <div><div style={labelStyle}>Saldo</div><strong style={{ color: member.balance < 0 ? "var(--c-danger)" : "var(--c-success)" }}>{formatCurrency(member.balance)}</strong></div>
             </div>
 
             <h3 style={{ fontSize: 15, fontWeight: 600, color: V("--text-heading"), margin: "0 0 8px" }}>Quotas</h3>

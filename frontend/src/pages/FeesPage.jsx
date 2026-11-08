@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { formatDate, displayDateForInput, parseInputDateToYMD } from "../utils/format";
+import { formatDate } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 export default function FeesPage({ user }) {
   const navigate = useNavigate();
@@ -149,10 +150,10 @@ export default function FeesPage({ user }) {
       {success && (
         <div style={{
           padding: "10px 16px", borderRadius: 10, background: "#22c55e18", border: "1px solid #22c55e44",
-          color: "#22c55e", fontSize: 14, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center"
+          color: "var(--c-success)", fontSize: 14, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center"
         }}>
           <span>{success}</span>
-          <button onClick={() => setSuccess("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#22c55e" }}>✕</button>
+          <button onClick={() => setSuccess("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--c-success)" }}>✕</button>
         </div>
       )}
 
@@ -178,8 +179,8 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Data Limite</span>
-            <input type="text" value={displayDateForInput(editDueDate)} onChange={(e) => setEditDueDate(parseInputDateToYMD(e.target.value))}
-              placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput value={editDueDate} onChange={setEditDueDate}
+              style={inputStyle} />
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Desconto Early-bird (€)</span>
@@ -188,11 +189,11 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Prazo Early-bird</span>
-            <input type="text" value={displayDateForInput(editEarlyDeadline)} onChange={(e) => setEditEarlyDeadline(parseInputDateToYMD(e.target.value))}
-              placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput value={editEarlyDeadline} onChange={setEditEarlyDeadline}
+              style={inputStyle} />
           </label>
         </div>
-        {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 8 }}>{editError}</p>}
+        {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 8 }}>{editError}</p>}
         <button onClick={handleSaveConfig}
           style={{ padding: "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
           {editingYear ? "Guardar Alterações" : "Guardar Configuração"}
@@ -232,7 +233,7 @@ export default function FeesPage({ user }) {
             marginTop: 12, padding: "10px 14px", borderRadius: 10, fontSize: 14,
             background: generateResult.error ? "#ef444418" : "#22c55e18",
             border: `1px solid ${generateResult.error ? "#ef444444" : "#22c55e44"}`,
-            color: generateResult.error ? "#ef4444" : "#22c55e"
+            color: generateResult.error ? "var(--c-danger)" : "var(--c-success)"
           }}>
             {generateResult.error ||
               `✅ ${generateResult.created} quotas criadas · ${generateResult.skipped} ignoradas (já existem) · ${generateResult.total} sócios ativos`}
@@ -256,7 +257,7 @@ export default function FeesPage({ user }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {cfg.earlybirdDiscount && (
-                <span style={{ fontSize: 11, color: "#22c55e" }}>Early-bird: {parseFloat(cfg.earlybirdDiscount).toFixed(2)} €</span>
+                <span style={{ fontSize: 11, color: "var(--c-success)" }}>Early-bird: {parseFloat(cfg.earlybirdDiscount).toFixed(2)} €</span>
               )}
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Até {formatDate(cfg.dueDate)}</span>
               <button type="button" onClick={() => fillConfigForEdit(cfg)}

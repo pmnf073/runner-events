@@ -6,6 +6,7 @@ import extractImageFromUrl from "../services/imageExtractor.js";
 import { findPortugalRunningImage } from "../services/portugalRunning.js";
 import { goingToEvents, notifyCancelled } from "../services/reminders.js";
 import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
+import { eventMatchesSearch } from "../utils/search.js";
 import {
   dateKey,
   eventOccurrenceDate,
@@ -205,16 +206,38 @@ router.post("/portugal-running-image", requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/events/public/next-trainings — the next club trainings for the public
+// home page (no login). Only date, title and location; no RSVPs or other data.
+router.get("/public/next-trainings", async (_req, res) => {
+  try {
+    const rangeStart = new Date();
+    const rangeEnd = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000);
+    const events = await listEvents({ rangeStart, rangeEnd, filters: { type: "training" } });
+    const trainings = events
+      .filter((e) => new Date(e.date) >= rangeStart)
+      .slice(0, 3)
+      .map((e) => ({ date: e.date, title: e.title, location: e.location || null }));
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(trainings);
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
 router.get("/", requireUser, async (req, res) => {
   try {
-    const { start, end, type, club } = req.query;
+    const { start, end, type, club, q } = req.query;
     const rangeStart = start ? new Date(start) : new Date();
     const rangeEnd = end ? new Date(end) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
     const filters = {};
     if (type) filters.type = type;
     if (club) filters.club = club;
 
-    res.json(await listEvents({ rangeStart, rangeEnd, filters }));
+    const events = await listEvents({ rangeStart, rangeEnd, filters });
+    // Free-text search runs after the expansion, so overridden occurrences are
+    // matched by their own title and location.
+    const query = typeof q === "string" ? q.slice(0, 100) : "";
+    res.json(query.trim() ? events.filter((e) => eventMatchesSearch(e, query)) : events);
   } catch (err) {
     serverError(res, err);
   }

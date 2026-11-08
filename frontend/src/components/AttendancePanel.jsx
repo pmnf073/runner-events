@@ -120,9 +120,9 @@ export default function AttendancePanel({ eventId, rsvps, isStaff }) {
     <div style={card}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
         <h3 style={title}>Marcar presenças</h3>
-        <span style={{ fontSize: 15, fontWeight: 600, color: "#34d399" }}>{state.count} presentes</span>
+        <span style={{ fontSize: 15, fontWeight: 600, color: "var(--c-success)" }}>{state.count} presentes</span>
       </div>
-      {error && <p style={{ color: "#f87171", fontSize: 14, margin: "0 0 12px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--c-danger)", fontSize: 14, margin: "0 0 12px" }}>{error}</p>}
 
       {rows.length === 0 ? (
         <p style={{ fontSize: 14, color: V("--text-secondary"), margin: "0 0 12px" }}>Ninguém respondeu a este treino. Procura abaixo quem veio.</p>
