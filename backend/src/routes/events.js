@@ -206,6 +206,24 @@ router.post("/portugal-running-image", requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/events/public/next-trainings — the next club trainings for the public
+// home page (no login). Only date, title and location; no RSVPs or other data.
+router.get("/public/next-trainings", async (_req, res) => {
+  try {
+    const rangeStart = new Date();
+    const rangeEnd = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000);
+    const events = await listEvents({ rangeStart, rangeEnd, filters: { type: "training" } });
+    const trainings = events
+      .filter((e) => new Date(e.date) >= rangeStart)
+      .slice(0, 3)
+      .map((e) => ({ date: e.date, title: e.title, location: e.location || null }));
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(trainings);
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
 router.get("/", requireUser, async (req, res) => {
   try {
     const { start, end, type, club, q } = req.query;

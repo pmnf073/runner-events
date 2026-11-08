@@ -1,10 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../services/api";
 
 const V = (name) => `var(${name})`;
 
 const MAIL = "mailto:alvercaurbanrunners@gmail.com";
 const MAIL_TRIAL = `${MAIL}?subject=${encodeURIComponent("Quero experimentar um treino")}`;
+
+// Regular trainings (confirmed by the club, 2026-11-08). Always free.
+const TRAINING_SPOTS = [
+  { day: "Terça-feira", time: "19h30", map: "https://maps.app.goo.gl/ELgTi1p1pkawvZ1r6" },
+  { day: "Quinta-feira", time: "19h30", map: "https://maps.app.goo.gl/8fU4iEwNDztSTandA" },
+];
+
+const FAQ = [
+  { q: "Preciso de experiência ou de estar em forma?", a: "Não. Os grupos são por ritmo e há sempre alguém a correr ao teu passo. Começas onde estás." },
+  { q: "Quanto custa?", a: "Os treinos regulares de terça e quinta são sempre gratuitos. Aparece quantas vezes quiseres antes de decidir." },
+  { q: "Há limite de idade?", a: "Não. Temos atletas de todas as idades." },
+  { q: "E se preferir caminhar?", a: "Também fazemos caminhadas, sempre que há pessoas para isso. Fala connosco e juntamos-te ao grupo." },
+];
+
+// "Terça, 10 de novembro, 19:30" in Lisbon time.
+function formatTrainingDate(iso) {
+  const d = new Date(iso);
+  const day = new Intl.DateTimeFormat("pt-PT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Lisbon" }).format(d);
+  const time = new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" }).format(d);
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${time}`;
+}
 
 // Fades its content in when it scrolls into view (immediately without IntersectionObserver
 // or when the user prefers reduced motion).
@@ -143,6 +165,16 @@ export default function AboutPage() {
 
   // Mobile: a "try a training" bar once the hero is out of view, hidden near the final call to action
   // and for logged-in users.
+  const [nextTraining, setNextTraining] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api("/api/events/public/next-trainings")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => { if (alive && Array.isArray(list) && list[0]?.date) setNextTraining(list[0]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   const heroRef = useRef(null);
   const finalRef = useRef(null);
   const [showStickyCta, setShowStickyCta] = useState(false);
@@ -292,9 +324,9 @@ export default function AboutPage() {
               Somos energia em movimento para todos os níveis.
             </p>
             <ul className="about-chips">
-              <li>Terças e quintas</li>
-              <li>Todos os níveis</li>
-              <li>Grupos por ritmo</li>
+              <li>Terças e quintas, 19h30</li>
+              <li>Treinos gratuitos</li>
+              <li>Todos os níveis e idades</li>
               <li>Desde 2014</li>
             </ul>
           </Reveal>
@@ -483,13 +515,13 @@ export default function AboutPage() {
             <SectionTitle
               tag="Como começar"
               title="O primeiro treino é o mais fácil."
-              subtitle="Não precisas de experiência nem de ritmo certo. Só de vontade de aparecer."
+              subtitle="Não precisas de experiência nem de ritmo certo. Os treinos regulares são gratuitos: só tens de aparecer."
             />
           </Reveal>
           <ol className="about-steps" style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {[
-              { title: "Fala connosco", text: "Envia-nos um e-mail ou uma mensagem nas redes sociais. Dizemos-te onde e a que horas é o próximo treino." },
-              { title: "Aparece num treino", text: "Às terças ou quintas, com sapatilhas e água. Os grupos são por ritmo, por isso ninguém fica para trás." },
+              { title: "Escolhe o dia", text: "Terça ou quinta, às 19h30. Vê abaixo onde nos encontramos. Se tiveres dúvidas, manda-nos uma mensagem." },
+              { title: "Aparece num treino", text: "Traz sapatilhas e água. É gratuito e os grupos são por ritmo, por isso ninguém fica para trás." },
               { title: "Fica connosco", text: "Gostaste? Torna-te sócio, cria a tua conta e acompanha os treinos, provas e eventos no calendário do clube." },
             ].map((step, idx) => (
               <Reveal
@@ -520,6 +552,36 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </ol>
+          <Reveal delay={150}>
+            <h3 style={{ margin: "36px 0 14px", color: V("--text-heading"), fontSize: 22, fontWeight: 700 }}>Onde nos encontramos</h3>
+            {nextTraining && (
+              <p style={{ margin: "0 0 14px", padding: "12px 16px", borderRadius: 12, background: "rgba(204,51,51,0.10)", border: "1px solid rgba(204,51,51,0.35)", color: V("--text-primary"), lineHeight: 1.5 }}>
+                <strong style={{ color: V("--c-danger") }}>Próximo treino:</strong> {formatTrainingDate(nextTraining.date)}
+                {nextTraining.location ? ` · ${nextTraining.location}` : ""}
+              </p>
+            )}
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+              {TRAINING_SPOTS.map((spot) => (
+                <a
+                  key={spot.day}
+                  href={spot.map}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14, textDecoration: "none",
+                    padding: 18, borderRadius: 16, background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`,
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: 28 }}>📍</span>
+                  <span style={{ flex: 1 }}>
+                    <span style={{ display: "block", color: V("--text-heading"), fontWeight: 700, fontSize: 18 }}>{spot.day}</span>
+                    <span style={{ display: "block", color: V("--text-secondary"), marginTop: 2 }}>{spot.time} · treino gratuito</span>
+                  </span>
+                  <span style={{ color: V("--c-accent"), fontWeight: 700, whiteSpace: "nowrap" }}>Ver no mapa →</span>
+                </a>
+              ))}
+            </div>
+          </Reveal>
           <Reveal delay={200}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginTop: 24 }}>
               <ActionButton href={MAIL_TRIAL} style={{ background: "#CC3333", color: "#fff", border: "2px solid #CC3333" }}>
@@ -731,6 +793,24 @@ export default function AboutPage() {
                 <p style={{ margin: 0, color: V("--text-secondary") }}>instagram.com/alvercaurbanrunners</p>
               </a>
             </Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-card") }}>
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle tag="Perguntas frequentes" title="Ainda com dúvidas?" />
+          </Reveal>
+          <div style={{ display: "grid", gap: 12 }}>
+            {FAQ.map((item, idx) => (
+              <Reveal delay={idx * 60} key={item.q}>
+                <details style={{ borderRadius: 14, padding: "16px 18px", background: V("--bg-page"), border: `1px solid ${V("--border-subtle")}` }}>
+                  <summary style={{ cursor: "pointer", color: V("--text-heading"), fontWeight: 700, fontSize: 17, lineHeight: 1.4 }}>{item.q}</summary>
+                  <p style={{ margin: "10px 0 0", color: V("--text-secondary"), lineHeight: 1.65 }}>{item.a}</p>
+                </details>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
