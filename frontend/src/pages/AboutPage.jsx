@@ -291,6 +291,16 @@ export default function AboutPage() {
               ))}
             </div>
           </Reveal>
+          <Reveal delay={180}>
+            <img
+              src="/IMG_20230122_093440.jpg"
+              alt="Atletas dos Alverca Urban Runners a correr junto ao Tejo"
+              width={1803}
+              height={889}
+              loading="lazy"
+              style={{ display: "block", width: "100%", height: "auto", marginTop: 24, borderRadius: 16, border: `1px solid ${V("--border-subtle")}` }}
+            />
+          </Reveal>
         </div>
       </section>
 
