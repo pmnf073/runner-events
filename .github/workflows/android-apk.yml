@@ -134,7 +134,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: android-${{ env.VERSION }}${{ steps.key.outputs.official == 'true' && '' || '-chave-teste' }}
+          name: android-${{ env.VERSION }}${{ steps.key.outputs.official != 'true' && '-chave-teste' || '' }}
           path: out/
           retention-days: 30
 
