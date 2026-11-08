@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { localDateKey } from "../utils/format";
 import TrainingHighlights from "../components/TrainingHighlights";
@@ -30,11 +30,60 @@ const EVENT_LABELS = {
   meeting: "Reunião",
 };
 
+// "2026-11" -> first day of that month; anything else -> null.
+function parseMonthParam(value) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value || "");
+  if (!match) return null;
+  const m = Number(match[2]);
+  if (m < 1 || m > 12) return null;
+  return new Date(Number(match[1]), m - 1, 1);
+}
+
+const monthParam = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+// The logged-in user's answer for an event: "going", "maybe" or null. Generated
+// occurrences of a series (virtual ids "rec_...") carry the series' RSVP list,
+// not their own; an RSVP turns an occurrence into a real row, so they have none.
+function myRsvpStatus(event, user) {
+  if (!user || String(event.id).startsWith("rec_")) return null;
+  const rsvp = (event.rsvps || []).find((r) => r.userId === user.id || r.user?.id === user.id);
+  return rsvp && ["going", "maybe"].includes(rsvp.status) ? rsvp.status : null;
+}
+
+function RsvpBadge({ status }) {
+  if (!status) return null;
+  const going = status === "going";
+  return (
+    <span className="calendar-rsvp-badge" style={{
+      background: going ? "rgba(16,185,129,0.15)" : "transparent",
+      color: going ? "#34d399" : "var(--text-muted)",
+      border: going ? "1px solid rgba(16,185,129,0.4)" : "1px dashed var(--border-subtle)",
+    }}>
+      {going ? "✓ Vou" : "Talvez"}
+    </span>
+  );
+}
+
 export default function CalendarPage({ user }) {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [filter, setFilter] = useState("all");
+  // Month, type filter and search live in the address (?mes=2026-12&tipo=trail&q=...),
+  // so going back from an event returns to the same view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentDate = parseMonthParam(searchParams.get("mes")) || new Date();
+  const monthKey = monthParam(currentDate);
+  const filter = EVENT_LABELS[searchParams.get("tipo")] ? searchParams.get("tipo") : "all";
+  const updateParams = (changes) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(changes)) {
+        if (value) next.set(key, value);
+        else next.delete(key);
+      }
+      return next;
+    }, { replace: true });
+  };
+  const setFilter = (value) => updateParams({ tipo: value === "all" ? null : value });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -42,7 +91,11 @@ export default function CalendarPage({ user }) {
   const [firstLoadDone, setFirstLoadDone] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [isMobile, setIsMobile] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearchState] = useState(() => searchParams.get("q") || "");
+  const setSearch = (value) => {
+    setSearchState(value);
+    updateParams({ q: value.trim().length >= 2 ? value : null });
+  };
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
   const searchQuery = search.trim();
@@ -76,7 +129,7 @@ export default function CalendarPage({ user }) {
       .catch(() => { if (!cancelled) { setEvents([]); setLoadError(true); } })
       .finally(() => { if (!cancelled) { setLoading(false); setFirstLoadDone(true); } });
     return () => { cancelled = true; };
-  }, [currentDate, filter, reloadKey]);
+  }, [monthKey, filter, reloadKey]);
 
   // Search across months, independently of the month being shown. Debounced so
   // that typing does not fire one request per key; stale answers are ignored.
@@ -121,8 +174,13 @@ export default function CalendarPage({ user }) {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  const prevMonth = () => { setShowPastDays(false); setCurrentDate(new Date(year, month - 1, 1)); };
-  const nextMonth = () => { setShowPastDays(false); setCurrentDate(new Date(year, month + 1, 1)); };
+  const goToMonth = (d) => {
+    setShowPastDays(false);
+    // The current month is the default, so it is left out of the address.
+    updateParams({ mes: monthParam(d) === monthParam(new Date()) ? null : monthParam(d) });
+  };
+  const prevMonth = () => goToMonth(new Date(year, month - 1, 1));
+  const nextMonth = () => goToMonth(new Date(year, month + 1, 1));
 
   const handleDayClick = (day) => {
     if (!user || !["admin", "organizer"].includes(user.role)) return;
@@ -230,6 +288,7 @@ export default function CalendarPage({ user }) {
             <button onClick={() => setViewMode("list")} style={{ ...headerBtn(viewMode === "list"), borderLeft: `1px solid ${cssVar("--border-subtle")}` }} title="Lista">&#9776;</button>
           </div>
           )}
+          {!isMobile && (
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -239,7 +298,26 @@ export default function CalendarPage({ user }) {
             <option value="all">Todos os tipos</option>
             {Object.entries(EVENT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+          )}
         </div>
+        {isMobile && (
+          <div className="calendar-type-chips" role="group" aria-label="Filtrar por tipo de evento">
+            {[["all", "Todos"], ...Object.entries(EVENT_LABELS)].map(([k, v]) => {
+              const active = filter === k;
+              return (
+                <button key={k} type="button" aria-pressed={active} onClick={() => setFilter(k)}
+                  style={{
+                    background: active ? "#CC3333" : cssVar("--bg-header"),
+                    color: active ? "#fff" : cssVar("--text-secondary"),
+                    border: `1px solid ${active ? "#CC3333" : cssVar("--border-subtle")}`,
+                  }}>
+                  {k !== "all" && <span className={`event-dot ${k}`} style={{ boxShadow: active ? "0 0 0 1px #fff" : "none" }} />}
+                  {v}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* SEARCH RESULTS */}
@@ -281,7 +359,7 @@ export default function CalendarPage({ user }) {
                       <div className="calendar-list-event-main">
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
                         <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                          <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
+                          <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title} <RsvpBadge status={myRsvpStatus(event, user)} /></span>
                           {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
                         </span>
                       </div>
@@ -348,7 +426,7 @@ export default function CalendarPage({ user }) {
                     return (
                       <Link key={event.id} to={`/event/${event.id}`}
                         style={{ display: "block", fontSize: 12, padding: "4px 8px", borderRadius: 6, borderLeft: `3px solid ${ec.border}`, background: ec.bg, color: ec.text, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <span style={{ fontWeight: 500 }}>{event.title}</span> {formatEventTime(event.date)}
+                        {myRsvpStatus(event, user) === "going" && <span title="Vou">✓ </span>}<span style={{ fontWeight: 500 }}>{event.title}</span> {formatEventTime(event.date)}
                       </Link>
                     );
                   })}
@@ -408,7 +486,7 @@ export default function CalendarPage({ user }) {
                             <span className="calendar-list-event-time" style={{ color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0, marginTop: 6 }}></span>
                             <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                              <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
+                              <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title} <RsvpBadge status={myRsvpStatus(event, user)} /></span>
                               {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
                             </span>
                           </div>
@@ -446,14 +524,14 @@ export default function CalendarPage({ user }) {
         </div>
       )}
 
-      {/* Legend */}
-      <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: cssVar("--text-muted") }}>
+      {/* Legend (on mobile the type buttons already show the colours) */}
+      {!isMobile && <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 16, fontSize: 12, color: cssVar("--text-muted") }}>
         {Object.entries(EVENT_LABELS).map(([k, v]) => (
           <div key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span className={`event-dot ${k}`} /> {v}
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
