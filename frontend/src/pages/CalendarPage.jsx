@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
-import { localDateKey } from "../utils/format";
+import { localDateKey, isAllDayEvent } from "../utils/format";
 import TrainingHighlights from "../components/TrainingHighlights";
 
 const EVENT_COLORS = {
@@ -62,6 +62,16 @@ function RsvpBadge({ status }) {
       {going ? "✓ Vou" : "Talvez"}
     </span>
   );
+}
+
+// Some imported events have a web address as their location; show just the site.
+function shortLocation(location) {
+  if (!/^https?:\/\//i.test(location)) return location;
+  try {
+    return new URL(location).hostname.replace(/^www\./, "");
+  } catch {
+    return location;
+  }
 }
 
 export default function CalendarPage({ user }) {
@@ -399,11 +409,11 @@ export default function CalendarPage({ user }) {
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
                         <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                           <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title} <RsvpBadge status={myRsvpStatus(event, user)} /></span>
-                          {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
+                          {event.location && <span className="calendar-list-event-location" style={{ fontSize: 12, color: cssVar("--text-muted") }}>{shortLocation(event.location)}</span>}
                         </span>
                       </div>
                       <div className="calendar-list-event-meta">
-                        <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatDate(localDateKey(event.date)).short} {formatEventTime(event.date)}</span>
+                        <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatDate(localDateKey(event.date)).short}{isAllDayEvent(event) ? "" : ` ${formatEventTime(event.date)}`}</span>
                         <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: ec.bg, color: ec.text, fontWeight: 500 }}>
                           {EVENT_LABELS[event.type] || event.type}
                         </span>
@@ -492,7 +502,7 @@ export default function CalendarPage({ user }) {
                     return (
                       <Link key={event.id} to={`/event/${event.id}`}
                         style={{ display: "block", fontSize: 12, padding: "4px 8px", borderRadius: 6, borderLeft: `3px solid ${ec.border}`, background: ec.bg, color: ec.text, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {myRsvpStatus(event, user) === "going" && <span title="Vou">✓ </span>}<span style={{ fontWeight: 500 }}>{event.title}</span> {formatEventTime(event.date)}
+                        {myRsvpStatus(event, user) === "going" && <span title="Vou">✓ </span>}<span style={{ fontWeight: 500 }}>{event.title}</span>{isAllDayEvent(event) ? "" : ` ${formatEventTime(event.date)}`}
                       </Link>
                     );
                   })}
@@ -550,11 +560,11 @@ export default function CalendarPage({ user }) {
                           onMouseEnter={e => e.currentTarget.style.background = cssVar("--hover-bg")}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <div className="calendar-list-event-main">
-                            <span className="calendar-list-event-time" style={{ color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
+                            <span className={`calendar-list-event-time${isAllDayEvent(event) ? " is-all-day" : ""}`} style={{ color: cssVar("--text-secondary") }}>{isAllDayEvent(event) ? "Dia inteiro" : formatEventTime(event.date)}</span>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0, marginTop: 6 }}></span>
                             <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                               <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title} <RsvpBadge status={myRsvpStatus(event, user)} /></span>
-                              {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
+                              {event.location && <span className="calendar-list-event-location" style={{ fontSize: 12, color: cssVar("--text-muted") }}>{shortLocation(event.location)}</span>}
                             </span>
                           </div>
                           <div className="calendar-list-event-meta">

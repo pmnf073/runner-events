@@ -462,9 +462,19 @@ body.has-action-bar {
   padding-bottom: 150px;
 }
 
+.calendar-list-event-time.is-all-day {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.calendar-list-event-location {
+  overflow-wrap: anywhere;
+}
+
 .calendar-list-event-time {
-  flex: 0 0 auto;
-  min-width: 44px;
+  flex: 0 0 48px;
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
