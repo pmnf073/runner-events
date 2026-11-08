@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Alverca Urban Runners",
+  "short_name": "AUR",
+  "description": "Calendário, presenças e quotas dos sócios da Alverca Urban Runners.",
+  "lang": "pt-PT",
+  "start_url": "/calendar",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#081420",
+  "theme_color": "#081420",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

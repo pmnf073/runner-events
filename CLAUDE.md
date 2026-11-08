@@ -48,6 +48,10 @@ Backend unit tests (pure logic: recurrence, ICS parsing, NIF, Portugal Running n
 
 Frontend on Vercel (root `frontend/`, SPA rewrite in `vercel.json`), backend on Render (`backend/render.yaml`), database on Neon. Vercel deploys on every push to `main`. The Render build command (set in the Render dashboard, mirrored in `render.yaml`) runs `prisma migrate deploy` on every deploy; a failing migration aborts the deploy, so every schema change needs a migration that works against the production data.
 
+## Android app
+
+`android/` holds the Android app: a Trusted Web Activity built with Bubblewrap that opens the production site (`android/twa-manifest.json`, host `alvercaurbanrunners.pt`, package `pt.alvercaurbanrunners.app`). The workflow `.github/workflows/android-apk.yml` builds the APK and `.aab`; setup steps and signing are in `android/README.md`. The site side is `frontend/public/manifest.webmanifest`, `frontend/public/sw.js` (only an offline page for failed navigations; it never caches `/api` or the build, keep it that way) and `/.well-known/assetlinks.json`, which `vite.config.js` emits only when `TWA_SHA256_FINGERPRINTS` is set. UI changes need no new APK.
+
 ## Architecture
 
 ### Backend
