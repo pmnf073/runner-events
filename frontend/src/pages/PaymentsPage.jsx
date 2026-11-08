@@ -71,6 +71,19 @@ export default function PaymentsPage({ user }) {
   // Stats
   const [stats, setStats] = useState({ total: 0, count: 0, avg: 0 });
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  // 16px on phones so iOS does not zoom into the field.
+  const inputStyle = { ...baseInputStyle, fontSize: isMobile ? 16 : 14 };
+  const filterStyle = { padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: isMobile ? 16 : 14, boxSizing: "border-box", minWidth: 0 };
+  const twoCols = isMobile ? "1fr" : "1fr 1fr";
+
   useEffect(() => {
     if (!user || !["admin", "organizer"].includes(user.role)) {
       navigate("/");
@@ -281,9 +294,9 @@ export default function PaymentsPage({ user }) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "center" : "flex-start", flexWrap: "wrap", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 12 : 24 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-heading)", margin: 0, lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, color: "var(--text-heading)", margin: 0, lineHeight: 1.2 }}>
             💳 Pagamentos
           </h1>
           <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: "4px 0 0" }}>
@@ -291,39 +304,42 @@ export default function PaymentsPage({ user }) {
           </p>
         </div>
         <button onClick={openNewPaymentModal}
-          style={{ padding: "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
-          + Registar Pagamento
+          style={{ padding: isMobile ? "10px 14px" : "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+          {isMobile ? "+ Registar" : "+ Registar Pagamento"}
         </button>
       </div>
 
       {/* Stats cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <StatCard label="Total Recebido" value={formatCurrency(stats.total)} color="var(--text-heading)" />
-        <StatCard label="Nº Pagamentos" value={stats.count} color="#3b82f6" />
-        <StatCard label="Média por Pagamento" value={formatCurrency(stats.avg)} color="#22c55e" />
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(auto-fit, minmax(140px, 1fr))", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 12 : 24 }}>
+        <StatCard compact={isMobile} label={isMobile ? "Total" : "Total Recebido"} value={formatCurrency(stats.total)} color="var(--text-heading)" />
+        <StatCard compact={isMobile} label={isMobile ? "Pagamentos" : "Nº Pagamentos"} value={stats.count} color="var(--c-info)" />
+        <StatCard compact={isMobile} label={isMobile ? "Média" : "Média por Pagamento"} value={formatCurrency(stats.avg)} color="var(--c-success)" />
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+      {/* Filters: no telemóvel, pesquisa numa linha, método + limpar noutra e as datas lado a lado. */}
+      <div style={isMobile
+        ? { display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 12 }
+        : { display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <input type="text" placeholder="Pesquisar (nome, email, recibo, ref.)" value={search} onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 200, padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
-        <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}
-          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }}>
-          <option value="">Todos métodos</option>
+          style={{ ...filterStyle, ...(isMobile ? { gridColumn: "1 / -1", width: "100%" } : { flex: 1, minWidth: 200 }) }} />
+        <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)} style={filterStyle}>
+          <option value="">Todos os métodos</option>
           <option value="transfer">Transferência</option>
           <option value="cash">Numerário</option>
           <option value="mbway">MB Way</option>
           <option value="card">Cartão</option>
         </select>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <DateInput value={dateFrom} onChange={setDateFrom}
-            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+        <div style={isMobile
+          ? { gridColumn: "1 / -1", gridRow: 3, display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center", gap: 6 }
+          : { display: "flex", alignItems: "center", gap: 6 }}>
+          <DateInput value={dateFrom} onChange={setDateFrom} aria-label="Desde"
+            style={{ ...filterStyle, width: isMobile ? "100%" : 150, padding: "8px" }} />
           <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>até</span>
-          <DateInput value={dateTo} onChange={setDateTo}
-            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <DateInput value={dateTo} onChange={setDateTo} aria-label="Até"
+            style={{ ...filterStyle, width: isMobile ? "100%" : 150, padding: "8px" }} />
         </div>
         <button onClick={() => { setSearch(""); setMethodFilter(""); setDateFrom(""); setDateTo(""); }}
-          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14 }}>
+          style={{ ...filterStyle, color: "var(--text-secondary)", cursor: "pointer", ...(isMobile ? { gridColumn: 2, gridRow: 2 } : null) }}>
           ✕ Limpar
         </button>
       </div>
@@ -331,7 +347,32 @@ export default function PaymentsPage({ user }) {
       {error && <p style={{ color: "var(--c-danger)", fontSize: 14, marginBottom: 16 }}>{error}</p>}
 
       {/* Payments Table */}
-      <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+      <div style={{ background: "var(--bg-card)", borderRadius: isMobile ? 12 : 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
+        {isMobile ? (
+          <div>
+            {filtered.map((p) => (
+              <div key={p.id} style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-heading)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.member.user.name}</span>
+                  <span style={{ fontWeight: 700, color: "var(--c-success)", whiteSpace: "nowrap" }}>{formatCurrency(p.paidAmount)}</span>
+                </div>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
+                  {formatDate(p.date)} · <span style={{ fontFamily: "monospace" }}>{p.receiptNumber}</span> · {METHOD_ICONS[p.method]} {METHOD_LABELS[p.method] || p.method}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--text-primary)", marginTop: 2 }}>
+                  {p.membership
+                    ? `Quota ${p.membership.year} — ${formatCurrency(p.membership.amount)} (${membershipStatusLabel(p.membership.status)})`
+                    : p.notes ? (p.notes.length > 80 ? p.notes.slice(0, 80) + "…" : p.notes) : "Outro pagamento"}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => openApiFile(`/api/payments/${p.id}/receipt`).catch((err) => alert(err.message))} style={mobileActionStyle}>Recibo</button>
+                  <button onClick={() => setEditPayment(p)} style={{ ...mobileActionStyle, color: "var(--c-brand-text)" }}>Editar</button>
+                  <button onClick={() => handleDelete(p.id)} aria-label="Eliminar pagamento" title="Eliminar" style={{ ...mobileActionStyle, marginLeft: "auto" }}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
@@ -393,6 +434,7 @@ export default function PaymentsPage({ user }) {
             ))}
           </tbody>
         </table>
+        )}
         {filtered.length === 0 && (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
             Nenhum pagamento encontrado para os filtros atuais.
@@ -410,11 +452,11 @@ export default function PaymentsPage({ user }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowModal(false)}>
-          <div style={{ background: "var(--bg-modal)", borderRadius: 16, padding: 24, margin: 16, width: 460, maxHeight: "85vh", overflow: "auto" }}
+          <div style={{ background: "var(--bg-modal)", borderRadius: 16, padding: isMobile ? 16 : 24, margin: isMobile ? 12 : 16, width: 460, maxWidth: "100%", maxHeight: "85vh", overflow: "auto", boxSizing: "border-box" }}
             onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: "var(--text-heading)" }}>Registar Pagamento</h2>
             <form onSubmit={handleSubmit}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: twoCols, gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sócio</span>
                   <select value={formMemberId} onChange={(e) => selectMember(e.target.value)}
@@ -442,14 +484,14 @@ export default function PaymentsPage({ user }) {
                   </label>
                 )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: twoCols, gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Valor (€)</span>
                   <input type="number" step="0.01" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} required
                     style={inputStyle} />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: twoCols, gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Data/Hora</span>
                   <DatePicker {...dateTimePickerProps} selected={strToDate(formDate)} onChange={(d) => setFormDate(dateToStr(d))} required
@@ -501,10 +543,10 @@ export default function PaymentsPage({ user }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setEditPayment(null)}>
-          <div style={{ background: "var(--bg-modal)", borderRadius: 16, padding: 24, margin: 16, width: 420 }}
+          <div style={{ background: "var(--bg-modal)", borderRadius: 16, padding: isMobile ? 16 : 24, margin: isMobile ? 12 : 16, width: 420, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxSizing: "border-box" }}
             onClick={(e) => e.stopPropagation()}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12, color: "var(--text-heading)" }}>Editar Pagamento {editPayment.receiptNumber}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: twoCols, gap: 12, marginBottom: 12 }}>
               <label>
                 <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sócio</span>
                 <select value={editMemberId} style={inputStyle}
@@ -578,18 +620,19 @@ export default function PaymentsPage({ user }) {
   );
 }
 
-function StatCard({ label, value, color }) {
+function StatCard({ label, value, color, compact = false }) {
   return (
-    <div style={{ background: "var(--bg-card)", borderRadius: 12, padding: 16, border: "1px solid var(--border-subtle)" }}>
-      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color }}>{value}</div>
+    <div style={{ background: "var(--bg-card)", borderRadius: 12, padding: compact ? "10px 12px" : 16, border: "1px solid var(--border-subtle)", minWidth: 0 }}>
+      <div style={{ fontSize: compact ? 11 : 12, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: compact ? 17 : 24, fontWeight: 700, color, whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 
 const thStyle = { padding: "10px 16px", fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 };
 const tdStyle = { padding: "10px 16px" };
-const inputStyle = {
+const mobileActionStyle = { padding: "6px 12px", minHeight: 34, borderRadius: 8, border: "1px solid var(--border-subtle)", background: "transparent", color: "var(--text-primary)", cursor: "pointer", fontSize: 13, fontWeight: 500 };
+const baseInputStyle = {
   width: "100%", padding: "8px 12px", borderRadius: 8,
   border: "1px solid var(--border-subtle)", background: "var(--bg-card)",
   color: "var(--text-primary)", fontSize: 14, boxSizing: "border-box",
