@@ -59,6 +59,16 @@ async function sendOne(subscription, body) {
   }
 }
 
+// Identifies a device in the logs without printing the whole endpoint: push service host,
+// the end of the endpoint and the browser from the user agent.
+function deviceLabel(subscription) {
+  let host = "?";
+  try { host = new URL(subscription.endpoint).host; } catch { /* keep "?" */ }
+  const ua = subscription.userAgent || "";
+  const browser = /Android/.test(ua) ? "Android" : /Windows|Macintosh|Linux/.test(ua) ? "PC" : "?";
+  return `[${browser} ${host} …${subscription.endpoint.slice(-8)}]`;
+}
+
 const payloadBody = (payload) => JSON.stringify({ title: payload.title || CLUB_NAME, ...payload });
 
 // Sends `payload` ({ title, body, url, tag }) to every subscription of the active
@@ -68,11 +78,14 @@ export async function sendToUsers(userWhere, payload) {
   try {
     const subscriptions = await prisma.pushSubscription.findMany({
       where: { user: { status: "active", ...userWhere } },
+      include: { user: { select: { name: true } } },
     });
     const body = payloadBody(payload);
     let sent = 0;
     for (const s of subscriptions) {
-      if ((await sendOne(s, body)).ok) sent++;
+      const result = await sendOne(s, body);
+      if (result.ok) sent++;
+      console.log(`[Push] ${payload.tag || ""} -> ${s.user?.name || s.userId} ${deviceLabel(s)}: ${result.ok ? "ok" : "falhou"} ${result.statusCode || ""}`);
     }
     return sent;
   } catch (err) {
@@ -83,10 +96,14 @@ export async function sendToUsers(userWhere, payload) {
 
 // Test notification to the user's own devices, with each push service's answer.
 export async function sendTest(userId) {
-  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId }, include: { user: { select: { name: true } } } });
   const body = payloadBody({ title: "Notificação de teste", body: "Se estás a ver isto, as notificações funcionam.", url: "/profile", tag: "test" });
   const results = [];
-  for (const s of subscriptions) results.push(await sendOne(s, body));
+  for (const s of subscriptions) {
+    const result = await sendOne(s, body);
+    console.log(`[Push] test -> ${s.user?.name || userId} ${deviceLabel(s)}: ${result.ok ? "ok" : "falhou"} ${result.statusCode || ""}`);
+    results.push(result);
+  }
   return results;
 }
 
