@@ -1,26 +1,53 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 const V = (name) => `var(${name})`;
 
-function Reveal({ children, delay = 0 }) {
+const MAIL = "mailto:alvercaurbanrunners@gmail.com";
+const MAIL_TRIAL = `${MAIL}?subject=${encodeURIComponent("Quero experimentar um treino")}`;
+
+// Fades its content in when it scrolls into view (immediately without IntersectionObserver
+// or when the user prefers reduced motion).
+function Reveal({ children, delay = 0, as: Tag = "div", style }) {
+  const ref = useRef(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(timer);
+    const el = ref.current;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!el || reduced || !("IntersectionObserver" in window)) {
+      setVisible(true);
+      return undefined;
+    }
+    let timer;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          timer = setTimeout(() => setVisible(true), delay);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, [delay]);
 
   return (
-    <div
+    <Tag
+      ref={ref}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(20px)",
         transition: "opacity 650ms ease, transform 650ms ease",
+        ...style,
       }}
     >
       {children}
-    </div>
+    </Tag>
   );
 }
 
@@ -114,14 +141,29 @@ export default function AboutPage() {
   // The hero has a dark photo background in both themes, so it always uses the light-on-dark logo.
   const logoSrc = "/logo.png";
 
-  const feed = useMemo(
-    () => [
-      "Terça de séries progressivas com 30+ atletas em pista.",
-      "Nova estreia em 10K: celebração total na meta.",
-      "Trail de domingo com sunrise run e café de equipa no final.",
-    ],
-    [],
-  );
+  // Mobile: a "try a training" bar once the hero is out of view, hidden near the final call to action
+  // and for logged-in users.
+  const heroRef = useRef(null);
+  const finalRef = useRef(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  useEffect(() => {
+    let loggedIn = false;
+    try { loggedIn = Boolean(localStorage.getItem("token")); } catch { /* storage blocked */ }
+    if (loggedIn) return undefined;
+    const onScroll = () => {
+      const hero = heroRef.current?.getBoundingClientRect();
+      const final = finalRef.current?.getBoundingClientRect();
+      if (!hero || !final) return;
+      setShowStickyCta(hero.bottom < 0 && final.top > window.innerHeight);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   return (
     <div
@@ -144,6 +186,31 @@ export default function AboutPage() {
           50% { opacity: 0.75; transform: scaleY(1.08); }
           100% { opacity: 0.35; transform: scaleY(1); }
         }
+        .about-stats { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+        .about-steps { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); counter-reset: step; }
+        .about-mosaic { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); margin-top: 24px; }
+        .about-mosaic img { display: block; width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; }
+        .about-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+        .about-chips li { padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff;
+          background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.28); }
+        .about-sticky-cta { display: none; }
+        @media (max-width: 860px) {
+          .about-stats { grid-template-columns: repeat(2, 1fr); }
+          .about-steps { grid-template-columns: 1fr; }
+          .about-mosaic { grid-template-columns: 1fr 1fr; }
+          .about-mosaic img:first-child { grid-column: 1 / -1; aspect-ratio: 3 / 2; }
+          .about-sticky-cta {
+            display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            background: var(--bg-header); border-top: 1px solid var(--border-subtle);
+            box-shadow: 0 -6px 20px var(--shadow-dropdown);
+            transform: translateY(110%); transition: transform 250ms ease;
+          }
+          .about-sticky-cta.visible { transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .about-sticky-cta { transition: none; }
+        }
         @media (max-width: 860px) {
           .about-wrapper {
             margin-left: -16px;
@@ -156,6 +223,7 @@ export default function AboutPage() {
       `}</style>
 
       <section
+        ref={heroRef}
         className="about-wrapper"
         style={{
           position: "relative",
@@ -213,7 +281,7 @@ export default function AboutPage() {
           <Reveal delay={220}>
             <p
               style={{
-                margin: "0 0 32px",
+                margin: "0 0 20px",
                 maxWidth: 720,
                 color: "rgba(255,255,255,0.88)",
                 lineHeight: 1.72,
@@ -223,11 +291,17 @@ export default function AboutPage() {
               Em Alverca, cada treino é um passo para mais saúde, mais confiança e mais comunidade.
               Somos energia em movimento para todos os níveis.
             </p>
+            <ul className="about-chips">
+              <li>Terças e quintas</li>
+              <li>Todos os níveis</li>
+              <li>Grupos por ritmo</li>
+              <li>Desde 2014</li>
+            </ul>
           </Reveal>
           <Reveal delay={320}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link
-                to="/register"
+              <a
+                href="#comecar"
                 style={{
                   textDecoration: "none",
                   background: "#CC3333",
@@ -247,15 +321,15 @@ export default function AboutPage() {
                   e.currentTarget.style.background = "#CC3333";
                 }}
               >
-                Junta-te a nós
-              </Link>
+                Experimenta um treino
+              </a>
               <ActionButton
-                href="mailto:alvercaurbanrunners@gmail.com"
+                href={MAIL}
                 style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.7)", background: "transparent" }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.7)")}
               >
-                Vem treinar
+                Fala connosco
               </ActionButton>
             </div>
           </Reveal>
@@ -272,7 +346,7 @@ export default function AboutPage() {
             />
           </Reveal>
           <Reveal delay={100}>
-            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+            <div className="about-stats">
               {[
                 { value: "2014", label: "Origem orgânica" },
                 { value: "50+", label: "Participantes ativos" },
@@ -403,6 +477,62 @@ export default function AboutPage() {
         </div>
       </section>
 
+      <section id="comecar" className="about-section" style={{ padding: "82px 24px", background: V("--bg-page"), scrollMarginTop: 72 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Como começar"
+              title="O primeiro treino é o mais fácil."
+              subtitle="Não precisas de experiência nem de ritmo certo. Só de vontade de aparecer."
+            />
+          </Reveal>
+          <ol className="about-steps" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {[
+              { title: "Fala connosco", text: "Envia-nos um e-mail ou uma mensagem nas redes sociais. Dizemos-te onde e a que horas é o próximo treino." },
+              { title: "Aparece num treino", text: "Às terças ou quintas, com sapatilhas e água. Os grupos são por ritmo, por isso ninguém fica para trás." },
+              { title: "Fica connosco", text: "Gostaste? Torna-te sócio, cria a tua conta e acompanha os treinos, provas e eventos no calendário do clube." },
+            ].map((step, idx) => (
+              <Reveal
+                as="li"
+                delay={idx * 100 + 80}
+                key={step.title}
+                style={{
+                  boxSizing: "border-box",
+                  borderRadius: 16,
+                  padding: 22,
+                  background: V("--bg-card"),
+                  border: `1px solid ${V("--border-subtle")}`,
+                }}
+              >
+                  <span
+                    aria-hidden
+                    style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 40, height: 40, borderRadius: 999, marginBottom: 14,
+                      background: "#CC3333", color: "#fff", fontWeight: 800, fontSize: 18,
+                      fontFamily: "Oswald, Inter, system-ui, sans-serif",
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <h3 style={{ margin: "0 0 8px", color: V("--text-heading"), fontSize: 20, fontWeight: 700 }}>{step.title}</h3>
+                  <p style={{ margin: 0, color: V("--text-secondary"), lineHeight: 1.65 }}>{step.text}</p>
+              </Reveal>
+            ))}
+          </ol>
+          <Reveal delay={200}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginTop: 24 }}>
+              <ActionButton href={MAIL_TRIAL} style={{ background: "#CC3333", color: "#fff", border: "2px solid #CC3333" }}>
+                Quero experimentar um treino
+              </ActionButton>
+              <Link to="/register" style={{ color: V("--c-accent"), fontWeight: 700, textDecoration: "none", padding: "13px 8px" }}>
+                Já és do clube? Cria a tua conta →
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       <section
         className="about-section"
         style={{ padding: "84px 24px", background: "linear-gradient(180deg, #0D2137 0%, #0A1727 100%)" }}
@@ -427,7 +557,6 @@ export default function AboutPage() {
                   style={{
                     borderRadius: 14,
                     padding: 22,
-                    minHeight: 148,
                     background: "rgba(11,26,43,0.9)",
                     border: "1px solid rgba(255,255,255,0.14)",
                     color: "rgba(255,255,255,0.92)",
@@ -440,7 +569,11 @@ export default function AboutPage() {
             ))}
           </div>
           <Reveal delay={200}>
-            <SectionPhoto src="/fotos/energia-brinde.jpg" alt="Brinde em roda depois de um treino, visto de baixo" />
+            <div className="about-mosaic">
+              <img src="/fotos/mosaico-brinde.jpg" alt="Brinde em roda depois de um treino, visto de baixo" width={800} height={800} loading="lazy" />
+              <img src="/fotos/mosaico-serra.jpg" alt="Grupo de atletas no alto da serra ao pôr do sol" width={800} height={800} loading="lazy" />
+              <img src="/fotos/mosaico-pelourinho.jpg" alt="Atletas do clube junto ao pelourinho, em frente à Câmara Municipal" width={800} height={800} loading="lazy" />
+            </div>
           </Reveal>
         </div>
       </section>
@@ -525,15 +658,21 @@ export default function AboutPage() {
               <Reveal delay={idx * 80 + 90} key={item}>
                 <article
                   style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    height: "100%",
+                    boxSizing: "border-box",
                     borderRadius: 14,
                     padding: 18,
                     border: `1px solid ${V("--border-subtle")}`,
-                    background: V("--bg-card"),
-                    color: V("--text-secondary"),
-                    lineHeight: 1.65,
+                    background: V("--bg-page"),
+                    color: V("--text-primary"),
+                    lineHeight: 1.6,
                   }}
                 >
-                  {item}
+                  <span aria-hidden style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 999, background: "#CC3333", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>✓</span>
+                  <span>{item}</span>
                 </article>
               </Reveal>
             ))}
@@ -592,49 +731,20 @@ export default function AboutPage() {
                 <p style={{ margin: 0, color: V("--text-secondary") }}>instagram.com/alvercaurbanrunners</p>
               </a>
             </Reveal>
-            <Reveal delay={220}>
-              <article
-                style={{
-                  border: `1px solid ${V("--border-subtle")}`,
-                  borderRadius: 14,
-                  padding: 20,
-                  background: V("--bg-card"),
-                }}
-              >
-                <p style={{ margin: "0 0 12px", color: V("--text-heading"), fontWeight: 700 }}>
-                  Feed dinâmico (simulação)
-                </p>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {feed.map((post) => (
-                    <p
-                      key={post}
-                      style={{
-                        margin: 0,
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        background: "rgba(54,194,206,0.08)",
-                        color: V("--text-secondary"),
-                        fontSize: 14,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {post}
-                    </p>
-                  ))}
-                </div>
-              </article>
-            </Reveal>
           </div>
         </div>
       </section>
 
       <section
+        ref={finalRef}
         className="about-section"
         style={{
           position: "relative",
-          padding: "94px 24px",
+          padding: "110px 24px",
           textAlign: "center",
-          background: "linear-gradient(130deg, #CC3333 0%, #8E1515 100%)",
+          backgroundImage: "linear-gradient(130deg, rgba(204,51,51,0.84) 0%, rgba(110,14,14,0.88) 100%), url('/fotos/cta-miradouro.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
         <div
@@ -677,8 +787,8 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={200}>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link
-                to="/register"
+              <a
+                href={MAIL_TRIAL}
                 style={{
                   textDecoration: "none",
                   background: "#fff",
@@ -691,20 +801,28 @@ export default function AboutPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-3px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
               >
-                Participar num treino
-              </Link>
-              <ActionButton
-                href="mailto:alvercaurbanrunners@gmail.com"
-                style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.84)", background: "transparent" }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.84)")}
+                Quero experimentar um treino
+              </a>
+              <Link
+                to="/register"
+                style={{ textDecoration: "none", color: "#fff", border: "2px solid rgba(255,255,255,0.84)", background: "transparent", padding: "13px 24px", borderRadius: 999, fontWeight: 800 }}
               >
-                Falar connosco
-              </ActionButton>
+                Criar conta
+              </Link>
             </div>
           </Reveal>
         </div>
       </section>
+
+      <div className={`about-sticky-cta${showStickyCta ? " visible" : ""}`} aria-hidden={!showStickyCta}>
+        <a
+          href="#comecar"
+          tabIndex={showStickyCta ? 0 : -1}
+          style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#CC3333", color: "#fff", fontWeight: 800, padding: "14px 16px", borderRadius: 999, fontSize: 16 }}
+        >
+          Experimenta um treino connosco
+        </a>
+      </div>
     </div>
   );
 }
