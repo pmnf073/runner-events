@@ -9,8 +9,8 @@ const MAIL_TRIAL = `${MAIL}?subject=${encodeURIComponent("Quero experimentar um 
 
 // Regular trainings (confirmed by the club, 2026-11-08). Always free.
 const TRAINING_SPOTS = [
-  { day: "Terça-feira", time: "19h30", map: "https://maps.app.goo.gl/ELgTi1p1pkawvZ1r6" },
-  { day: "Quinta-feira", time: "19h30", map: "https://maps.app.goo.gl/8fU4iEwNDztSTandA" },
+  { day: "Terça-feira", place: "Jardim do Choupal", time: "19h30", map: "https://maps.app.goo.gl/ELgTi1p1pkawvZ1r6" },
+  { day: "Quinta-feira", place: "Praça central da Malvarosa", time: "19h30", map: "https://maps.app.goo.gl/8fU4iEwNDztSTandA" },
 ];
 
 const FAQ = [
@@ -575,9 +575,10 @@ export default function AboutPage() {
                   <span aria-hidden style={{ fontSize: 28 }}>📍</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ display: "block", color: V("--text-heading"), fontWeight: 700, fontSize: 18 }}>{spot.day}</span>
+                    <span style={{ display: "block", color: V("--text-primary"), fontWeight: 600, marginTop: 2 }}>{spot.place}</span>
                     <span style={{ display: "block", color: V("--text-secondary"), marginTop: 2 }}>{spot.time} · treino gratuito</span>
                   </span>
-                  <span style={{ color: V("--c-accent"), fontWeight: 700, whiteSpace: "nowrap" }}>Ver no mapa →</span>
+                  <span style={{ color: V("--c-accent"), fontWeight: 700, whiteSpace: "nowrap" }}>Mapa →</span>
                 </a>
               ))}
             </div>
