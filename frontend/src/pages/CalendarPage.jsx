@@ -6,10 +6,10 @@ import TrainingHighlights from "../components/TrainingHighlights";
 
 const EVENT_COLORS = {
   trail: { border: "#10b981", bg: "rgba(16,185,129,0.1)", text: "#6ee7b7", dot: "#10b981" },
-  urban: { border: "#CC3333", bg: "rgba(204,51,51,0.1)", text: "#E55555", dot: "#CC3333" },
+  urban: { border: "#3b82f6", bg: "rgba(59,130,246,0.12)", text: "#93c5fd", dot: "#3b82f6" },
   race: { border: "#CC3333", bg: "rgba(204,51,51,0.15)", text: "#E55555", dot: "#CC3333" },
   training: { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", text: "#fcd34d", dot: "#f59e0b" },
-  social: { border: "#CC7777", bg: "rgba(204,119,119,0.1)", text: "#CC7777", dot: "#CC7777" },
+  social: { border: "#a855f7", bg: "rgba(168,85,247,0.12)", text: "#d8b4fe", dot: "#a855f7" },
   meeting: { border: "#6b7280", bg: "rgba(107,114,128,0.1)", text: "#9ca3af", dot: "#6b7280" },
 };
 
@@ -18,13 +18,16 @@ const SEARCH_MONTHS_BACK = 12;
 const SEARCH_MONTHS_AHEAD = 24;
 const SEARCH_LIMIT = 50;
 
+const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const MONTHS_LOWER = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
 const EVENT_LABELS = {
   trail: "Trilho",
   urban: "Urbano",
   race: "Prova",
   training: "Treino",
   social: "Social",
-  meeting: "Reuniao",
+  meeting: "Reunião",
 };
 
 export default function CalendarPage({ user }) {
@@ -33,6 +36,10 @@ export default function CalendarPage({ user }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [showPastDays, setShowPastDays] = useState(false);
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [isMobile, setIsMobile] = useState(false);
   const [search, setSearch] = useState("");
@@ -55,11 +62,21 @@ export default function CalendarPage({ user }) {
     const end = new Date(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1).getTime() - 1).toISOString();
     const params = new URLSearchParams({ start, end });
     if (filter !== "all") params.set("type", filter);
+    // Ignore answers for a month or filter that is no longer selected.
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     api(`/api/events?${params}`)
-      .then((r) => r.json())
-      .then(setEvents)
-      .finally(() => setLoading(false));
-  }, [currentDate, filter]);
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data) => {
+        if (cancelled) return;
+        if (!Array.isArray(data)) throw new Error("Resposta inesperada");
+        setEvents(data);
+      })
+      .catch(() => { if (!cancelled) { setEvents([]); setLoadError(true); } })
+      .finally(() => { if (!cancelled) { setLoading(false); setFirstLoadDone(true); } });
+    return () => { cancelled = true; };
+  }, [currentDate, filter, reloadKey]);
 
   // Search across months, independently of the month being shown. Debounced so
   // that typing does not fire one request per key; stale answers are ignored.
@@ -100,12 +117,12 @@ export default function CalendarPage({ user }) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const monthNames = [
-    "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => { setShowPastDays(false); setCurrentDate(new Date(year, month - 1, 1)); };
+  const nextMonth = () => { setShowPastDays(false); setCurrentDate(new Date(year, month + 1, 1)); };
 
   const handleDayClick = (day) => {
     if (!user || !["admin", "organizer"].includes(user.role)) return;
@@ -126,6 +143,15 @@ export default function CalendarPage({ user }) {
   }, {});
 
   const sortedDates = Object.keys(groupedEvents).sort();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthDates = sortedDates.filter((d) => d.startsWith(monthPrefix));
+  // In the current month, days already gone are folded away so the list opens on today.
+  const isCurrentMonth = todayStr.startsWith(monthPrefix);
+  const pastDates = isCurrentMonth ? monthDates.filter((d) => d < todayStr) : [];
+  const pastEventCount = pastDates.reduce((n, d) => n + groupedEvents[d].length, 0);
+  const visibleDates = showPastDays ? monthDates : monthDates.filter((d) => !pastDates.includes(d));
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const tomorrowStr = localDateKey(tomorrow);
 
   function formatDate(dateStr) {
     const d = new Date(dateStr + "T00:00:00");
@@ -135,6 +161,10 @@ export default function CalendarPage({ user }) {
     return {
       day: d.getDate(),
       full: `${dd}/${mm}/${yyyy}`,
+      // "Terça, 10 de novembro"
+      long: `${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS_LOWER[d.getMonth()]}`,
+      // "Ter, 10/11/2026"
+      short: `${WEEKDAYS[d.getDay()].slice(0, 3)}, ${dd}/${mm}/${yyyy}`,
     };
   }
 
@@ -168,9 +198,9 @@ export default function CalendarPage({ user }) {
 
       {/* Title + Filter + View toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
-        <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendario de Eventos</h1>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+        <h1 style={{ fontSize: 14, color: cssVar("--text-heading"), textTransform: "uppercase", letterSpacing: 2, margin: 0 }}>Calendário de Eventos</h1>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: isMobile ? "nowrap" : "wrap", width: isMobile ? "100%" : "auto" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", flex: isMobile ? "1 1 auto" : "0 0 auto", minWidth: 0 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               style={{ position: "absolute", left: 10, color: cssVar("--text-muted"), pointerEvents: "none" }} aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
@@ -181,10 +211,10 @@ export default function CalendarPage({ user }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") setSearch(""); }}
-              placeholder="Pesquisar eventos..."
+              placeholder={isMobile ? "Pesquisar..." : "Pesquisar eventos..."}
               aria-label="Pesquisar eventos por nome, local ou data"
               maxLength={100}
-              style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px 8px 32px", fontSize: 14, color: cssVar("--text-primary"), width: isMobile ? "min(100%, 320px)" : 240, minWidth: 0 }}
+              style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px 8px 32px", fontSize: isMobile ? 16 : 14, color: cssVar("--text-primary"), width: isMobile ? "100%" : 240, minWidth: 0, minHeight: 40, boxSizing: "border-box" }}
             />
           </div>
           {!isMobile && (
@@ -203,7 +233,8 @@ export default function CalendarPage({ user }) {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px", fontSize: 14, color: cssVar("--text-primary"), cursor: "pointer" }}
+            aria-label="Filtrar por tipo de evento"
+            style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 12px", fontSize: isMobile ? 16 : 14, color: cssVar("--text-primary"), cursor: "pointer", minHeight: 40, flex: "0 0 auto" }}
           >
             <option value="all">Todos os tipos</option>
             {Object.entries(EVENT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -255,7 +286,7 @@ export default function CalendarPage({ user }) {
                         </span>
                       </div>
                       <div className="calendar-list-event-meta">
-                        <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatDate(localDateKey(event.date)).full} {formatEventTime(event.date)}</span>
+                        <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatDate(localDateKey(event.date)).short} {formatEventTime(event.date)}</span>
                         <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: ec.bg, color: ec.text, fontWeight: 500 }}>
                           {EVENT_LABELS[event.type] || event.type}
                         </span>
@@ -277,14 +308,23 @@ export default function CalendarPage({ user }) {
       {!isSearching && (<>
       {/* Month navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <button onClick={prevMonth}
+        <button onClick={prevMonth} aria-label="Mês anterior"
           style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 18, color: cssVar("--text-primary"), cursor: "pointer" }}>&larr;</button>
         <h2 style={{ fontSize: 18, fontWeight: 600, color: cssVar("--text-primary") }}>{monthNames[month]} {year}</h2>
-        <button onClick={nextMonth}
+        <button onClick={nextMonth} aria-label="Mês seguinte"
           style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 18, color: cssVar("--text-primary"), cursor: "pointer" }}>&rarr;</button>
       </div>
 
       {/* GRID VIEW */}
+      {effectiveViewMode === "grid" && loadError && (
+        <div style={{ marginBottom: 12, color: cssVar("--text-muted"), display: "flex", gap: 12, alignItems: "center" }}>
+          <span>Não foi possível carregar os eventos.</span>
+          <button onClick={() => setReloadKey((k) => k + 1)}
+            style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: cssVar("--text-primary"), cursor: "pointer" }}>
+            Tentar novamente
+          </button>
+        </div>
+      )}
       {effectiveViewMode === "grid" && (
         <div className="calendar-grid" style={{ border: `1px solid ${cssVar("--border-subtle")}` }}>
           {["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].map((d) => (
@@ -321,18 +361,40 @@ export default function CalendarPage({ user }) {
 
       {/* LIST VIEW */}
       {effectiveViewMode === "list" && (
-        <div className="calendar-list">
-          {sortedDates.filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`)).length === 0 ? (
-            <div style={{ textAlign: "center", padding: 48, color: cssVar("--text-muted") }}>Sem eventos este mes</div>
-          ) : (
-            sortedDates
-              .filter(d => d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`))
-              .map((dateStr) => {
+        <div className="calendar-list" style={{ opacity: loading ? 0.5 : 1, transition: "opacity 0.2s" }}>
+          {loadError ? (
+            <div style={{ textAlign: "center", padding: 32, color: cssVar("--text-muted"), display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <span>Não foi possível carregar os eventos.</span>
+              <button onClick={() => setReloadKey((k) => k + 1)}
+                style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 14, color: cssVar("--text-primary"), cursor: "pointer", minHeight: 40 }}>
+                Tentar novamente
+              </button>
+            </div>
+          ) : monthDates.length === 0 ? (
+            !loading && <div style={{ textAlign: "center", padding: 48, color: cssVar("--text-muted") }}>Sem eventos este mês</div>
+          ) : (<>
+            {pastEventCount > 0 && (
+              <button type="button" className="calendar-past-toggle" onClick={() => setShowPastDays((v) => !v)}
+                style={{ background: "transparent", border: `1px dashed ${cssVar("--border-subtle")}`, color: cssVar("--text-secondary") }}>
+                {showPastDays
+                  ? "Esconder eventos anteriores"
+                  : `Mostrar ${pastEventCount} ${pastEventCount === 1 ? "evento anterior" : "eventos anteriores"} deste mês`}
+              </button>
+            )}
+            {visibleDates.length === 0 && (
+              <div style={{ textAlign: "center", padding: 32, color: cssVar("--text-muted") }}>Sem mais eventos este mês</div>
+            )}
+            {visibleDates.map((dateStr) => {
                 const info = formatDate(dateStr);
+                const isToday = dateStr === todayStr;
+                const isPast = dateStr < todayStr;
+                const relative = isToday ? "Hoje" : dateStr === tomorrowStr ? "Amanhã" : null;
                 return (
-                  <div key={dateStr} className="calendar-list-day" style={{ background: cssVar("--bg-card"), border: `1px solid ${cssVar("--border-subtle")}` }}>
+                  <div key={dateStr} className={`calendar-list-day${isPast ? " is-past" : ""}`}
+                    style={{ background: cssVar("--bg-card"), border: `1px solid ${isToday ? "#CC3333" : cssVar("--border-subtle")}` }}>
                     <div className="calendar-list-date" style={{ background: cssVar("--calendar-today-bg") }}>
-                      <span>{info.full}</span>
+                      <span>{info.long}</span>
+                      {relative && <em className="calendar-list-relative">{relative}</em>}
                     </div>
                     {groupedEvents[dateStr].map((event) => {
                       const ec = EVENT_COLORS[event.type] || EVENT_COLORS.meeting;
@@ -343,11 +405,14 @@ export default function CalendarPage({ user }) {
                           onMouseEnter={e => e.currentTarget.style.background = cssVar("--hover-bg")}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <div className="calendar-list-event-main">
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0 }}></span>
-                            <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
+                            <span className="calendar-list-event-time" style={{ color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: ec.dot, flexShrink: 0, marginTop: 6 }}></span>
+                            <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                              <span className="calendar-list-event-title" style={{ color: cssVar("--text-primary") }}>{event.title}</span>
+                              {event.location && <span style={{ fontSize: 12, color: cssVar("--text-muted") }}>{event.location}</span>}
+                            </span>
                           </div>
                           <div className="calendar-list-event-meta">
-                            <span style={{ fontSize: 13, color: cssVar("--text-secondary") }}>{formatEventTime(event.date)}</span>
                             <span style={{
                               fontSize: 11,
                               padding: "4px 10px",
@@ -364,15 +429,15 @@ export default function CalendarPage({ user }) {
                     })}
                   </div>
                 );
-              })
-          )}
+              })}
+          </>)}
         </div>
       )}
 
       </>)}
 
       {/* Loading overlay */}
-      {loading && (
+      {loading && !firstLoadDone && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
           <div style={{ background: cssVar("--bg-header"), borderRadius: 12, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             <div className="animate-spin" style={{ width: 32, height: 32, borderRadius: "50%", borderTop: "2px solid #CC3333" }}></div>
