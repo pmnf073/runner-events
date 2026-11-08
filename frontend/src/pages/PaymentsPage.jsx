@@ -2,7 +2,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { openApiFile } from "../services/api";
 import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/format";
-import DateInput from "../components/DateInput";
+import DatePicker from "react-datepicker";
+import { format } from "date-fns";
+import DateInput, { CalendarIcon } from "../components/DateInput";
+
+// Payment date/time strings are "YYYY-MM-DDTHH:mm"; the picker works on a Date with the same wall-clock fields.
+const strToDate = (s) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(s || "");
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) : null;
+};
+const dateToStr = (d) => (d ? format(d, "yyyy-MM-dd'T'HH:mm") : "");
+const dateTimePickerProps = {
+  locale: "pt", showTimeSelect: true, timeFormat: "HH:mm", timeIntervals: 5, timeCaption: "Hora",
+  dateFormat: "dd/MM/yyyy HH:mm", placeholderText: "dd/mm/aaaa hh:mm",
+  showIcon: true, icon: <CalendarIcon size={16} />, toggleCalendarOnIconClick: true,
+};
 
 const METHOD_LABELS = {
   transfer: "Transferência",
@@ -303,10 +317,10 @@ export default function PaymentsPage({ user }) {
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <DateInput value={dateFrom} onChange={setDateFrom}
-            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
           <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>até</span>
           <DateInput value={dateTo} onChange={setDateTo}
-            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+            style={{ width: 150, padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
         </div>
         <button onClick={() => { setSearch(""); setMethodFilter(""); setDateFrom(""); setDateTo(""); }}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14 }}>
@@ -438,8 +452,8 @@ export default function PaymentsPage({ user }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Data/Hora</span>
-                  <input type="datetime-local" value={formDate} onChange={(e) => setFormDate(e.target.value)} required
-                    style={inputStyle} />
+                  <DatePicker {...dateTimePickerProps} selected={strToDate(formDate)} onChange={(d) => setFormDate(dateToStr(d))} required
+                    customInput={<input style={{ ...inputStyle, paddingLeft: 36 }} />} />
                 </label>
                 <label>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Método</span>
@@ -524,8 +538,8 @@ export default function PaymentsPage({ user }) {
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Data/Hora</label>
-              <input type="datetime-local" value={editDate.slice(0, 16)} onChange={(e) => setEditDate(e.target.value)}
-                style={inputStyle} />
+              <DatePicker {...dateTimePickerProps} selected={strToDate(editDate)} onChange={(d) => setEditDate(dateToStr(d))}
+                customInput={<input style={{ ...inputStyle, paddingLeft: 36 }} />} />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Método</label>

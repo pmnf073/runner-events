@@ -122,7 +122,7 @@ export default function ProfilePage({ user, setUser }) {
           {field("altContact", "Contacto alternativo")}
           <div>
             <label style={labelStyle}>Data de nascimento</label>
-            <DateInput value={form.dob} onChange={(dob) => setForm({ ...form, dob })} style={inputStyle} />
+            <DateInput birthDate value={form.dob} onChange={(dob) => setForm({ ...form, dob })} style={inputStyle} />
           </div>
           {field("nif", "NIF (para os recibos)", { inputMode: "numeric", maxLength: 9 })}
           <div style={{ gridColumn: "1 / -1" }}>{field("address", "Morada")}</div>
