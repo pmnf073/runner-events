@@ -593,7 +593,7 @@ body.has-action-bar {
 .site-main { margin: 0 var(--main-gutter); padding: 24px 0; flex: 1; }
 
 @media (max-width: 768px) {
-  :root { --main-gutter: 16px; }
+  :root { --main-gutter: 12px; }
 
   .site-nav {
     margin: 0 12px;
