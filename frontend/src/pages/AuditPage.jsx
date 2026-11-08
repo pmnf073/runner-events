@@ -19,6 +19,8 @@ const ACTIONS = {
   "user.update": "Alterou utilizador",
   "user.delete": "Apagou utilizador",
   "announcement.send": "Enviou comunicação",
+  "rsvp.set": "Respondeu por outra pessoa",
+  "rsvp.remove": "Removeu resposta de outra pessoa",
 };
 
 const ENTITIES = {
@@ -28,6 +30,7 @@ const ENTITIES = {
   AnnualFeeConfig: "Anuidades",
   Membership: "Quotas",
   Announcement: "Comunicações",
+  Rsvp: "Participações",
 };
 
 const FIELDS = {
@@ -35,7 +38,7 @@ const FIELDS = {
   paidAmount: "Valor pago", date: "Data", method: "Método", reference: "Referência", notes: "Notas",
   membershipId: "Quota", memberId: "Sócio", year: "Ano", status: "Estado", role: "Papel", reason: "Motivo",
   subject: "Assunto", audience: "Destinatários", recipients: "Destinatários (n.º)", sent: "Enviados",
-  failed: "Falhados", skipped: "Ignorados", created: "Criadas", phone: "Telefone", nif: "NIF", name: "Nome",
+  failed: "Falhados", skipped: "Ignorados", created: "Criadas", phone: "Telefone", nif: "NIF", name: "Nome", userId: "Utilizador", event: "Evento",
 };
 const fieldLabel = (key) => FIELDS[key] || key;
 
