@@ -25,6 +25,13 @@ export function captureAppVersion() {
   window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
 }
 
+// versionCode of the installed Android app (the last number of "1.0.0.<n>"), or null
+// when the site was never opened from the app on this device.
+export function installedAppVersion() {
+  const version = storage.get(localStorage, VERSION_KEY);
+  return version && /^\d+$/.test(version) ? Number(version) : null;
+}
+
 // { version, apkUrl } of the newest app release, cached for the browser session.
 async function latestRelease() {
   const cached = storage.get(sessionStorage, CACHE_KEY);
@@ -45,7 +52,7 @@ export default function AppUpdateBanner() {
   const [update, setUpdate] = useState(null);
 
   useEffect(() => {
-    const installed = Number(storage.get(localStorage, VERSION_KEY));
+    const installed = installedAppVersion();
     if (!installed) return; // not opened from the Android app
     latestRelease()
       .then((latest) => {
