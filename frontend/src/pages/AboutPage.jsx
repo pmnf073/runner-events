@@ -24,6 +24,20 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
+// A photo below a section's content, 3:2, lazy-loaded.
+function SectionPhoto({ src, alt }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={1200}
+      height={800}
+      loading="lazy"
+      style={{ display: "block", width: "100%", height: "auto", maxHeight: 460, marginTop: 24, borderRadius: 16, objectFit: "cover" }}
+    />
+  );
+}
+
 // onDark: the section has its own dark background in both themes, so the text stays light.
 function SectionTitle({ tag, title, subtitle, onDark = false }) {
   return (
@@ -293,12 +307,12 @@ export default function AboutPage() {
           </Reveal>
           <Reveal delay={180}>
             <img
-              src="/IMG_20230122_093440.jpg"
-              alt="Atletas dos Alverca Urban Runners a correr junto ao Tejo"
-              width={1803}
-              height={889}
+              src="/fotos/quem-somos-ogma.jpg"
+              alt="Dezenas de atletas do clube junto ao mural da aviação em Alverca"
+              width={1200}
+              height={800}
               loading="lazy"
-              style={{ display: "block", width: "100%", height: "auto", marginTop: 24, borderRadius: 16, border: `1px solid ${V("--border-subtle")}` }}
+              style={{ display: "block", width: "100%", height: "auto", maxHeight: 460, marginTop: 24, borderRadius: 16, objectFit: "cover" }}
             />
           </Reveal>
         </div>
@@ -319,16 +333,22 @@ export default function AboutPage() {
                 title: "Treinos regulares",
                 text: "Terças e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os níveis.",
                 points: ["Iniciantes bem-vindos", "Progressão por objetivo", "Ambiente inclusivo"],
+                image: "/fotos/treinos-regulares-tejo.jpg",
+                alt: "Grupo a correr junto ao Tejo",
               },
               {
                 title: "Treinos especiais",
                 text: "Trilhos, desafios mensais e experiências fora da rotina para trabalhar resistência, técnica e mentalidade.",
                 points: ["Trail running", "Desafios por equipas", "Treinos sunrise"],
+                image: "/fotos/treinos-especiais-falesia.jpg",
+                alt: "Atletas no alto de uma falésia sobre o mar ao pôr do sol",
               },
               {
                 title: "Eventos",
                 text: "Destaque para o Trail Encostas de Xira e para a São Silvestre Pirata, além de participações em provas regionais.",
                 points: ["Trail Encostas de Xira", "São Silvestre Pirata", "Provas de estrada e trail"],
+                image: "/fotos/eventos-trail-encostas-xira.jpg",
+                alt: "Equipa de staff do Trail Encostas de Xira 2024",
               },
             ].map((card, idx) => (
               <Reveal delay={idx * 100 + 90} key={card.title}>
@@ -351,6 +371,14 @@ export default function AboutPage() {
                     e.currentTarget.style.borderColor = V("--border-subtle");
                   }}
                 >
+                  <img
+                    src={card.image}
+                    alt={card.alt}
+                    width={1200}
+                    height={800}
+                    loading="lazy"
+                    style={{ display: "block", width: "100%", height: "auto", borderRadius: 12, marginBottom: 18 }}
+                  />
                   <h3
                     style={{
                       margin: "0 0 10px",
@@ -411,6 +439,9 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+          <Reveal delay={200}>
+            <SectionPhoto src="/fotos/energia-brinde.jpg" alt="Brinde em roda depois de um treino, visto de baixo" />
+          </Reveal>
         </div>
       </section>
 
@@ -469,6 +500,9 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+          <Reveal delay={200}>
+            <SectionPhoto src="/fotos/conquistas-2600tr.jpg" alt="Atletas do clube com dorsal de prova junto a uma capela no alto da serra" />
+          </Reveal>
         </div>
       </section>
 
@@ -504,6 +538,9 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
+          <Reveal delay={200}>
+            <SectionPhoto src="/fotos/impacto-trail-familias.jpg" alt="Staff e participantes, com várias crianças, no Trail Encostas de Xira" />
+          </Reveal>
         </div>
       </section>
 
