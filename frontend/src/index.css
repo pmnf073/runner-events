@@ -292,6 +292,51 @@ body {
   cursor: pointer;
 }
 
+.calendar-rsvp-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  margin-left: 4px;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+
+/* Type filter on mobile: one row of buttons that scrolls sideways. */
+.calendar-type-chips {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin: -4px 0;
+  padding: 4px 0;
+}
+
+.calendar-type-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-type-chips button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.calendar-type-chips .event-dot {
+  margin-right: 0;
+}
+
 .calendar-list-event-time {
   flex: 0 0 auto;
   min-width: 44px;
