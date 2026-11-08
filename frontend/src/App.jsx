@@ -302,7 +302,7 @@ function AppInner() {
       <AppUpdateBanner />
 
       {/* Main */}
-      <main style={{ margin: "0 32px", padding: "24px 0", flex: 1 }}>
+      <main className="site-main">
         <Routes>
           <Route path="/" element={<AboutPage />} />
           <Route path="/calendar" element={<RequireAuth user={user}><CalendarPage user={user} /></RequireAuth>} />
