@@ -50,6 +50,21 @@
      de uma vez) e lembrete na vespera dos eventos a que o socio respondeu "Vou". Cada aviso e enviado
      uma vez (tabela `NotificationLog`). Quem desativar os emails no perfil nao recebe lembretes nem
      comunicacoes. Com o plano free a dormir, os avisos saem quando o servico acordar.
+
+   **Notificacoes push (opcional, app Android e browsers):**
+   ```
+   VAPID_PUBLIC_KEY=B...        # gerar uma vez: npx web-push generate-vapid-keys (dentro de backend/)
+   VAPID_PRIVATE_KEY=...
+   VAPID_SUBJECT=https://www.alvercaurbanrunners.pt   # ou mailto:...; contacto para os servicos de push
+   ```
+   - Sem as chaves, o perfil nao mostra a seccao Notificacoes e nada e enviado.
+   - Nao mudar as chaves depois de haver subscricoes: as existentes deixam de funcionar e cada pessoa
+     tem de voltar a ativar no perfil.
+   - Envia: novo evento (criado no site ou na sincronizacao do TeamUp; mais de 3 de uma vez viram um
+     resumo), lembrete aos socios no dia do treino a partir das 9h (so a quem ainda nao respondeu ao
+     RSVP) e lembrete ao staff para marcar presencas, de 15 min antes a 1 h depois do inicio. Os
+     lembretes correm de 10 em 10 minutos, por isso com o plano free so sao fiaveis com o workflow
+     keepalive ativo (variavel `BACKEND_URL` no GitHub).
    - O recibo em PDF e um comprovativo interno; nao substitui uma fatura-recibo certificada pela AT.
 5. **Migracoes:** aplicadas automaticamente pelo Build Command em cada deploy.
 6. Seedar admin: `SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... node prisma/seed.mjs`
