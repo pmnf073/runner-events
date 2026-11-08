@@ -94,7 +94,7 @@ export default function RegisterPage() {
           <div className="register-row">
             <div>
               <label htmlFor="reg-dob" style={labelStyle}>Data de nascimento</label>
-              <DateInput id="reg-dob" value={form.dob} onChange={(dob) => setForm((f) => ({ ...f, dob }))} autoComplete="bday" style={inputStyle} />
+              <DateInput id="reg-dob" birthDate value={form.dob} onChange={(dob) => setForm((f) => ({ ...f, dob }))} autoComplete="bday" style={inputStyle} />
             </div>
             <div>
               <label htmlFor="reg-nif" style={labelStyle}>NIF</label>
@@ -117,7 +117,7 @@ export default function RegisterPage() {
       </div>
       <style>{`
         .register-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        @media (max-width: 380px) { .register-row { grid-template-columns: 1fr; } }
+        @media (max-width: 420px) { .register-row { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );
