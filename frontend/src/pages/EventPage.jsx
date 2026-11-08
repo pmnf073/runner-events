@@ -14,6 +14,52 @@ const TYPE_LABELS = {
 };
 
 const V = (name) => `var(${name})`;
+const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+const RSVP_OPTIONS = [
+  { key: "going", label: "✅ Vou", active: "#059669" },
+  { key: "maybe", label: "🤔 Talvez", active: "#d97706" },
+  { key: "not_going", label: "❌ Não vou", active: "#dc2626" },
+];
+
+// The invitation above the answer buttons. For trainings it names the club's
+// attendance goal for the training's month (the one shown on the calendar);
+// attendance, not the RSVP, is what counts towards it.
+function rsvpInvite({ event, goal, rsvpStatus }) {
+  if (event.type === "training" && goal?.target) {
+    const month = MONTHS[Number(goal.month.slice(5)) - 1];
+    const missing = Math.max(0, goal.target - goal.count);
+    const progress = `${goal.count} de ${goal.target}`;
+    if (missing === 0) return `Meta de ${month} atingida (${progress} presenças). Confirma a tua presença e continua a puxar pela equipa!`;
+    return rsvpStatus === "going"
+      ? `Contamos contigo! Faltam ${missing} presenças para a meta de ${month} (${progress}).`
+      : `Confirma a tua presença, aparece no treino e ajuda a equipa a atingir a meta de ${month}: faltam ${missing} presenças (${progress}).`;
+  }
+  if (rsvpStatus === "going") return "Contamos contigo!";
+  if (event.type === "training") return "Confirma a tua presença e ajuda a equipa a saber com quantos conta no treino.";
+  return "Confirma a tua presença, participa e ajuda a equipa a saber com quem conta.";
+}
+
+function RsvpButtons({ rsvpStatus, onAnswer, large }) {
+  return (
+    <div className={large ? "rsvp-buttons rsvp-buttons-large" : "rsvp-buttons"}>
+      {RSVP_OPTIONS.map((option) => {
+        const active = rsvpStatus === option.key;
+        return (
+          <button key={option.key} type="button" onClick={() => onAnswer(option.key)} aria-pressed={active}
+            title={active ? "Toca de novo para remover a resposta" : undefined}
+            style={{
+              background: active ? option.active : V("--bg-input"),
+              color: active ? "#fff" : V("--text-primary"),
+              border: `1px solid ${active ? option.active : V("--border-subtle")}`,
+            }}>
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function EventPage() {
   const { id } = useParams();
@@ -26,6 +72,16 @@ export default function EventPage() {
   const [user, setUser] = useState(null);
   const [rsvps, setRsvps] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [goal, setGoal] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     api(`/api/events/${id}`)
@@ -33,6 +89,15 @@ export default function EventPage() {
       .then((data) => {
         setEvent(data);
         setRsvps(data.rsvps || []);
+        // The goal of the training's own month.
+        if (data?.type === "training" && data.date) {
+          const d = new Date(data.date);
+          const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          api(`/api/attendance/goal?month=${month}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((g) => { if (g?.month) setGoal(g); })
+            .catch(() => {});
+        }
       })
       .finally(() => setLoading(false));
     api("/auth/me")
@@ -41,6 +106,15 @@ export default function EventPage() {
         if (data.authenticated) setUser(data.user);
       });
   }, [id]);
+
+  const isUpcoming = Boolean(event?.date) && new Date(event.endDate || event.date).getTime() >= Date.now();
+  // On a phone the answer buttons sit in a bar fixed at the bottom of the screen.
+  const showActionBar = Boolean(isMobile && user && isUpcoming);
+  useEffect(() => {
+    if (!showActionBar) return;
+    document.body.classList.add("has-action-bar");
+    return () => document.body.classList.remove("has-action-bar");
+  }, [showActionBar]);
 
   const rsvpStatus = user ? rsvps.find((r) => r.userId === user.id)?.status ?? null : null;
 
@@ -207,34 +281,12 @@ export default function EventPage() {
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: V("--text-heading") }}>Participação</h3>
 
         {user ? (
-          <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-            {[
-              { key: "going", label: "✅ Vou", active: "#059669" },
-              { key: "maybe", label: "🤔 Talvez", active: "#d97706" },
-              { key: "not_going", label: "❌ Não vou", active: "#dc2626" },
-            ].map((option) => (
-              <button
-                key={option.key}
-                onClick={() => handleRsvp(option.key)}
-                title={rsvpStatus === option.key ? "Clica de novo para remover a resposta" : undefined}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  transition: "background 0.2s",
-                  background: rsvpStatus === option.key ? option.active : V("--bg-input"),
-                  color: "#fff",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={e => { if (rsvpStatus !== option.key) e.target.style.background = V("--hover-bg"); }}
-                onMouseLeave={e => { if (rsvpStatus !== option.key) e.target.style.background = V("--bg-input"); }}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          showActionBar ? null : (
+            <div style={{ marginBottom: 20 }}>
+              {isUpcoming && <p style={{ fontSize: 15, color: V("--text-primary"), margin: "0 0 12px", lineHeight: 1.45 }}>{rsvpInvite({ event, goal, rsvpStatus })}</p>}
+              <RsvpButtons rsvpStatus={rsvpStatus} onAnswer={handleRsvp} />
+            </div>
+          )
         ) : (
           <p style={{ fontSize: 14, color: V("--text-secondary"), marginBottom: 16 }}>
             <Link to="/login" style={{ color: "#36C2CE", textDecoration: "none" }}>Inicia sessão</Link> para confirmar participação.
@@ -261,6 +313,14 @@ export default function EventPage() {
       </div>
 
       {!isStaff && <div style={{ marginTop: 24 }}>{attendance}</div>}
+
+      {showActionBar && (
+        <div className="rsvp-action-bar" role="region" aria-label="Confirmar presença"
+          style={{ background: V("--bg-header"), borderTop: `1px solid ${V("--border-subtle")}` }}>
+          <p style={{ color: V("--text-primary") }}>{rsvpInvite({ event, goal, rsvpStatus })}</p>
+          <RsvpButtons rsvpStatus={rsvpStatus} onAnswer={handleRsvp} large />
+        </div>
+      )}
 
       {/* Edit Button for Admin/Organizer */}
       {isStaff && (

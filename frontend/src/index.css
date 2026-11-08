@@ -412,6 +412,56 @@ body {
   border-radius: 50%;
 }
 
+/* Event page: answer buttons (Vou / Talvez / Não vou). */
+.rsvp-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rsvp-buttons button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.rsvp-buttons-large {
+  flex-wrap: nowrap;
+}
+
+.rsvp-buttons-large button {
+  flex: 1 1 0;
+  min-height: 52px;
+  padding: 8px 4px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* Fixed at the bottom of the screen on phones, so answering never needs scrolling. */
+.rsvp-action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 16px var(--shadow-dropdown);
+}
+
+.rsvp-action-bar p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+body.has-action-bar {
+  padding-bottom: 150px;
+}
+
 .calendar-list-event-time {
   flex: 0 0 auto;
   min-width: 44px;
