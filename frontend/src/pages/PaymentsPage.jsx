@@ -313,7 +313,7 @@ export default function PaymentsPage({ user }) {
         </button>
       </div>
 
-      {error && <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{error}</p>}
+      {error && <p style={{ color: "var(--c-danger)", fontSize: 14, marginBottom: 16 }}>{error}</p>}
 
       {/* Payments Table */}
       <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
@@ -351,10 +351,10 @@ export default function PaymentsPage({ user }) {
                   <span>{METHOD_ICONS[p.method]}</span>
                   {METHOD_LABELS[p.method] || p.method}
                 </td>
-                <td style={{ ...tdStyle, fontWeight: 600, color: "#22c55e" }}>{formatCurrency(p.paidAmount)}</td>
+                <td style={{ ...tdStyle, fontWeight: 600, color: "var(--c-success)" }}>{formatCurrency(p.paidAmount)}</td>
                 <td style={tdStyle}>
                   {p.membership ? (
-                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 9999, background: "#3b82f622", color: "#3b82f6" }}>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 9999, background: "#3b82f622", color: "var(--c-info)" }}>
                       {p.membership.year}
                     </span>
                   ) : (
@@ -370,7 +370,7 @@ export default function PaymentsPage({ user }) {
                     Editar
                   </button>
                   <span style={{ color: "var(--border-subtle)", margin: "0 8px" }}>|</span>
-                  <button onClick={() => handleDelete(p.id)} style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
+                  <button onClick={() => handleDelete(p.id)} style={{ color: "var(--c-danger)", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
                     🗑️
                   </button>
                 </td>
@@ -464,8 +464,8 @@ export default function PaymentsPage({ user }) {
                     style={{ ...inputStyle, resize: "vertical" }} />
                 </label>
               </div>
-              {formError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{formError}</p>}
-              {formSuccess && <p style={{ color: "#22c55e", fontSize: 13, marginBottom: 12 }}>{formSuccess}</p>}
+              {formError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{formError}</p>}
+              {formSuccess && <p style={{ color: "var(--c-success)", fontSize: 13, marginBottom: 12 }}>{formSuccess}</p>}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button type="button" onClick={() => setShowModal(false)}
                   style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -545,7 +545,7 @@ export default function PaymentsPage({ user }) {
               <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={2}
                 style={{ ...inputStyle, resize: "vertical" }} />
             </div>
-            {editError && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
+            {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 12 }}>{editError}</p>}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button onClick={() => setEditPayment(null)}
                 style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer" }}>

@@ -187,7 +187,7 @@ export default function EventPage() {
             <span style={{ fontSize: 14, fontWeight: 500, color: V("--text-secondary") }}>{TYPE_LABELS[event.type] || event.type}</span>
             <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 4, color: V("--text-heading") }}>{event.title}</h1>
           </div>
-          <span style={{ background: V("--hover-bg"), padding: "4px 12px", borderRadius: 9999, fontSize: 14, color: V("--text-secondary") }}>{event.club}</span>
+          {event.club && <span style={{ background: V("--hover-bg"), padding: "4px 12px", borderRadius: 9999, fontSize: 14, color: V("--text-secondary") }}>{event.club}</span>}
         </div>
 
         {/* Event Image */}
@@ -253,7 +253,7 @@ export default function EventPage() {
               <span style={{ fontSize: 20 }}>🔗</span>
               <div>
                 <div style={{ fontSize: 14, color: V("--text-secondary") }}>URL</div>
-                <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 500, color: "#36C2CE", wordBreak: "break-all" }}>{event.url}</a>
+                <a href={event.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 500, color: "var(--c-accent)", wordBreak: "break-all" }}>{event.url}</a>
               </div>
             </div>
           )}
@@ -272,7 +272,7 @@ export default function EventPage() {
 
         {/* Description */}
         {event.description && (
-          <div style={{ marginTop: 24, padding: 16, background: `${V("--bg-card")}`, opacity: 0.5, borderRadius: 8 }}>
+          <div style={{ marginTop: 24, padding: 16, background: V("--bg-input"), borderRadius: 8 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, color: V("--text-secondary"), marginBottom: 8 }}>Descrição</h3>
             <div style={{ color: V("--text-primary"), whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
               {event.description.split("\n").map((line, i) => {
@@ -311,14 +311,14 @@ export default function EventPage() {
           )
         ) : (
           <p style={{ fontSize: 14, color: V("--text-secondary"), marginBottom: 16 }}>
-            <Link to="/login" style={{ color: "#36C2CE", textDecoration: "none" }}>Inicia sessão</Link> para confirmar participação.
+            <Link to="/login" style={{ color: "var(--c-accent)", textDecoration: "none" }}>Inicia sessão</Link> para confirmar participação.
           </p>
         )}
 
         {/* RSVP Summary */}
         <div style={{ display: "flex", gap: 24, fontSize: 14, marginBottom: 16 }}>
-          <span style={{ color: "#34d399", fontWeight: 500 }}>✅ {goingCount} vão</span>
-          <span style={{ color: "#fbbf24", fontWeight: 500 }}>🤔 {maybeCount} talvez</span>
+          <span style={{ color: "var(--c-success)", fontWeight: 500 }}>✅ {goingCount} vão</span>
+          <span style={{ color: "var(--c-warning)", fontWeight: 500 }}>🤔 {maybeCount} talvez</span>
         </div>
 
         {/* Attendees List (admins and organizers can remove people) */}
@@ -339,7 +339,7 @@ export default function EventPage() {
             ))}
           </div>
         )}
-        {staffError && <p style={{ color: "#f87171", fontSize: 14, margin: "8px 0 0" }}>{staffError}</p>}
+        {staffError && <p style={{ color: "var(--c-danger)", fontSize: 14, margin: "8px 0 0" }}>{staffError}</p>}
         {isStaff && <StaffRsvpEditor eventId={id} rsvps={rsvps} onChange={setRsvps} />}
       </div>
 

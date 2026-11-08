@@ -95,8 +95,8 @@ export default function AnnouncementsPage({ user }) {
             style={{ background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 500, cursor: canSend ? "pointer" : "default", opacity: canSend ? 1 : 0.5 }}>
             {sending ? "A enviar..." : "Enviar"}
           </button>
-          {message && <span style={{ fontSize: 14, color: "#10b981" }}>{message}</span>}
-          {error && <span style={{ fontSize: 14, color: "#f87171" }}>{error}</span>}
+          {message && <span style={{ fontSize: 14, color: "var(--c-success)" }}>{message}</span>}
+          {error && <span style={{ fontSize: 14, color: "var(--c-danger)" }}>{error}</span>}
         </div>
       </form>
     </div>

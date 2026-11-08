@@ -33,6 +33,19 @@
   --calendar-grid-gap: #1B3A5C;
   --shadow-dropdown: rgba(0, 0, 0, 0.4);
   --toggle-icon-fill: #9ca3af;
+  /* Status and accent text (on page/card backgrounds) */
+  --c-success: #34d399;
+  --c-warning: #fbbf24;
+  --c-danger: #f87171;
+  --c-info: #60a5fa;
+  --c-accent: #36C2CE;
+  /* Event type text (badges and calendar chips) */
+  --type-trail: #6ee7b7;
+  --type-urban: #93c5fd;
+  --type-race: #E55555;
+  --type-training: #fcd34d;
+  --type-social: #d8b4fe;
+  --type-meeting: #9ca3af;
 }
 
 /* ── Light Theme ── */
@@ -43,23 +56,35 @@
   --bg-card: #FFFFFF;
   --bg-input: #f1f3f5;
   --bg-modal: #FFFFFF;
-  --border-subtle: #e2e6ea;
-  --border-input: #d1d5db;
+  --border-subtle: #d8dde3;
+  --border-input: #b6bec8;
   --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
   --text-heading: #111827;
   --hover-bg: #f1f3f5;
   --hover-text: #CC3333;
   --calendar-day: #FFFFFF;
   --calendar-day-header: #f8f9fa;
   --calendar-other-month: #f1f3f5;
-  --calendar-other-month-text: #d1d5db;
+  --calendar-other-month-text: #9ca3af;
   --calendar-today-bg: #fef2f2;
   --calendar-today-border: #CC3333;
   --calendar-grid-gap: #e2e6ea;
   --shadow-dropdown: rgba(0, 0, 0, 0.12);
-  --toggle-icon-fill: #6b7280;
+  --toggle-icon-fill: #4b5563;
+  /* Darker shades so coloured text reaches 4.5:1 on white */
+  --c-success: #047857;
+  --c-warning: #b45309;
+  --c-danger: #b91c1c;
+  --c-info: #1d4ed8;
+  --c-accent: #0e7490;
+  --type-trail: #047857;
+  --type-urban: #1d4ed8;
+  --type-race: #b91c1c;
+  --type-training: #b45309;
+  --type-social: #7e22ce;
+  --type-meeting: #4b5563;
 }
 
 body {
@@ -539,13 +564,13 @@ body.has-action-bar {
 .bg-emerald-600 { background-color: #059669; }  /* buttons keep colors */
 .bg-amber-600 { background-color: #d97706; }
 .bg-red-600 { background-color: #dc2626; }
-.text-emerald-400 { color: #34d399; }
-.text-amber-400 { color: #fbbf24; }
-.text-red-400 { color: #f87171; }
+.text-emerald-400 { color: var(--c-success); }
+.text-amber-400 { color: var(--c-warning); }
+.text-red-400 { color: var(--c-danger); }
 .text-white { color: #fff; }
 .bg-red-900 { background-color: #7f1d1d; }
 .bg-red-900\/50 { background-color: rgba(127,29,29,0.5); }
-.text-primary-light { color: #36C2CE; }
+.text-primary-light { color: var(--c-accent); }
 
 .event-dot.trail { background: #10b981; }
 .event-dot.urban { background: #3b82f6; }

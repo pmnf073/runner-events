@@ -101,7 +101,7 @@ export default function LoginPage({ setUser }) {
           </div>
 
           {error && (
-            <div style={{ fontSize: 13, color: "#f87171", background: "rgba(248,113,113,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.2)" }}>
+            <div style={{ fontSize: 13, color: "var(--c-danger)", background: "rgba(248,113,113,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.2)" }}>
               {error}
             </div>
           )}
