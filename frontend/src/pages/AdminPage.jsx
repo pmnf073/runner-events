@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../services/api";
 import DatePicker from "react-datepicker";
 import { registerLocale, setDefaultLocale } from "react-datepicker";
@@ -118,6 +118,9 @@ async function localImageToDataUrl(file) {
 }
 
 function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
+  // Blocks a second submit while the first is still being saved (double clicks created duplicate events).
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => ({
     title: event?.title || "",
     description: event?.description || "",
@@ -211,7 +214,7 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if ((form.recurrenceType === "weekly" || form.recurrenceType === "biweekly") && form.recurrenceDaysOfWeek.length === 0) {
       alert("Seleciona pelo menos um dia da semana para a recorrência.");
@@ -229,7 +232,15 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
       recurrenceDaysOfWeek: form.recurrenceDaysOfWeek.length > 0 ? JSON.stringify(form.recurrenceDaysOfWeek) : null,
       recurrenceScope: form.recurrenceScope,
     };
-    onSubmit(payload);
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await onSubmit(payload);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   // Form input styles with theme-aware colors
@@ -417,10 +428,10 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
         <button type="button" onClick={onCancel} style={{ padding: "8px 16px", fontSize: 14, borderRadius: 8, color: "#e8ecef", background: "#1f2937", border: "none", cursor: "pointer", transition: "background 0.2s" }}
           onMouseEnter={e => e.target.style.background = "#374151"}
           onMouseLeave={e => e.target.style.background = "#1f2937"}>Cancelar</button>
-        <button type="submit" style={{ padding: "8px 24px", fontSize: 14, borderRadius: 8, fontWeight: 500, background: "#CC3333", color: "#fff", border: "none", cursor: "pointer", transition: "background 0.2s" }}
+        <button type="submit" disabled={saving} style={{ padding: "8px 24px", fontSize: 14, borderRadius: 8, fontWeight: 500, background: "#CC3333", color: "#fff", border: "none", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1, transition: "background 0.2s" }}
           onMouseEnter={e => e.target.style.background = "#be0000"}
           onMouseLeave={e => e.target.style.background = "#CC3333"}>
-          {event ? "Guardar" : "Criar Evento"}
+          {saving ? "A guardar..." : event ? "Guardar" : "Criar Evento"}
         </button>
       </div>
     </form>
