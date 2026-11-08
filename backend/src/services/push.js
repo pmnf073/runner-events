@@ -35,37 +35,57 @@ export function isPushConfigured() {
   return configured;
 }
 
+// Sends one notification; subscriptions the push service no longer knows are removed.
+// Returns { ok, statusCode, error } with the push service's answer.
+async function sendOne(subscription, body) {
+  try {
+    const result = await webpush.sendNotification(
+      { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
+      body,
+      { TTL: 12 * 60 * 60 },
+    );
+    return { ok: true, statusCode: result?.statusCode };
+  } catch (err) {
+    const host = (() => { try { return new URL(subscription.endpoint).host; } catch { return "?"; } })();
+    const error = String(err.body || err.message || "").trim().substring(0, 300);
+    if (err.statusCode === 404 || err.statusCode === 410) {
+      await prisma.pushSubscription.delete({ where: { id: subscription.id } }).catch(() => {});
+    } else {
+      console.error(`[Push] Send failed (${host}): ${err.statusCode || ""} ${error}`);
+    }
+    return { ok: false, statusCode: err.statusCode, error };
+  }
+}
+
+const payloadBody = (payload) => JSON.stringify({ title: payload.title || CLUB_NAME, ...payload });
+
 // Sends `payload` ({ title, body, url, tag }) to every subscription of the active
-// users matching `userWhere`. Subscriptions the push service no longer knows are removed.
+// users matching `userWhere`.
 export async function sendToUsers(userWhere, payload) {
   if (!isPushConfigured()) return 0;
   try {
     const subscriptions = await prisma.pushSubscription.findMany({
       where: { user: { status: "active", ...userWhere } },
     });
-    const body = JSON.stringify({ title: payload.title || CLUB_NAME, ...payload });
+    const body = payloadBody(payload);
     let sent = 0;
     for (const s of subscriptions) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          body,
-          { TTL: 12 * 60 * 60 },
-        );
-        sent++;
-      } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-        } else {
-          console.error("[Push] Send failed:", err.statusCode || err.message);
-        }
-      }
+      if ((await sendOne(s, body)).ok) sent++;
     }
     return sent;
   } catch (err) {
     console.error("[Push] Error:", err.message);
     return 0;
   }
+}
+
+// Test notification to the user's own devices, with each push service's answer.
+export async function sendTest(userId) {
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
+  const body = payloadBody({ title: "Notificação de teste", body: "Se estás a ver isto, as notificações funcionam.", url: "/profile", tag: "test" });
+  const results = [];
+  for (const s of subscriptions) results.push(await sendOne(s, body));
+  return results;
 }
 
 // Claims a NotificationLog key; false when it was already sent.
@@ -80,7 +100,8 @@ export function notifyNewEvents(events) {
   if (!isPushConfigured() || !events?.length) return;
   (async () => {
     for (const payload of newEventNotifications(events)) {
-      await sendToUsers({ pushNewEvents: true }, payload);
+      const sent = await sendToUsers({ pushNewEvents: true }, payload);
+      console.log(`[Push] "${payload.title}": ${sent} sent`);
     }
   })().catch((err) => console.error("[Push] New events:", err.message));
 }

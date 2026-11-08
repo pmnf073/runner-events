@@ -25,6 +25,7 @@ export default function PushNotifications({ card, h2, button, secondaryButton })
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [testResult, setTestResult] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -82,6 +83,30 @@ export default function PushNotifications({ card, h2, button, secondaryButton })
     }
   };
 
+  // Asks the backend to send a test notification and shows the push service's answer.
+  const sendTest = async () => {
+    setError("");
+    setTestResult("");
+    setBusy(true);
+    try {
+      const res = await api("/api/push/test", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Não foi possível enviar.");
+      if (data.devices === 0) {
+        setTestResult("O servidor não tem nenhum dispositivo teu registado. Desativa e volta a ativar.");
+      } else if (data.sent === data.devices) {
+        setTestResult(`Enviada para ${data.sent} dispositivo(s). Se não apareceu, verifica se as notificações da app estão permitidas nas definições do telemóvel.`);
+      } else {
+        const failed = data.results.filter((r) => !r.ok).map((r) => `${r.statusCode || "?"} ${r.error || ""}`.trim());
+        setTestResult(`Enviada para ${data.sent} de ${data.devices} dispositivo(s). Erro do serviço de push: ${failed.join("; ")}`);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggle = async (field, value) => {
     const previous = prefs;
     setPrefs({ ...prefs, [field]: value });
@@ -114,7 +139,10 @@ export default function PushNotifications({ card, h2, button, secondaryButton })
             {subscribed ? "Ativas neste dispositivo." : "Desativadas neste dispositivo."}
           </span>
           {subscribed ? (
-            <button type="button" onClick={disable} disabled={busy} style={{ ...secondaryButton, opacity: busy ? 0.5 : 1 }}>Desativar</button>
+            <>
+              <button type="button" onClick={sendTest} disabled={busy} style={{ ...secondaryButton, opacity: busy ? 0.5 : 1 }}>Enviar teste</button>
+              <button type="button" onClick={disable} disabled={busy} style={{ ...secondaryButton, opacity: busy ? 0.5 : 1 }}>Desativar</button>
+            </>
           ) : (
             <button type="button" onClick={enable} disabled={busy} style={{ ...button, opacity: busy ? 0.5 : 1 }}>{busy ? "A ativar..." : "Ativar notificações"}</button>
           )}
@@ -122,6 +150,7 @@ export default function PushNotifications({ card, h2, button, secondaryButton })
       )}
       {option("pushNewEvents", "Novos eventos", "Quando é criado um evento no calendário do clube.")}
       {option("pushTrainingReminders", "Lembretes de treino", "No dia do treino, a partir das 9h, se ainda não confirmaste. Para organizadores, também o lembrete de marcar presenças.")}
+      {testResult && <p style={{ fontSize: 13, color: V("--text-secondary"), margin: "12px 0 0" }}>{testResult}</p>}
       {error && <p style={{ fontSize: 14, color: "var(--c-danger)", margin: "12px 0 0" }}>{error}</p>}
     </section>
   );

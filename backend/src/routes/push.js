@@ -1,7 +1,7 @@
 import { Router } from "express";
 import prisma from "../db.js";
 import { requireUser } from "../middleware/auth.js";
-import { isPushConfigured, vapidPublicKey } from "../services/push.js";
+import { isPushConfigured, sendTest, vapidPublicKey } from "../services/push.js";
 import { serverError } from "../utils/http.js";
 
 // Web Push: the public key the browser needs to subscribe, the logged-in user's
@@ -74,6 +74,17 @@ router.delete("/subscriptions", async (req, res) => {
     if (typeof endpoint !== "string") return res.status(400).json({ error: "Subscrição inválida." });
     await prisma.pushSubscription.deleteMany({ where: { endpoint, userId: req.user.id } });
     res.json({ ok: true });
+  } catch (err) {
+    serverError(res, err);
+  }
+});
+
+// POST /api/push/test — test notification to the logged-in user's devices
+router.post("/test", async (req, res) => {
+  try {
+    if (!isPushConfigured()) return res.status(501).json({ error: "As notificações não estão configuradas." });
+    const results = await sendTest(req.user.id);
+    res.json({ devices: results.length, sent: results.filter((r) => r.ok).length, results });
   } catch (err) {
     serverError(res, err);
   }
