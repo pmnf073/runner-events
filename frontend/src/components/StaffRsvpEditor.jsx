@@ -30,13 +30,22 @@ export default function StaffRsvpEditor({ eventId, rsvps, onChange }) {
     setBusy(person.id);
     setError("");
     try {
-      const res = await api(`/api/rsvps/${eventId}/users/${person.id}`, { method: "PUT", body: JSON.stringify({ status: "going" }) });
-      const data = await res.json();
-      if (!res.ok) return setError(data.error || "Não foi possível adicionar.");
+      let res;
+      try {
+        res = await api(`/api/rsvps/${eventId}/users/${person.id}`, { method: "PUT", body: JSON.stringify({ status: "going" }) });
+      } catch {
+        return setError("Sem ligação. Tenta outra vez.");
+      }
+      // A non-JSON answer (e.g. Express's HTML 404) means the backend doesn't
+      // have this route yet, which is not a connection problem.
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.userId) {
+        if (data?.error) return setError(data.error);
+        if (res.status === 404) return setError("O servidor ainda não tem esta função (falta atualizar o backend).");
+        return setError(`Não foi possível adicionar (erro ${res.status}).`);
+      }
       onChange((prev) => [...prev.filter((r) => r.userId !== person.id), data]);
       setSearch("");
-    } catch {
-      setError("Sem ligação. Tenta outra vez.");
     } finally {
       setBusy(null);
     }

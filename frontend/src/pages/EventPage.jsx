@@ -125,8 +125,12 @@ export default function EventPage() {
     if (!confirm(`Remover ${rsvp.user.name} da lista de quem vai?`)) return;
     setStaffError("");
     const res = await api(`/api/rsvps/${id}/users/${rsvp.userId}`, { method: "DELETE" }).catch(() => null);
-    if (res?.ok) setRsvps((prev) => prev.filter((r) => r.userId !== rsvp.userId));
-    else setStaffError("Não foi possível remover. Tenta outra vez.");
+    if (res?.ok) return setRsvps((prev) => prev.filter((r) => r.userId !== rsvp.userId));
+    const data = res ? await res.json().catch(() => null) : null;
+    if (!res) setStaffError("Sem ligação. Tenta outra vez.");
+    else if (data?.error) setStaffError(data.error);
+    else if (res.status === 404) setStaffError("O servidor ainda não tem esta função (falta atualizar o backend).");
+    else setStaffError(`Não foi possível remover (erro ${res.status}).`);
   };
 
   // Clicking the option already chosen removes the answer.
