@@ -103,6 +103,7 @@ jobs:
           jq --arg l "$LOCAL" --argjson code "${{ github.run_number }}" '
               .iconUrl = ($l + "/icons/icon-512.png")
             | .maskableIconUrl = ($l + "/icons/icon-maskable-512.png")
+            | .monochromeIconUrl = ($l + "/icons/icon-monochrome-512.png")
             | .webManifestUrl = ($l + "/manifest.webmanifest")
             | .appVersionCode = $code
             | .appVersionName = (.appVersionName + "." + ($code | tostring))

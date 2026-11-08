@@ -16,6 +16,7 @@
   "startUrl": "/calendar",
   "iconUrl": "https://www.alvercaurbanrunners.pt/icons/icon-512.png",
   "maskableIconUrl": "https://www.alvercaurbanrunners.pt/icons/icon-maskable-512.png",
+  "monochromeIconUrl": "https://www.alvercaurbanrunners.pt/icons/icon-monochrome-512.png",
   "webManifestUrl": "https://www.alvercaurbanrunners.pt/manifest.webmanifest",
   "fullScopeUrl": "https://www.alvercaurbanrunners.pt/",
   "splashScreenFadeOutDuration": 300,
