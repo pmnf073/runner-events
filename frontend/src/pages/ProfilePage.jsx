@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import api, { openApiFile } from "../services/api";
 import MyTrainings from "../components/MyTrainings";
-import { displayDateForInput, formatCurrency, formatDate, MEMBERSHIP_STATUS, parseInputDateToYMD } from "../utils/format";
+import { formatCurrency, formatDate, MEMBERSHIP_STATUS } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const V = (name) => `var(${name})`;
 
@@ -121,7 +122,7 @@ export default function ProfilePage({ user, setUser }) {
           {field("altContact", "Contacto alternativo")}
           <div>
             <label style={labelStyle}>Data de nascimento</label>
-            <input value={displayDateForInput(form.dob)} onChange={(e) => setForm({ ...form, dob: parseInputDateToYMD(e.target.value) })} placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput value={form.dob} onChange={(dob) => setForm({ ...form, dob })} style={inputStyle} />
           </div>
           {field("nif", "NIF (para os recibos)", { inputMode: "numeric", maxLength: 9 })}
           <div style={{ gridColumn: "1 / -1" }}>{field("address", "Morada")}</div>

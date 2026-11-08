@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "../ThemeContext";
 import SocialLoginButtons from "../components/SocialLoginButtons";
-import { parseInputDateToYMD } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
@@ -24,16 +24,11 @@ export default function RegisterPage() {
     setError("");
     if (!form.name || !form.email || !form.password) return setError("Nome, email e password são obrigatórios");
     if (form.password.length < 8) return setError("A password deve ter pelo menos 8 caracteres");
-    // The date of birth is typed as dd/mm/aaaa and sent as YYYY-MM-DD.
-    const dob = form.dob.trim() ? parseInputDateToYMD(form.dob.trim()) : "";
-    if (dob && (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || Number.isNaN(new Date(dob).getTime()))) {
-      return setError("Data de nascimento inválida. Usa o formato dd/mm/aaaa.");
-    }
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, dob }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
       if (!res.ok) return setError(data.error || "Erro ao criar conta");
@@ -99,7 +94,7 @@ export default function RegisterPage() {
           <div className="register-row">
             <div>
               <label htmlFor="reg-dob" style={labelStyle}>Data de nascimento</label>
-              <input id="reg-dob" type="text" name="dob" value={form.dob} onChange={handleChange} inputMode="numeric" autoComplete="bday" placeholder="dd/mm/aaaa" style={inputStyle} />
+              <DateInput id="reg-dob" value={form.dob} onChange={(dob) => setForm((f) => ({ ...f, dob }))} autoComplete="bday" style={inputStyle} />
             </div>
             <div>
               <label htmlFor="reg-nif" style={labelStyle}>NIF</label>

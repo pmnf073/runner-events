@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { formatDate, displayDateForInput, parseInputDateToYMD } from "../utils/format";
+import { formatDate } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 export default function FeesPage({ user }) {
   const navigate = useNavigate();
@@ -178,8 +179,8 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Data Limite</span>
-            <input type="text" value={displayDateForInput(editDueDate)} onChange={(e) => setEditDueDate(parseInputDateToYMD(e.target.value))}
-              placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput value={editDueDate} onChange={setEditDueDate}
+              style={inputStyle} />
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Desconto Early-bird (€)</span>
@@ -188,8 +189,8 @@ export default function FeesPage({ user }) {
           </label>
           <label>
             <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Prazo Early-bird</span>
-            <input type="text" value={displayDateForInput(editEarlyDeadline)} onChange={(e) => setEditEarlyDeadline(parseInputDateToYMD(e.target.value))}
-              placeholder="dd/mm/aaaa" style={inputStyle} />
+            <DateInput value={editEarlyDeadline} onChange={setEditEarlyDeadline}
+              style={inputStyle} />
           </label>
         </div>
         {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 8 }}>{editError}</p>}
