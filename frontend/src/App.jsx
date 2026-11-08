@@ -22,7 +22,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AuditPage from "./pages/AuditPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import api from "./services/api";
-import AppUpdateBanner from "./components/AppUpdateBanner";
+import AppUpdateBanner, { installedAppVersion } from "./components/AppUpdateBanner";
 
 /* ── Theme Toggle Button ── */
 function ThemeToggle() {
@@ -336,6 +336,7 @@ function AppInner() {
             <img className="site-footer-logo" src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" />
             <span>Alverca Urban Runners &copy; {new Date().getFullYear()}</span>
           </div>
+          {installedAppVersion() && <div style={{ fontSize: 12 }}>App Android: versão {installedAppVersion()}</div>}
           <div className="site-footer-links">
             <a className="footer-social-link" href="https://www.facebook.com/alvercaurbanrunners/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "var(--hover-text)")}
