@@ -24,7 +24,8 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
-function SectionTitle({ tag, title, subtitle }) {
+// onDark: the section has its own dark background in both themes, so the text stays light.
+function SectionTitle({ tag, title, subtitle, onDark = false }) {
   return (
     <div style={{ marginBottom: 34 }}>
       <p
@@ -42,7 +43,7 @@ function SectionTitle({ tag, title, subtitle }) {
       <h2
         style={{
           margin: "12px 0 12px",
-          color: V("--text-heading"),
+          color: onDark ? "#FFFFFF" : V("--text-heading"),
           lineHeight: 1.12,
           fontSize: "clamp(30px, 5vw, 46px)",
           fontWeight: 800,
@@ -56,7 +57,7 @@ function SectionTitle({ tag, title, subtitle }) {
         <p
           style={{
             margin: 0,
-            color: V("--text-secondary"),
+            color: onDark ? "rgba(255,255,255,0.78)" : V("--text-secondary"),
             lineHeight: 1.72,
             maxWidth: 760,
             fontSize: "clamp(16px, 2.4vw, 18px)",
@@ -101,9 +102,9 @@ export default function AboutPage() {
 
   const feed = useMemo(
     () => [
-      "Terca de series progressivas com 30+ atletas em pista.",
-      "Nova estreia em 10K: celebracao total na meta.",
-      "Trail de domingo com sunrise run e cafe de equipa no final.",
+      "Terça de séries progressivas com 30+ atletas em pista.",
+      "Nova estreia em 10K: celebração total na meta.",
+      "Trail de domingo com sunrise run e café de equipa no final.",
     ],
     [],
   );
@@ -205,8 +206,8 @@ export default function AboutPage() {
                 fontSize: "clamp(17px, 2.8vw, 22px)",
               }}
             >
-              Em Alverca, cada treino e um passo para mais saude, mais confianca e mais comunidade.
-              Somos energia em movimento para todos os niveis.
+              Em Alverca, cada treino é um passo para mais saúde, mais confiança e mais comunidade.
+              Somos energia em movimento para todos os níveis.
             </p>
           </Reveal>
           <Reveal delay={320}>
@@ -232,7 +233,7 @@ export default function AboutPage() {
                   e.currentTarget.style.background = "#CC3333";
                 }}
               >
-                Junta-te a nos
+                Junta-te a nós
               </Link>
               <ActionButton
                 href="mailto:alvercaurbanrunners@gmail.com"
@@ -252,17 +253,17 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Quem somos"
-              title="Nascemos de forma simples. Crescemos com espirito de equipa."
-              subtitle="Os Alverca Urban Runners comecaram com amigos a correr juntos. Hoje somos uma comunidade com presenca competitiva e foco total na inclusao. Aqui, ninguem corre sozinho."
+              title="Nascemos de forma simples. Crescemos com espírito de equipa."
+              subtitle="Os Alverca Urban Runners começaram com amigos a correr juntos. Hoje somos uma comunidade com presença competitiva e foco total na inclusão. Aqui, ninguém corre sozinho."
             />
           </Reveal>
           <Reveal delay={100}>
             <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
               {[
-                { value: "2014", label: "Origem organica" },
+                { value: "2014", label: "Origem orgânica" },
                 { value: "50+", label: "Participantes ativos" },
                 { value: "2", label: "Pontos de encontro" },
-                { value: "100%", label: "Espirito de grupo" },
+                { value: "100%", label: "Espírito de grupo" },
               ].map((stat) => (
                 <article
                   key={stat.label}
@@ -290,11 +291,6 @@ export default function AboutPage() {
               ))}
             </div>
           </Reveal>
-          <Reveal delay={180}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: corrida de grupo em avenida de Alverca com diferentes idades.
-            </p>
-          </Reveal>
         </div>
       </section>
 
@@ -304,28 +300,25 @@ export default function AboutPage() {
             <SectionTitle
               tag="O que fazemos"
               title="Treinos regulares, desafios especiais e eventos com identidade."
-              subtitle="Estrutura clara para evoluir com seguranca e motivacao."
+              subtitle="Estrutura clara para evoluir com segurança e motivação."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             {[
               {
                 title: "Treinos regulares",
-                text: "Tercas e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os niveis.",
-                points: ["Iniciantes bem-vindos", "Progressao por objetivo", "Ambiente inclusivo"],
-                hint: "Grupo a correr em circuito urbano ao fim da tarde.",
+                text: "Terças e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os níveis.",
+                points: ["Iniciantes bem-vindos", "Progressão por objetivo", "Ambiente inclusivo"],
               },
               {
                 title: "Treinos especiais",
-                text: "Trilhos, desafios mensais e experiencias fora da rotina para trabalhar resistencia, tecnica e mentalidade.",
+                text: "Trilhos, desafios mensais e experiências fora da rotina para trabalhar resistência, técnica e mentalidade.",
                 points: ["Trail running", "Desafios por equipas", "Treinos sunrise"],
-                hint: "Subida em trilho com vista panoramica.",
               },
               {
                 title: "Eventos",
-                text: "Destaque para o Trail Encostas de Xira e para a Sao Silvestre Pirata, alem de participacoes em provas regionais.",
-                points: ["Trail Encostas de Xira", "Sao Silvestre Pirata", "Provas de estrada e trail"],
-                hint: "Meta com celebracao coletiva e bandeiras do grupo.",
+                text: "Destaque para o Trail Encostas de Xira e para a São Silvestre Pirata, além de participações em provas regionais.",
+                points: ["Trail Encostas de Xira", "São Silvestre Pirata", "Provas de estrada e trail"],
               },
             ].map((card, idx) => (
               <Reveal delay={idx * 100 + 90} key={card.title}>
@@ -365,9 +358,6 @@ export default function AboutPage() {
                       <li key={point}>{point}</li>
                     ))}
                   </ul>
-                  <p style={{ margin: "14px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-                    Imagem sugerida: {card.hint}
-                  </p>
                 </article>
               </Reveal>
             ))}
@@ -382,15 +372,16 @@ export default function AboutPage() {
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
           <Reveal>
             <SectionTitle
+              onDark
               tag="Energia da comunidade"
-              title="Amizade, entreajuda e motivacao em cada passada."
-              subtitle="Juntamos pessoas com ritmos diferentes e a mesma vontade de evoluir. O ambiente e proximo, humano e inspirador."
+              title="Amizade, entreajuda e motivação em cada passada."
+              subtitle="Juntamos pessoas com ritmos diferentes e a mesma vontade de evoluir. O ambiente é próximo, humano e inspirador."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             {[
               '"Entrei sem conseguir correr 5K. Hoje fecho 10K com a equipa a puxar por mim."',
-              '"Nos dias dificeis, o grupo ajuda-me a manter o foco. Nunca corro sozinho."',
+              '"Nos dias difíceis, o grupo ajuda-me a manter o foco. Nunca corro sozinho."',
               '"Mais do que treino, encontrei amizades e uma rotina que mudou a minha vida."',
             ].map((quote, idx) => (
               <Reveal delay={idx * 100 + 100} key={quote}>
@@ -410,11 +401,6 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: "rgba(255,255,255,0.64)", fontSize: 13 }}>
-              Imagem sugerida: foto de grupo diverso pos-treino, com celebracao espontanea.
-            </p>
-          </Reveal>
         </div>
       </section>
 
@@ -423,16 +409,16 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Conquistas"
-              title="As conquistas individuais sao vitorias de todos."
-              subtitle="Do primeiro 10K aos podios, cada passo tem apoio coletivo."
+              title="As conquistas individuais são vitórias de todos."
+              subtitle="Do primeiro 10K aos pódios, cada passo tem apoio coletivo."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             {[
               { year: "2024", text: "Primeiros 10K de novos membros com pacers da equipa." },
-              { year: "2025", text: "Entradas em meias maratonas e trails tecnicos." },
-              { year: "2025", text: "Podios regionais em provas de estrada e montanha." },
-              { year: "2026", text: "Mais superacoes pessoais e maior impacto na cidade." },
+              { year: "2025", text: "Entradas em meias maratonas e trails técnicos." },
+              { year: "2025", text: "Pódios regionais em provas de estrada e montanha." },
+              { year: "2026", text: "Mais superações pessoais e maior impacto na cidade." },
             ].map((item, idx) => (
               <Reveal delay={idx * 90 + 100} key={`${item.year}-${item.text}`}>
                 <article
@@ -473,11 +459,6 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: meta de prova com medalhas e abracos entre membros.
-            </p>
-          </Reveal>
         </div>
       </section>
 
@@ -486,16 +467,16 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Impacto na comunidade"
-              title="Corremos por nos e inspiramos Alverca a mexer-se."
-              subtitle="Promocao da saude, parcerias locais e eventos comunitarios que aproximam pessoas."
+              title="Corremos por nós e inspiramos Alverca a mexer-se."
+              subtitle="Promoção da saúde, parcerias locais e eventos comunitários que aproximam pessoas."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             {[
-              "Promocao de habitos saudaveis para todas as idades.",
+              "Promoção de hábitos saudáveis para todas as idades.",
               "Parcerias com agentes locais para fortalecer o desporto.",
-              "Eventos comunitarios com envolvimento direto da cidade.",
-              "Representacao ativa de Alverca em iniciativas da regiao.",
+              "Eventos comunitários com envolvimento direto da cidade.",
+              "Representação ativa de Alverca em iniciativas da região.",
             ].map((item, idx) => (
               <Reveal delay={idx * 80 + 90} key={item}>
                 <article
@@ -513,11 +494,6 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal delay={380}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: treino aberto com participantes e familias.
-            </p>
-          </Reveal>
         </div>
       </section>
 
@@ -527,7 +503,7 @@ export default function AboutPage() {
             <SectionTitle
               tag="Redes sociais"
               title="Segue o ritmo da equipa todos os dias."
-              subtitle="Facebook e Instagram com horarios, bastidores e desafios."
+              subtitle="Facebook e Instagram com horários, bastidores e desafios."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
@@ -579,7 +555,7 @@ export default function AboutPage() {
                 }}
               >
                 <p style={{ margin: "0 0 12px", color: V("--text-heading"), fontWeight: 700 }}>
-                  Feed dinamico (simulacao)
+                  Feed dinâmico (simulação)
                 </p>
                 <div style={{ display: "grid", gap: 10 }}>
                   {feed.map((post) => (
@@ -635,7 +611,7 @@ export default function AboutPage() {
                 fontFamily: "Oswald, Inter, system-ui, sans-serif",
               }}
             >
-              O proximo passo e teu.
+              O próximo passo é teu.
             </h2>
           </Reveal>
           <Reveal delay={100}>
@@ -648,7 +624,7 @@ export default function AboutPage() {
                 fontSize: "clamp(17px, 2.6vw, 20px)",
               }}
             >
-              Participa num treino, conhece o grupo e descobre como e evoluir com uma equipa que acredita em ti
+              Participa num treino, conhece o grupo e descobre como é evoluir com uma equipa que acredita em ti
               desde o primeiro dia.
             </p>
           </Reveal>
