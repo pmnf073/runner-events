@@ -1,13 +1,13 @@
 # App Android (TWA)
 
-A app Android é uma Trusted Web Activity: um APK que abre `https://alvercaurbanrunners.pt/calendar` em ecrã inteiro, com o Chrome do telemóvel. O conteúdo é o próprio site, por isso cada deploy na Vercel atualiza a app sem novo APK. Só é preciso gerar um APK novo quando muda `twa-manifest.json` ou os ícones.
+A app Android é uma Trusted Web Activity: um APK que abre `https://www.alvercaurbanrunners.pt/calendar` em ecrã inteiro, com o Chrome do telemóvel. O conteúdo é o próprio site, por isso cada deploy na Vercel atualiza a app sem novo APK. Só é preciso gerar um APK novo quando muda `twa-manifest.json` ou os ícones.
 
 - `twa-manifest.json`: configuração do Bubblewrap (pacote `pt.alvercaurbanrunners.app`, domínio, cores, ícones).
 - `.github/workflows/android-apk.yml`: gera o APK (e o `.aab` para a Play Store) no GitHub Actions.
 - `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/public/icons/`: a parte PWA do site.
 - `/.well-known/assetlinks.json`: gerado no build do frontend a partir das variáveis `TWA_SHA256_FINGERPRINTS` (e opcionalmente `TWA_PACKAGE_NAME`). Sem ele, a app abre com a barra de endereço do Chrome.
 
-O domínio (`host`) tem de ser o mesmo para onde o login (Google/Facebook) redireciona, isto é, o `FRONTEND_URL` do Render; senão o login abre fora da app e o token fica noutro domínio. Esse domínio não pode redirecionar para outro (por exemplo para `www`), porque o Android verifica o `assetlinks.json` no próprio host.
+O domínio (`host`) tem de ser o mesmo para onde o login (Google/Facebook) redireciona, isto é, o `FRONTEND_URL` do Render; senão o login abre fora da app e o token fica noutro domínio. Esse domínio não pode redirecionar para outro (o domínio sem `www` redireciona para `www`, por isso o host é `www.alvercaurbanrunners.pt`), porque o Android verifica o `assetlinks.json` no próprio host.
 
 O nome do pacote não pode mudar depois de a app estar instalada nos telemóveis (ou publicada na Play Store): uma app com outro pacote é uma app diferente.
 
@@ -28,7 +28,7 @@ A chave assina todas as versões. **Guarda o ficheiro e as passwords num sítio 
 
 3. Em Actions → Android APK → Run workflow, corre o workflow. O resumo da execução mostra o **SHA-256 do certificado**.
 
-4. Na Vercel (Settings → Environment Variables, ambiente Production), cria `TWA_SHA256_FINGERPRINTS` com esse valor e faz redeploy. Confirma que `https://alvercaurbanrunners.pt/.well-known/assetlinks.json` responde com o fingerprint.
+4. Na Vercel (Settings → Environment Variables, ambiente Production), cria `TWA_SHA256_FINGERPRINTS` com esse valor e faz redeploy. Confirma que `https://www.alvercaurbanrunners.pt/.well-known/assetlinks.json` responde com o fingerprint.
 
 Se mais tarde publicares na Play Store com "Play App Signing", a Google assina com outra chave: acrescenta o SHA-256 dessa chave (Play Console → Configuração → Integridade da app) a `TWA_SHA256_FINGERPRINTS`, separado por vírgula.
 
