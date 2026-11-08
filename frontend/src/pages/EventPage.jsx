@@ -4,6 +4,7 @@ import api from "../services/api";
 import { googleCalendarUrl, downloadEventIcs } from "../utils/calendarLinks";
 import { isAllDayEvent, allDayRange, displayDateForInput } from "../utils/format";
 import AttendancePanel from "../components/AttendancePanel";
+import StaffRsvpEditor from "../components/StaffRsvpEditor";
 
 const TYPE_LABELS = {
   trail: "🏔️ Trilho",
@@ -118,6 +119,15 @@ export default function EventPage() {
   }, [showActionBar]);
 
   const rsvpStatus = user ? rsvps.find((r) => r.userId === user.id)?.status ?? null : null;
+
+  const [staffError, setStaffError] = useState("");
+  const removeRsvp = async (rsvp) => {
+    if (!confirm(`Remover ${rsvp.user.name} da lista de quem vai?`)) return;
+    setStaffError("");
+    const res = await api(`/api/rsvps/${id}/users/${rsvp.userId}`, { method: "DELETE" }).catch(() => null);
+    if (res?.ok) setRsvps((prev) => prev.filter((r) => r.userId !== rsvp.userId));
+    else setStaffError("Não foi possível remover. Tenta outra vez.");
+  };
 
   // Clicking the option already chosen removes the answer.
   const handleRsvp = async (status) => {
@@ -307,17 +317,26 @@ export default function EventPage() {
           <span style={{ color: "#fbbf24", fontWeight: 500 }}>🤔 {maybeCount} talvez</span>
         </div>
 
-        {/* Attendees List */}
+        {/* Attendees List (admins and organizers can remove people) */}
         {rsvps.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isStaff ? 4 : 8 }}>
             {rsvps.filter((r) => r.status === "going").map((rsvp) => (
-              <div key={rsvp.userId} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14 }}>
+              <div key={rsvp.userId} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, minHeight: isStaff ? 40 : undefined }}>
                 {rsvp.user.avatar && <img src={rsvp.user.avatar} alt="" style={{ width: 24, height: 24, borderRadius: "50%" }} />}
-                <span style={{ color: V("--text-primary") }}>{rsvp.user.name}</span>
+                <span style={{ color: V("--text-primary"), flex: 1, minWidth: 0 }}>{rsvp.user.name}</span>
+                {isStaff && (
+                  <button type="button" onClick={() => removeRsvp(rsvp)} aria-label={`Remover ${rsvp.user.name}`}
+                    style={{ minHeight: 36, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                      background: "transparent", color: V("--text-secondary"), border: `1px solid ${V("--border-subtle")}` }}>
+                    Remover
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
+        {staffError && <p style={{ color: "#f87171", fontSize: 14, margin: "8px 0 0" }}>{staffError}</p>}
+        {isStaff && <StaffRsvpEditor eventId={id} rsvps={rsvps} onChange={setRsvps} />}
       </div>
 
       {!isStaff && <div style={{ marginTop: 24 }}>{attendance}</div>}
