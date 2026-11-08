@@ -588,7 +588,13 @@ body.has-action-bar {
 .event-dot.social { background: #a855f7; }
 .event-dot.meeting { background: #6b7280; }
 
+/* Main content area; the side gutter shrinks on phones. */
+:root { --main-gutter: 32px; }
+.site-main { margin: 0 var(--main-gutter); padding: 24px 0; flex: 1; }
+
 @media (max-width: 768px) {
+  :root { --main-gutter: 16px; }
+
   .site-nav {
     margin: 0 12px;
     padding: 8px 0;

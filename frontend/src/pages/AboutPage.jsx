@@ -201,8 +201,8 @@ export default function AboutPage() {
     <div
       style={{
         marginTop: -24,
-        marginLeft: -32,
-        width: "calc(100% + 64px)",
+        marginLeft: "calc(-1 * var(--main-gutter))",
+        width: "calc(100% + 2 * var(--main-gutter))",
         overflow: "hidden",
         background: V("--bg-page"),
       }}
