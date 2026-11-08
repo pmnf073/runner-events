@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { localDateKey } from "../utils/format";
@@ -88,6 +88,9 @@ export default function CalendarPage({ user }) {
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [showPastDays, setShowPastDays] = useState(false);
+  const [pendingScrollDay, setPendingScrollDay] = useState(null);
+  const touchStart = useRef(null);
+  const dayStripRef = useRef(null);
   const [firstLoadDone, setFirstLoadDone] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [isMobile, setIsMobile] = useState(false);
@@ -210,6 +213,42 @@ export default function CalendarPage({ user }) {
   const visibleDates = showPastDays ? monthDates : monthDates.filter((d) => !pastDates.includes(d));
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   const tomorrowStr = localDateKey(tomorrow);
+
+  // Day strip (mobile): tap a day to jump to it in the list.
+  const jumpToDay = (dateStr) => {
+    if (pastDates.includes(dateStr) && !showPastDays) setShowPastDays(true);
+    setPendingScrollDay(dateStr);
+  };
+  useEffect(() => {
+    if (!pendingScrollDay) return;
+    document.getElementById(`dia-${pendingScrollDay}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setPendingScrollDay(null);
+  }, [pendingScrollDay, showPastDays]);
+  // Keep today (or the 1st) in view in the strip when the month changes.
+  useEffect(() => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+    const target = strip.querySelector(".is-today") || strip.firstElementChild;
+    if (target) strip.scrollLeft = Math.max(0, target.offsetLeft - strip.offsetLeft - 8);
+  }, [monthKey, isMobile]);
+
+  // Swipe left/right on the list (mobile) to change month. Mostly-horizontal
+  // swipes only, so scrolling the page up and down never changes the month.
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return;
+    if (dx < 0) nextMonth();
+    else prevMonth();
+  };
 
   function formatDate(dateStr) {
     const d = new Date(dateStr + "T00:00:00");
@@ -393,6 +432,33 @@ export default function CalendarPage({ user }) {
           style={{ background: cssVar("--bg-header"), border: `1px solid ${cssVar("--border-subtle")}`, borderRadius: 8, padding: "8px 16px", fontSize: 18, color: cssVar("--text-primary"), cursor: "pointer" }}>&rarr;</button>
       </div>
 
+      {/* DAY STRIP (mobile) */}
+      {isMobile && effectiveViewMode === "list" && !loadError && (
+        <div className="calendar-day-strip" ref={dayStripRef} role="group" aria-label="Saltar para um dia">
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1;
+            const dateStr = `${monthPrefix}-${String(day).padStart(2, "0")}`;
+            const dayEvents = groupedEvents[dateStr] || [];
+            const has = dayEvents.length > 0;
+            const isToday = dateStr === todayStr;
+            const weekday = WEEKDAYS[new Date(year, month, day).getDay()].slice(0, 3);
+            return (
+              <button key={dateStr} type="button" disabled={!has} onClick={() => jumpToDay(dateStr)}
+                className={`${isToday ? "is-today" : ""}${has ? " has-events" : ""}${dateStr < todayStr ? " is-past" : ""}`}
+                aria-label={`${formatDate(dateStr).long}${has ? `, ${dayEvents.length} ${dayEvents.length === 1 ? "evento" : "eventos"}` : ", sem eventos"}`}>
+                <span className="calendar-day-strip-weekday">{weekday}</span>
+                <span className="calendar-day-strip-number">{day}</span>
+                <span className="calendar-day-strip-dots" aria-hidden="true">
+                  {dayEvents.slice(0, 3).map((ev) => (
+                    <span key={ev.id} style={{ background: (EVENT_COLORS[ev.type] || EVENT_COLORS.meeting).dot }} />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* GRID VIEW */}
       {effectiveViewMode === "grid" && loadError && (
         <div style={{ marginBottom: 12, color: cssVar("--text-muted"), display: "flex", gap: 12, alignItems: "center" }}>
@@ -439,7 +505,8 @@ export default function CalendarPage({ user }) {
 
       {/* LIST VIEW */}
       {effectiveViewMode === "list" && (
-        <div className="calendar-list" style={{ opacity: loading ? 0.5 : 1, transition: "opacity 0.2s" }}>
+        <div className="calendar-list" style={{ opacity: loading ? 0.5 : 1, transition: "opacity 0.2s" }}
+          onTouchStart={isMobile ? onTouchStart : undefined} onTouchEnd={isMobile ? onTouchEnd : undefined}>
           {loadError ? (
             <div style={{ textAlign: "center", padding: 32, color: cssVar("--text-muted"), display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
               <span>Não foi possível carregar os eventos.</span>
@@ -468,7 +535,7 @@ export default function CalendarPage({ user }) {
                 const isPast = dateStr < todayStr;
                 const relative = isToday ? "Hoje" : dateStr === tomorrowStr ? "Amanhã" : null;
                 return (
-                  <div key={dateStr} className={`calendar-list-day${isPast ? " is-past" : ""}`}
+                  <div key={dateStr} id={`dia-${dateStr}`} className={`calendar-list-day${isPast ? " is-past" : ""}`}
                     style={{ background: cssVar("--bg-card"), border: `1px solid ${isToday ? "#CC3333" : cssVar("--border-subtle")}` }}>
                     <div className="calendar-list-date" style={{ background: cssVar("--calendar-today-bg") }}>
                       <span>{info.long}</span>
