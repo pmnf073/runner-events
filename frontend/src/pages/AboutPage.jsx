@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTheme } from "../ThemeContext";
 
 const V = (name) => `var(${name})`;
 
@@ -97,8 +96,8 @@ function ActionButton({ children, ...props }) {
 }
 
 export default function AboutPage() {
-  const { theme } = useTheme();
-  const logoSrc = theme === "light" ? "/logo-light.png" : "/logo.png";
+  // The hero has a dark photo background in both themes, so it always uses the light-on-dark logo.
+  const logoSrc = "/logo.png";
 
   const feed = useMemo(
     () => [

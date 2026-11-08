@@ -206,6 +206,11 @@ body {
   flex: 0 0 auto;
 }
 
+/* The black-on-white badge fades into the light footer at half opacity. */
+:root.light .site-footer-logo {
+  opacity: 0.85;
+}
+
 .site-footer-links {
   display: flex;
   flex-wrap: wrap;
