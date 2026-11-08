@@ -1,30 +1,94 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../services/api";
 
 const V = (name) => `var(${name})`;
 
-function Reveal({ children, delay = 0 }) {
+const MAIL = "mailto:alvercaurbanrunners@gmail.com";
+const MAIL_TRIAL = `${MAIL}?subject=${encodeURIComponent("Quero experimentar um treino")}`;
+
+// Regular trainings (confirmed by the club, 2026-11-08). Always free.
+const TRAINING_SPOTS = [
+  { day: "Terça-feira", time: "19h30", map: "https://maps.app.goo.gl/ELgTi1p1pkawvZ1r6" },
+  { day: "Quinta-feira", time: "19h30", map: "https://maps.app.goo.gl/8fU4iEwNDztSTandA" },
+];
+
+const FAQ = [
+  { q: "Preciso de experiência ou de estar em forma?", a: "Não. Os grupos são por ritmo e há sempre alguém a correr ao teu passo. Começas onde estás." },
+  { q: "Quanto custa?", a: "Os treinos regulares de terça e quinta são sempre gratuitos. Aparece quantas vezes quiseres antes de decidir." },
+  { q: "Há limite de idade?", a: "Não. Temos atletas de todas as idades." },
+  { q: "E se preferir caminhar?", a: "Também fazemos caminhadas, sempre que há pessoas para isso. Fala connosco e juntamos-te ao grupo." },
+];
+
+// "Terça, 10 de novembro, 19:30" in Lisbon time.
+function formatTrainingDate(iso) {
+  const d = new Date(iso);
+  const day = new Intl.DateTimeFormat("pt-PT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Lisbon" }).format(d);
+  const time = new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" }).format(d);
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${time}`;
+}
+
+// Fades its content in when it scrolls into view (immediately without IntersectionObserver
+// or when the user prefers reduced motion).
+function Reveal({ children, delay = 0, as: Tag = "div", style }) {
+  const ref = useRef(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(timer);
+    const el = ref.current;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!el || reduced || !("IntersectionObserver" in window)) {
+      setVisible(true);
+      return undefined;
+    }
+    let timer;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          timer = setTimeout(() => setVisible(true), delay);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
   }, [delay]);
 
   return (
-    <div
+    <Tag
+      ref={ref}
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0)" : "translateY(20px)",
         transition: "opacity 650ms ease, transform 650ms ease",
+        ...style,
       }}
     >
       {children}
-    </div>
+    </Tag>
   );
 }
 
-function SectionTitle({ tag, title, subtitle }) {
+// A photo below a section's content, 3:2, lazy-loaded.
+function SectionPhoto({ src, alt }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={1200}
+      height={800}
+      loading="lazy"
+      style={{ display: "block", width: "100%", height: "auto", maxHeight: 460, marginTop: 24, borderRadius: 16, objectFit: "cover" }}
+    />
+  );
+}
+
+// onDark: the section has its own dark background in both themes, so the text stays light.
+function SectionTitle({ tag, title, subtitle, onDark = false }) {
   return (
     <div style={{ marginBottom: 34 }}>
       <p
@@ -42,7 +106,7 @@ function SectionTitle({ tag, title, subtitle }) {
       <h2
         style={{
           margin: "12px 0 12px",
-          color: V("--text-heading"),
+          color: onDark ? "#FFFFFF" : V("--text-heading"),
           lineHeight: 1.12,
           fontSize: "clamp(30px, 5vw, 46px)",
           fontWeight: 800,
@@ -56,7 +120,7 @@ function SectionTitle({ tag, title, subtitle }) {
         <p
           style={{
             margin: 0,
-            color: V("--text-secondary"),
+            color: onDark ? "rgba(255,255,255,0.78)" : V("--text-secondary"),
             lineHeight: 1.72,
             maxWidth: 760,
             fontSize: "clamp(16px, 2.4vw, 18px)",
@@ -99,14 +163,39 @@ export default function AboutPage() {
   // The hero has a dark photo background in both themes, so it always uses the light-on-dark logo.
   const logoSrc = "/logo.png";
 
-  const feed = useMemo(
-    () => [
-      "Terca de series progressivas com 30+ atletas em pista.",
-      "Nova estreia em 10K: celebracao total na meta.",
-      "Trail de domingo com sunrise run e cafe de equipa no final.",
-    ],
-    [],
-  );
+  // Mobile: a "try a training" bar once the hero is out of view, hidden near the final call to action
+  // and for logged-in users.
+  const [nextTraining, setNextTraining] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api("/api/events/public/next-trainings")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => { if (alive && Array.isArray(list) && list[0]?.date) setNextTraining(list[0]); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const heroRef = useRef(null);
+  const finalRef = useRef(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  useEffect(() => {
+    let loggedIn = false;
+    try { loggedIn = Boolean(localStorage.getItem("token")); } catch { /* storage blocked */ }
+    if (loggedIn) return undefined;
+    const onScroll = () => {
+      const hero = heroRef.current?.getBoundingClientRect();
+      const final = finalRef.current?.getBoundingClientRect();
+      if (!hero || !final) return;
+      setShowStickyCta(hero.bottom < 0 && final.top > window.innerHeight);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   return (
     <div
@@ -129,6 +218,31 @@ export default function AboutPage() {
           50% { opacity: 0.75; transform: scaleY(1.08); }
           100% { opacity: 0.35; transform: scaleY(1); }
         }
+        .about-stats { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+        .about-steps { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); counter-reset: step; }
+        .about-mosaic { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); margin-top: 24px; }
+        .about-mosaic img { display: block; width: 100%; height: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 14px; }
+        .about-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+        .about-chips li { padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff;
+          background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.28); }
+        .about-sticky-cta { display: none; }
+        @media (max-width: 860px) {
+          .about-stats { grid-template-columns: repeat(2, 1fr); }
+          .about-steps { grid-template-columns: 1fr; }
+          .about-mosaic { grid-template-columns: 1fr 1fr; }
+          .about-mosaic img:first-child { grid-column: 1 / -1; aspect-ratio: 3 / 2; }
+          .about-sticky-cta {
+            display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            background: var(--bg-header); border-top: 1px solid var(--border-subtle);
+            box-shadow: 0 -6px 20px var(--shadow-dropdown);
+            transform: translateY(110%); transition: transform 250ms ease;
+          }
+          .about-sticky-cta.visible { transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .about-sticky-cta { transition: none; }
+        }
         @media (max-width: 860px) {
           .about-wrapper {
             margin-left: -16px;
@@ -141,6 +255,7 @@ export default function AboutPage() {
       `}</style>
 
       <section
+        ref={heroRef}
         className="about-wrapper"
         style={{
           position: "relative",
@@ -198,21 +313,27 @@ export default function AboutPage() {
           <Reveal delay={220}>
             <p
               style={{
-                margin: "0 0 32px",
+                margin: "0 0 20px",
                 maxWidth: 720,
                 color: "rgba(255,255,255,0.88)",
                 lineHeight: 1.72,
                 fontSize: "clamp(17px, 2.8vw, 22px)",
               }}
             >
-              Em Alverca, cada treino e um passo para mais saude, mais confianca e mais comunidade.
-              Somos energia em movimento para todos os niveis.
+              Em Alverca, cada treino é um passo para mais saúde, mais confiança e mais comunidade.
+              Somos energia em movimento para todos os níveis.
             </p>
+            <ul className="about-chips">
+              <li>Terças e quintas, 19h30</li>
+              <li>Treinos gratuitos</li>
+              <li>Todos os níveis e idades</li>
+              <li>Desde 2014</li>
+            </ul>
           </Reveal>
           <Reveal delay={320}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link
-                to="/register"
+              <a
+                href="#comecar"
                 style={{
                   textDecoration: "none",
                   background: "#CC3333",
@@ -232,15 +353,15 @@ export default function AboutPage() {
                   e.currentTarget.style.background = "#CC3333";
                 }}
               >
-                Junta-te a nos
-              </Link>
+                Experimenta um treino
+              </a>
               <ActionButton
-                href="mailto:alvercaurbanrunners@gmail.com"
+                href={MAIL}
                 style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.7)", background: "transparent" }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.7)")}
               >
-                Vem treinar
+                Fala connosco
               </ActionButton>
             </div>
           </Reveal>
@@ -252,17 +373,17 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Quem somos"
-              title="Nascemos de forma simples. Crescemos com espirito de equipa."
-              subtitle="Os Alverca Urban Runners comecaram com amigos a correr juntos. Hoje somos uma comunidade com presenca competitiva e foco total na inclusao. Aqui, ninguem corre sozinho."
+              title="Nascemos de forma simples. Crescemos com espírito de equipa."
+              subtitle="Os Alverca Urban Runners começaram com amigos a correr juntos. Hoje somos uma comunidade com presença competitiva e foco total na inclusão. Aqui, ninguém corre sozinho."
             />
           </Reveal>
           <Reveal delay={100}>
-            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+            <div className="about-stats">
               {[
-                { value: "2014", label: "Origem organica" },
+                { value: "2014", label: "Origem orgânica" },
                 { value: "50+", label: "Participantes ativos" },
                 { value: "2", label: "Pontos de encontro" },
-                { value: "100%", label: "Espirito de grupo" },
+                { value: "100%", label: "Espírito de grupo" },
               ].map((stat) => (
                 <article
                   key={stat.label}
@@ -291,9 +412,14 @@ export default function AboutPage() {
             </div>
           </Reveal>
           <Reveal delay={180}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: corrida de grupo em avenida de Alverca com diferentes idades.
-            </p>
+            <img
+              src="/fotos/quem-somos-ogma.jpg"
+              alt="Dezenas de atletas do clube junto ao mural da aviação em Alverca"
+              width={1200}
+              height={800}
+              loading="lazy"
+              style={{ display: "block", width: "100%", height: "auto", maxHeight: 460, marginTop: 24, borderRadius: 16, objectFit: "cover" }}
+            />
           </Reveal>
         </div>
       </section>
@@ -304,28 +430,31 @@ export default function AboutPage() {
             <SectionTitle
               tag="O que fazemos"
               title="Treinos regulares, desafios especiais e eventos com identidade."
-              subtitle="Estrutura clara para evoluir com seguranca e motivacao."
+              subtitle="Estrutura clara para evoluir com segurança e motivação."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             {[
               {
                 title: "Treinos regulares",
-                text: "Tercas e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os niveis.",
-                points: ["Iniciantes bem-vindos", "Progressao por objetivo", "Ambiente inclusivo"],
-                hint: "Grupo a correr em circuito urbano ao fim da tarde.",
+                text: "Terças e quintas com dois pontos de encontro na cidade, grupos por ritmo e acompanhamento para todos os níveis.",
+                points: ["Iniciantes bem-vindos", "Progressão por objetivo", "Ambiente inclusivo"],
+                image: "/fotos/treinos-regulares-tejo.jpg",
+                alt: "Grupo a correr junto ao Tejo",
               },
               {
                 title: "Treinos especiais",
-                text: "Trilhos, desafios mensais e experiencias fora da rotina para trabalhar resistencia, tecnica e mentalidade.",
+                text: "Trilhos, desafios mensais e experiências fora da rotina para trabalhar resistência, técnica e mentalidade.",
                 points: ["Trail running", "Desafios por equipas", "Treinos sunrise"],
-                hint: "Subida em trilho com vista panoramica.",
+                image: "/fotos/treinos-especiais-falesia.jpg",
+                alt: "Atletas no alto de uma falésia sobre o mar ao pôr do sol",
               },
               {
                 title: "Eventos",
-                text: "Destaque para o Trail Encostas de Xira e para a Sao Silvestre Pirata, alem de participacoes em provas regionais.",
-                points: ["Trail Encostas de Xira", "Sao Silvestre Pirata", "Provas de estrada e trail"],
-                hint: "Meta com celebracao coletiva e bandeiras do grupo.",
+                text: "Destaque para o Trail Encostas de Xira e para a São Silvestre Pirata, além de participações em provas regionais.",
+                points: ["Trail Encostas de Xira", "São Silvestre Pirata", "Provas de estrada e trail"],
+                image: "/fotos/eventos-trail-encostas-xira.jpg",
+                alt: "Equipa de staff do Trail Encostas de Xira 2024",
               },
             ].map((card, idx) => (
               <Reveal delay={idx * 100 + 90} key={card.title}>
@@ -348,6 +477,14 @@ export default function AboutPage() {
                     e.currentTarget.style.borderColor = V("--border-subtle");
                   }}
                 >
+                  <img
+                    src={card.image}
+                    alt={card.alt}
+                    width={1200}
+                    height={800}
+                    loading="lazy"
+                    style={{ display: "block", width: "100%", height: "auto", borderRadius: 12, marginBottom: 18 }}
+                  />
                   <h3
                     style={{
                       margin: "0 0 10px",
@@ -365,13 +502,96 @@ export default function AboutPage() {
                       <li key={point}>{point}</li>
                     ))}
                   </ul>
-                  <p style={{ margin: "14px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-                    Imagem sugerida: {card.hint}
-                  </p>
                 </article>
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="comecar" className="about-section" style={{ padding: "82px 24px", background: V("--bg-page"), scrollMarginTop: 72 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle
+              tag="Como começar"
+              title="O primeiro treino é o mais fácil."
+              subtitle="Não precisas de experiência nem de ritmo certo. Os treinos regulares são gratuitos: só tens de aparecer."
+            />
+          </Reveal>
+          <ol className="about-steps" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {[
+              { title: "Escolhe o dia", text: "Terça ou quinta, às 19h30. Vê abaixo onde nos encontramos. Se tiveres dúvidas, manda-nos uma mensagem." },
+              { title: "Aparece num treino", text: "Traz sapatilhas e água. É gratuito e os grupos são por ritmo, por isso ninguém fica para trás." },
+              { title: "Fica connosco", text: "Gostaste? Torna-te sócio, cria a tua conta e acompanha os treinos, provas e eventos no calendário do clube." },
+            ].map((step, idx) => (
+              <Reveal
+                as="li"
+                delay={idx * 100 + 80}
+                key={step.title}
+                style={{
+                  boxSizing: "border-box",
+                  borderRadius: 16,
+                  padding: 22,
+                  background: V("--bg-card"),
+                  border: `1px solid ${V("--border-subtle")}`,
+                }}
+              >
+                  <span
+                    aria-hidden
+                    style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 40, height: 40, borderRadius: 999, marginBottom: 14,
+                      background: "#CC3333", color: "#fff", fontWeight: 800, fontSize: 18,
+                      fontFamily: "Oswald, Inter, system-ui, sans-serif",
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <h3 style={{ margin: "0 0 8px", color: V("--text-heading"), fontSize: 20, fontWeight: 700 }}>{step.title}</h3>
+                  <p style={{ margin: 0, color: V("--text-secondary"), lineHeight: 1.65 }}>{step.text}</p>
+              </Reveal>
+            ))}
+          </ol>
+          <Reveal delay={150}>
+            <h3 style={{ margin: "36px 0 14px", color: V("--text-heading"), fontSize: 22, fontWeight: 700 }}>Onde nos encontramos</h3>
+            {nextTraining && (
+              <p style={{ margin: "0 0 14px", padding: "12px 16px", borderRadius: 12, background: "rgba(204,51,51,0.10)", border: "1px solid rgba(204,51,51,0.35)", color: V("--text-primary"), lineHeight: 1.5 }}>
+                <strong style={{ color: V("--c-danger") }}>Próximo treino:</strong> {formatTrainingDate(nextTraining.date)}
+                {nextTraining.location ? ` · ${nextTraining.location}` : ""}
+              </p>
+            )}
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+              {TRAINING_SPOTS.map((spot) => (
+                <a
+                  key={spot.day}
+                  href={spot.map}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14, textDecoration: "none",
+                    padding: 18, borderRadius: 16, background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`,
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: 28 }}>📍</span>
+                  <span style={{ flex: 1 }}>
+                    <span style={{ display: "block", color: V("--text-heading"), fontWeight: 700, fontSize: 18 }}>{spot.day}</span>
+                    <span style={{ display: "block", color: V("--text-secondary"), marginTop: 2 }}>{spot.time} · treino gratuito</span>
+                  </span>
+                  <span style={{ color: V("--c-accent"), fontWeight: 700, whiteSpace: "nowrap" }}>Ver no mapa →</span>
+                </a>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={200}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", marginTop: 24 }}>
+              <ActionButton href={MAIL_TRIAL} style={{ background: "#CC3333", color: "#fff", border: "2px solid #CC3333" }}>
+                Quero experimentar um treino
+              </ActionButton>
+              <Link to="/register" style={{ color: V("--c-accent"), fontWeight: 700, textDecoration: "none", padding: "13px 8px" }}>
+                Já és do clube? Cria a tua conta →
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -382,15 +602,16 @@ export default function AboutPage() {
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
           <Reveal>
             <SectionTitle
+              onDark
               tag="Energia da comunidade"
-              title="Amizade, entreajuda e motivacao em cada passada."
-              subtitle="Juntamos pessoas com ritmos diferentes e a mesma vontade de evoluir. O ambiente e proximo, humano e inspirador."
+              title="Amizade, entreajuda e motivação em cada passada."
+              subtitle="Juntamos pessoas com ritmos diferentes e a mesma vontade de evoluir. O ambiente é próximo, humano e inspirador."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
             {[
               '"Entrei sem conseguir correr 5K. Hoje fecho 10K com a equipa a puxar por mim."',
-              '"Nos dias dificeis, o grupo ajuda-me a manter o foco. Nunca corro sozinho."',
+              '"Nos dias difíceis, o grupo ajuda-me a manter o foco. Nunca corro sozinho."',
               '"Mais do que treino, encontrei amizades e uma rotina que mudou a minha vida."',
             ].map((quote, idx) => (
               <Reveal delay={idx * 100 + 100} key={quote}>
@@ -398,7 +619,6 @@ export default function AboutPage() {
                   style={{
                     borderRadius: 14,
                     padding: 22,
-                    minHeight: 148,
                     background: "rgba(11,26,43,0.9)",
                     border: "1px solid rgba(255,255,255,0.14)",
                     color: "rgba(255,255,255,0.92)",
@@ -410,10 +630,12 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: "rgba(255,255,255,0.64)", fontSize: 13 }}>
-              Imagem sugerida: foto de grupo diverso pos-treino, com celebracao espontanea.
-            </p>
+          <Reveal delay={200}>
+            <div className="about-mosaic">
+              <img src="/fotos/mosaico-brinde.jpg" alt="Brinde em roda depois de um treino, visto de baixo" width={800} height={800} loading="lazy" />
+              <img src="/fotos/mosaico-serra.jpg" alt="Grupo de atletas no alto da serra ao pôr do sol" width={800} height={800} loading="lazy" />
+              <img src="/fotos/mosaico-pelourinho.jpg" alt="Atletas do clube junto ao pelourinho, em frente à Câmara Municipal" width={800} height={800} loading="lazy" />
+            </div>
           </Reveal>
         </div>
       </section>
@@ -423,16 +645,16 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Conquistas"
-              title="As conquistas individuais sao vitorias de todos."
-              subtitle="Do primeiro 10K aos podios, cada passo tem apoio coletivo."
+              title="As conquistas individuais são vitórias de todos."
+              subtitle="Do primeiro 10K aos pódios, cada passo tem apoio coletivo."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             {[
               { year: "2024", text: "Primeiros 10K de novos membros com pacers da equipa." },
-              { year: "2025", text: "Entradas em meias maratonas e trails tecnicos." },
-              { year: "2025", text: "Podios regionais em provas de estrada e montanha." },
-              { year: "2026", text: "Mais superacoes pessoais e maior impacto na cidade." },
+              { year: "2025", text: "Entradas em meias maratonas e trails técnicos." },
+              { year: "2025", text: "Pódios regionais em provas de estrada e montanha." },
+              { year: "2026", text: "Mais superações pessoais e maior impacto na cidade." },
             ].map((item, idx) => (
               <Reveal delay={idx * 90 + 100} key={`${item.year}-${item.text}`}>
                 <article
@@ -473,10 +695,8 @@ export default function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal delay={420}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: meta de prova com medalhas e abracos entre membros.
-            </p>
+          <Reveal delay={200}>
+            <SectionPhoto src="/fotos/conquistas-2600tr.jpg" alt="Atletas do clube com dorsal de prova junto a uma capela no alto da serra" />
           </Reveal>
         </div>
       </section>
@@ -486,37 +706,41 @@ export default function AboutPage() {
           <Reveal>
             <SectionTitle
               tag="Impacto na comunidade"
-              title="Corremos por nos e inspiramos Alverca a mexer-se."
-              subtitle="Promocao da saude, parcerias locais e eventos comunitarios que aproximam pessoas."
+              title="Corremos por nós e inspiramos Alverca a mexer-se."
+              subtitle="Promoção da saúde, parcerias locais e eventos comunitários que aproximam pessoas."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             {[
-              "Promocao de habitos saudaveis para todas as idades.",
+              "Promoção de hábitos saudáveis para todas as idades.",
               "Parcerias com agentes locais para fortalecer o desporto.",
-              "Eventos comunitarios com envolvimento direto da cidade.",
-              "Representacao ativa de Alverca em iniciativas da regiao.",
+              "Eventos comunitários com envolvimento direto da cidade.",
+              "Representação ativa de Alverca em iniciativas da região.",
             ].map((item, idx) => (
               <Reveal delay={idx * 80 + 90} key={item}>
                 <article
                   style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    height: "100%",
+                    boxSizing: "border-box",
                     borderRadius: 14,
                     padding: 18,
                     border: `1px solid ${V("--border-subtle")}`,
-                    background: V("--bg-card"),
-                    color: V("--text-secondary"),
-                    lineHeight: 1.65,
+                    background: V("--bg-page"),
+                    color: V("--text-primary"),
+                    lineHeight: 1.6,
                   }}
                 >
-                  {item}
+                  <span aria-hidden style={{ flexShrink: 0, width: 26, height: 26, borderRadius: 999, background: "#CC3333", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>✓</span>
+                  <span>{item}</span>
                 </article>
               </Reveal>
             ))}
           </div>
-          <Reveal delay={380}>
-            <p style={{ margin: "18px 0 0", color: V("--text-muted"), fontSize: 13 }}>
-              Imagem sugerida: treino aberto com participantes e familias.
-            </p>
+          <Reveal delay={200}>
+            <SectionPhoto src="/fotos/impacto-trail-familias.jpg" alt="Staff e participantes, com várias crianças, no Trail Encostas de Xira" />
           </Reveal>
         </div>
       </section>
@@ -527,7 +751,7 @@ export default function AboutPage() {
             <SectionTitle
               tag="Redes sociais"
               title="Segue o ritmo da equipa todos os dias."
-              subtitle="Facebook e Instagram com horarios, bastidores e desafios."
+              subtitle="Facebook e Instagram com horários, bastidores e desafios."
             />
           </Reveal>
           <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
@@ -569,49 +793,38 @@ export default function AboutPage() {
                 <p style={{ margin: 0, color: V("--text-secondary") }}>instagram.com/alvercaurbanrunners</p>
               </a>
             </Reveal>
-            <Reveal delay={220}>
-              <article
-                style={{
-                  border: `1px solid ${V("--border-subtle")}`,
-                  borderRadius: 14,
-                  padding: 20,
-                  background: V("--bg-card"),
-                }}
-              >
-                <p style={{ margin: "0 0 12px", color: V("--text-heading"), fontWeight: 700 }}>
-                  Feed dinamico (simulacao)
-                </p>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {feed.map((post) => (
-                    <p
-                      key={post}
-                      style={{
-                        margin: 0,
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        background: "rgba(54,194,206,0.08)",
-                        color: V("--text-secondary"),
-                        fontSize: 14,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {post}
-                    </p>
-                  ))}
-                </div>
-              </article>
-            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-section" style={{ padding: "82px 24px", background: V("--bg-card") }}>
+        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          <Reveal>
+            <SectionTitle tag="Perguntas frequentes" title="Ainda com dúvidas?" />
+          </Reveal>
+          <div style={{ display: "grid", gap: 12 }}>
+            {FAQ.map((item, idx) => (
+              <Reveal delay={idx * 60} key={item.q}>
+                <details style={{ borderRadius: 14, padding: "16px 18px", background: V("--bg-page"), border: `1px solid ${V("--border-subtle")}` }}>
+                  <summary style={{ cursor: "pointer", color: V("--text-heading"), fontWeight: 700, fontSize: 17, lineHeight: 1.4 }}>{item.q}</summary>
+                  <p style={{ margin: "10px 0 0", color: V("--text-secondary"), lineHeight: 1.65 }}>{item.a}</p>
+                </details>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
       <section
+        ref={finalRef}
         className="about-section"
         style={{
           position: "relative",
-          padding: "94px 24px",
+          padding: "110px 24px",
           textAlign: "center",
-          background: "linear-gradient(130deg, #CC3333 0%, #8E1515 100%)",
+          backgroundImage: "linear-gradient(130deg, rgba(204,51,51,0.84) 0%, rgba(110,14,14,0.88) 100%), url('/fotos/cta-miradouro.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
         <div
@@ -635,7 +848,7 @@ export default function AboutPage() {
                 fontFamily: "Oswald, Inter, system-ui, sans-serif",
               }}
             >
-              O proximo passo e teu.
+              O próximo passo é teu.
             </h2>
           </Reveal>
           <Reveal delay={100}>
@@ -648,14 +861,14 @@ export default function AboutPage() {
                 fontSize: "clamp(17px, 2.6vw, 20px)",
               }}
             >
-              Participa num treino, conhece o grupo e descobre como e evoluir com uma equipa que acredita em ti
+              Participa num treino, conhece o grupo e descobre como é evoluir com uma equipa que acredita em ti
               desde o primeiro dia.
             </p>
           </Reveal>
           <Reveal delay={200}>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link
-                to="/register"
+              <a
+                href={MAIL_TRIAL}
                 style={{
                   textDecoration: "none",
                   background: "#fff",
@@ -668,20 +881,28 @@ export default function AboutPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-3px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
               >
-                Participar num treino
-              </Link>
-              <ActionButton
-                href="mailto:alvercaurbanrunners@gmail.com"
-                style={{ color: "#fff", border: "2px solid rgba(255,255,255,0.84)", background: "transparent" }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#fff")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.84)")}
+                Quero experimentar um treino
+              </a>
+              <Link
+                to="/register"
+                style={{ textDecoration: "none", color: "#fff", border: "2px solid rgba(255,255,255,0.84)", background: "transparent", padding: "13px 24px", borderRadius: 999, fontWeight: 800 }}
               >
-                Falar connosco
-              </ActionButton>
+                Criar conta
+              </Link>
             </div>
           </Reveal>
         </div>
       </section>
+
+      <div className={`about-sticky-cta${showStickyCta ? " visible" : ""}`} aria-hidden={!showStickyCta}>
+        <a
+          href="#comecar"
+          tabIndex={showStickyCta ? 0 : -1}
+          style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#CC3333", color: "#fff", fontWeight: 800, padding: "14px 16px", borderRadius: 999, fontSize: 16 }}
+        >
+          Experimenta um treino connosco
+        </a>
+      </div>
     </div>
   );
 }
