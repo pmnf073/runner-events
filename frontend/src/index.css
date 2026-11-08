@@ -46,6 +46,7 @@
   --type-training: #fcd34d;
   --type-social: #d8b4fe;
   --type-meeting: #9ca3af;
+  --card-gradient-end: rgba(11,26,43,0.86);
 }
 
 /* ── Light Theme ── */
@@ -85,6 +86,7 @@
   --type-training: #b45309;
   --type-social: #7e22ce;
   --type-meeting: #4b5563;
+  --card-gradient-end: #eef1f4;
 }
 
 body {

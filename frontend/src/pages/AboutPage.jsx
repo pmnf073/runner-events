@@ -335,7 +335,7 @@ export default function AboutPage() {
                     height: "100%",
                     borderRadius: 16,
                     padding: 24,
-                    background: `linear-gradient(160deg, ${V("--bg-card")} 0%, rgba(11,26,43,0.86) 100%)`,
+                    background: `linear-gradient(160deg, ${V("--bg-card")} 0%, ${V("--card-gradient-end")} 100%)`,
                     border: `1px solid ${V("--border-subtle")}`,
                     boxShadow: "0 14px 36px rgba(0,0,0,0.2)",
                     transition: "transform 220ms ease, border-color 220ms ease",
@@ -460,7 +460,7 @@ export default function AboutPage() {
                   <p
                     style={{
                       margin: "0 0 6px",
-                      color: "#36C2CE",
+                      color: V("--c-accent"),
                       fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1.1,
@@ -504,7 +504,7 @@ export default function AboutPage() {
                     borderRadius: 14,
                     padding: 18,
                     border: `1px solid ${V("--border-subtle")}`,
-                    background: "rgba(11,26,43,0.72)",
+                    background: V("--bg-card"),
                     color: V("--text-secondary"),
                     lineHeight: 1.65,
                   }}
