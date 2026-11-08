@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { openApiFile } from "../services/api";
-import { formatCurrency, formatDate, displayDateForInput, parseInputDateToYMD, membershipStatusLabel } from "../utils/format";
+import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const METHOD_LABELS = {
   transfer: "Transferência",
@@ -301,11 +302,11 @@ export default function PaymentsPage({ user }) {
           <option value="card">Cartão</option>
         </select>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="text" value={displayDateForInput(dateFrom)} onChange={(e) => setDateFrom(parseInputDateToYMD(e.target.value))}
-            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <DateInput value={dateFrom} onChange={setDateFrom}
+            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
           <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>até</span>
-          <input type="text" value={displayDateForInput(dateTo)} onChange={(e) => setDateTo(parseInputDateToYMD(e.target.value))}
-            placeholder="dd/mm/aaaa" style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
+          <DateInput value={dateTo} onChange={setDateTo}
+            style={{ padding: "8px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-primary)", fontSize: 14 }} />
         </div>
         <button onClick={() => { setSearch(""); setMethodFilter(""); setDateFrom(""); setDateTo(""); }}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-subtle)", background: "var(--bg-card)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14 }}>

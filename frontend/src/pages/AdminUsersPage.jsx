@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { displayDateForInput, parseInputDateToYMD } from "../utils/format";
+import DateInput from "../components/DateInput";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
@@ -245,7 +245,7 @@ export default function AdminUsersPage() {
                     <div><label style={labelStyle}>Telefone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} /></div>
                     <div><label style={labelStyle}>Contacto Alternativo</label><input value={editForm.altContact} onChange={(e) => setEditForm({ ...editForm, altContact: e.target.value })} style={inputStyle} /></div>
                     <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Morada</label><input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Data de Nascimento</label><input type="text" value={displayDateForInput(editForm.dob)} onChange={(e) => setEditForm({ ...editForm, dob: parseInputDateToYMD(e.target.value) })} placeholder="dd/mm/aaaa" style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Data de Nascimento</label><DateInput value={editForm.dob} onChange={(dob) => setEditForm({ ...editForm, dob })} style={inputStyle} /></div>
                     <div><label style={labelStyle}>NIF</label><input value={editForm.nif} onChange={(e) => setEditForm({ ...editForm, nif: e.target.value })} inputMode="numeric" maxLength={9} placeholder="Para recibos" style={inputStyle} /></div>
                     <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Notas</label><textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} /></div>
                   </div>
