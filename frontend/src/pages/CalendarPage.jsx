@@ -5,12 +5,12 @@ import { localDateKey, isAllDayEvent } from "../utils/format";
 import TrainingHighlights from "../components/TrainingHighlights";
 
 const EVENT_COLORS = {
-  trail: { border: "#10b981", bg: "rgba(16,185,129,0.1)", text: "#6ee7b7", dot: "#10b981" },
-  urban: { border: "#3b82f6", bg: "rgba(59,130,246,0.12)", text: "#93c5fd", dot: "#3b82f6" },
-  race: { border: "#CC3333", bg: "rgba(204,51,51,0.15)", text: "#E55555", dot: "#CC3333" },
-  training: { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", text: "#fcd34d", dot: "#f59e0b" },
-  social: { border: "#a855f7", bg: "rgba(168,85,247,0.12)", text: "#d8b4fe", dot: "#a855f7" },
-  meeting: { border: "#6b7280", bg: "rgba(107,114,128,0.1)", text: "#9ca3af", dot: "#6b7280" },
+  trail: { border: "#10b981", bg: "rgba(16,185,129,0.1)", text: "var(--type-trail)", dot: "#10b981" },
+  urban: { border: "#3b82f6", bg: "rgba(59,130,246,0.12)", text: "var(--type-urban)", dot: "#3b82f6" },
+  race: { border: "#CC3333", bg: "rgba(204,51,51,0.15)", text: "var(--type-race)", dot: "#CC3333" },
+  training: { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", text: "var(--type-training)", dot: "#f59e0b" },
+  social: { border: "#a855f7", bg: "rgba(168,85,247,0.12)", text: "var(--type-social)", dot: "#a855f7" },
+  meeting: { border: "#6b7280", bg: "rgba(107,114,128,0.1)", text: "var(--type-meeting)", dot: "#6b7280" },
 };
 
 // How far back and ahead the search looks, and how many results each section shows.
@@ -56,7 +56,7 @@ function RsvpBadge({ status }) {
   return (
     <span className="calendar-rsvp-badge" style={{
       background: going ? "rgba(16,185,129,0.15)" : "transparent",
-      color: going ? "#34d399" : "var(--text-muted)",
+      color: going ? "var(--c-success)" : "var(--text-muted)",
       border: going ? "1px solid rgba(16,185,129,0.4)" : "1px dashed var(--border-subtle)",
     }}>
       {going ? "✓ Vou" : "Talvez"}

@@ -26,7 +26,7 @@ export default function DashboardPage({ user }) {
       .catch((err) => setError(err.message));
   }, [user, navigate]);
 
-  if (error) return <div style={{ textAlign: "center", padding: 80, color: "#f87171" }}>{error}</div>;
+  if (error) return <div style={{ textAlign: "center", padding: 80, color: "var(--c-danger)" }}>{error}</div>;
   if (!data) return <div style={{ textAlign: "center", padding: 80, color: V("--text-secondary") }}>A carregar...</div>;
 
   const card = { background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`, borderRadius: 12, padding: 20 };

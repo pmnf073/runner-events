@@ -87,7 +87,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {error && <p style={{ color: "#ef4444", fontSize: 14, textAlign: "center", margin: 0 }}>{error}</p>}
+          {error && <p style={{ color: "var(--c-danger)", fontSize: 14, textAlign: "center", margin: 0 }}>{error}</p>}
 
           <button type="submit" disabled={loading} style={{ padding: "12px 0", background: "#CC3333", color: "#fff", border: "none", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "A criar conta..." : "Criar Conta"}

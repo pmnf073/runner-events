@@ -68,7 +68,7 @@ export default function StaffRsvpEditor({ eventId, rsvps, onChange }) {
           background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, color: V("--text-primary"), outline: "none",
         }}
       />
-      {error && <p style={{ color: "#f87171", fontSize: 14, margin: "8px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--c-danger)", fontSize: 14, margin: "8px 0 0" }}>{error}</p>}
       {matches.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           {matches.map((p) => (
@@ -79,7 +79,7 @@ export default function StaffRsvpEditor({ eventId, rsvps, onChange }) {
                 color: V("--text-primary"), fontSize: 16, textAlign: "left", cursor: "pointer", opacity: busy === p.id ? 0.6 : 1,
               }}>
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "#34d399", flexShrink: 0 }}>+ Vai</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-success)", flexShrink: 0 }}>+ Vai</span>
             </button>
           ))}
         </div>

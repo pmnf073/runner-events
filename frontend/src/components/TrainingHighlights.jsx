@@ -60,7 +60,7 @@ export default function TrainingHighlights({ user }) {
               {t.title} · {new Date(t.date).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
             </span>
           </span>
-          <span style={{ fontSize: 22, color: "#f59e0b" }} aria-hidden>›</span>
+          <span style={{ fontSize: 22, color: "var(--c-warning)" }} aria-hidden>›</span>
         </Link>
       ))}
 
@@ -80,7 +80,7 @@ export default function TrainingHighlights({ user }) {
               <div style={{ width: `${pct}%`, height: "100%", background: pct >= 100 ? "#059669" : "#f59e0b", transition: "width 0.4s" }} />
             </div>
           )}
-          {goal.target && pct >= 100 && <p style={{ margin: "8px 0 0", fontSize: 14, color: "#34d399" }}>Meta atingida. Obrigado a todos!</p>}
+          {goal.target && pct >= 100 && <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--c-success)" }}>Meta atingida. Obrigado a todos!</p>}
 
           {isStaff && !editing && (
             <button type="button" style={{ ...smallButton, marginTop: 10 }} onClick={() => { setTarget(goal.target ?? ""); setEditing(true); }}>
@@ -94,7 +94,7 @@ export default function TrainingHighlights({ user }) {
                 style={{ width: 120, minHeight: 40, padding: "6px 10px", borderRadius: 8, fontSize: 16, background: V("--bg-input"), border: `1px solid ${V("--border-input")}`, color: V("--text-primary") }} />
               <button type="submit" style={{ ...smallButton, background: "#CC3333", color: "#fff", border: "none" }}>Guardar</button>
               <button type="button" style={smallButton} onClick={() => setEditing(false)}>Cancelar</button>
-              {error && <span style={{ fontSize: 13, color: "#f87171", width: "100%" }}>{error}</span>}
+              {error && <span style={{ fontSize: 13, color: "var(--c-danger)", width: "100%" }}>{error}</span>}
             </form>
           )}
         </div>

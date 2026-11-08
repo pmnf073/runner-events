@@ -73,12 +73,12 @@ export default function ChangePasswordPage({ user }) {
           </div>
 
           {error && (
-            <div style={{ fontSize: 13, color: "#f87171", background: "rgba(248,113,113,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.2)" }}>
+            <div style={{ fontSize: 13, color: "var(--c-danger)", background: "rgba(248,113,113,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(248,113,113,0.2)" }}>
               {error}
             </div>
           )}
           {success && (
-            <div style={{ fontSize: 13, color: "#10b981", background: "rgba(16,185,129,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.2)" }}>
+            <div style={{ fontSize: 13, color: "var(--c-success)", background: "rgba(16,185,129,0.1)", padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.2)" }}>
               Password alterada com sucesso.
             </div>
           )}

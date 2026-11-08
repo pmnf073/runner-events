@@ -178,7 +178,7 @@ export default function ImportPage({ user }) {
         {feedResult && (
           <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
             {feedResult.error ? (
-              <p style={{ margin: 0, color: "#ff6b6b" }}>❌ {feedResult.error}</p>
+              <p style={{ margin: 0, color: "var(--c-danger)" }}>❌ {feedResult.error}</p>
             ) : (
               <>
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Importados:</strong> {feedResult.imported} eventos</p>
@@ -212,7 +212,7 @@ export default function ImportPage({ user }) {
         {imagesResult && (
           <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
             {imagesResult.error ? (
-              <p style={{ margin: 0, color: "#ff6b6b" }}>❌ {imagesResult.error}</p>
+              <p style={{ margin: 0, color: "var(--c-danger)" }}>❌ {imagesResult.error}</p>
             ) : (
               <>
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Provas verificadas:</strong> {imagesResult.checked}</p>
@@ -271,7 +271,7 @@ export default function ImportPage({ user }) {
           <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: V("--text-heading") }}>Resultado</h2>
           <p style={{ margin: "4px 0", color: V("--text-primary") }}><strong>Importados:</strong> {result.imported} / {result.total} eventos</p>
           {result.skipped != null && <p style={{ margin: "4px 0", color: V("--text-secondary") }}><strong>Ignorados (duplicados):</strong> {result.skipped}</p>}
-          {result.errors && result.errors.length > 0 && <details><summary style={{ cursor: "pointer", color: "#ff6b6b" }}>⚠️ {result.errors.length} erro(s)</summary><ul>{result.errors.slice(0, 10).map((e, i) => <li key={i} style={{ fontSize: 13 }}>{e}</li>)}</ul></details>}
+          {result.errors && result.errors.length > 0 && <details><summary style={{ cursor: "pointer", color: "var(--c-danger)" }}>⚠️ {result.errors.length} erro(s)</summary><ul>{result.errors.slice(0, 10).map((e, i) => <li key={i} style={{ fontSize: 13 }}>{e}</li>)}</ul></details>}
         </div>
       )}
     </div>
@@ -292,7 +292,7 @@ function SyncStatus({ status }) {
           <strong>Última sincronização:</strong> {formatDateTime(last.finishedAt)} ({SOURCE_LABEL[last.source] || last.source}) —{" "}
           {last.ok
             ? `${last.imported} importados, ${last.updated} atualizados, ${last.cancelled} cancelados`
-            : <span style={{ color: "#ff6b6b" }}>falhou: {last.error}</span>}
+            : <span style={{ color: "var(--c-danger)" }}>falhou: {last.error}</span>}
         </p>
       ) : (
         <p style={line}><strong>Última sincronização:</strong> ainda não há registo.</p>

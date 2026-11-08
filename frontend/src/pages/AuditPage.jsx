@@ -114,7 +114,7 @@ export default function AuditPage({ user }) {
         <span style={{ fontSize: 13, color: V("--text-muted") }}>{total} registos</span>
       </div>
 
-      {error && <div style={{ color: "#f87171", marginBottom: 16 }}>{error}</div>}
+      {error && <div style={{ color: "var(--c-danger)", marginBottom: 16 }}>{error}</div>}
 
       <div style={{ background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`, borderRadius: 12, overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
