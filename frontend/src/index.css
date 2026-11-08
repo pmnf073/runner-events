@@ -263,11 +263,46 @@ body {
 }
 
 .calendar-list-date span {
-  min-width: 36px;
   color: #CC3333;
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
-  text-align: center;
+}
+
+.calendar-list-relative {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #CC3333;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.calendar-list-day.is-past {
+  opacity: 0.6;
+}
+
+.calendar-past-toggle {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.calendar-list-event-time {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.calendar-search-results .calendar-list-event-main {
+  align-items: center;
 }
 
 .calendar-list-event {
@@ -275,7 +310,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px 14px 72px;
+  padding: 14px 20px;
 }
 
 /* Search results have no date column to leave room for. */
@@ -285,7 +320,7 @@ body {
 
 .calendar-list-event-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
@@ -333,10 +368,10 @@ body {
 .text-primary-light { color: #36C2CE; }
 
 .event-dot.trail { background: #10b981; }
-.event-dot.urban { background: #CC3333; }
+.event-dot.urban { background: #3b82f6; }
 .event-dot.race { background: #CC3333; }
 .event-dot.training { background: #f59e0b; }
-.event-dot.social { background: #E55555; }
+.event-dot.social { background: #a855f7; }
 .event-dot.meeting { background: #6b7280; }
 
 @media (max-width: 768px) {
@@ -432,13 +467,30 @@ body {
   }
 
   .calendar-list-date {
-    padding: 10px 12px;
+    padding: 8px 12px;
   }
 
   .calendar-list-date span {
-    min-width: 0;
     font-size: 15px;
-    text-align: left;
+  }
+
+  /* Month list: one compact row per event (time, title and place, type). */
+  .calendar-list .calendar-list-event {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .calendar-list .calendar-list-event-main {
+    width: auto;
+    flex: 1 1 auto;
+    gap: 8px;
+  }
+
+  .calendar-list .calendar-list-event-meta {
+    width: auto;
+    padding-left: 0;
   }
 
   .calendar-list-event {
