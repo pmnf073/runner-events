@@ -26,6 +26,8 @@ model User {
   clubs      String    @default("Alverca Urban Runners")
   emailOptOut   Boolean @default(false) // no reminders or club announcements by email
   calendarToken String? @unique         // secret for the personal ICS subscription URL
+  pushNewEvents         Boolean @default(true) // push notification when an event is created
+  pushTrainingReminders Boolean @default(true) // push reminders on training days (and to mark attendance, for staff)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   rsvps      Rsvp[]
@@ -33,6 +35,22 @@ model User {
   registrations Registration[]
   member     Member?
   passwordResetTokens PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
+}
+
+/* ── Web Push: one row per browser/app install that accepted notifications ── */
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model PasswordResetToken {

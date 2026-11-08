@@ -6,6 +6,7 @@ import { loadUser } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rateLimit.js";
 import { syncFeedAndLog } from "./services/ics.js";
 import { runReminders } from "./services/reminders.js";
+import { runPushReminders } from "./services/push.js";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -20,6 +21,7 @@ import calendarRoutes from "./routes/calendar.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import announcementsRoutes from "./routes/announcements.js";
 import attendanceRoutes from "./routes/attendance.js";
+import pushRoutes from "./routes/push.js";
 
 dotenv.config();
 
@@ -91,6 +93,7 @@ app.use("/api/calendar", calendarRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/announcements", announcementsRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/push", pushRoutes);
 
 // Health
 app.get("/api/health", (_req, res) => res.json({ status: "ok", ts: new Date().toISOString() }));
@@ -126,6 +129,20 @@ async function remindersJob() {
 }
 setTimeout(remindersJob, 60 * 1000).unref();
 setInterval(remindersJob, 60 * 60 * 1000).unref();
+
+/* ── Push reminders on training days: every 10 min, only when VAPID keys are set ── */
+async function pushRemindersJob() {
+  try {
+    const result = await runPushReminders();
+    if (!result.skipped && (result.members || result.staff)) {
+      console.log(`[Push] training reminders: members ${result.members}, staff ${result.staff}`);
+    }
+  } catch (err) {
+    console.error("[Push] Reminders error:", err.message);
+  }
+}
+setTimeout(pushRemindersJob, 90 * 1000).unref();
+setInterval(pushRemindersJob, 10 * 60 * 1000).unref();
 
 app.listen(PORT, () => {
   console.log(`🏃 Backend running on http://localhost:${PORT}`);

@@ -1,6 +1,7 @@
 import prisma from "../db.js";
 import { CLUB_TIME_ZONE, zonedTimeToUtc } from "../utils/timezone.js";
 import { autoImagesEnabled, fillMissingImages } from "./portugalRunning.js";
+import { notifyNewEvents } from "./push.js";
 
 // ICS (iCalendar) parsing and import, shared by the file upload, the manual
 // TeamUp sync and the hourly TeamUp sync.
@@ -168,6 +169,7 @@ export function parseICS(icsContent) {
 export async function importEvents(events) {
   const result = { imported: 0, updated: 0, skipped: 0, total: events.length, errors: [] };
   const seen = new Set();
+  const created = [];
 
   for (const event of events) {
     const key = event.sourceUid || `${event.title}|${event.date}`;
@@ -191,7 +193,8 @@ export async function importEvents(events) {
         await prisma.event.update({ where: { id: existing.id }, data: { ...fields, recurrenceStatus: "active" } });
         result.updated++;
       } else {
-        await prisma.event.create({ data: { ...fields, club: event.club, sourceUid: event.sourceUid } });
+        const row = await prisma.event.create({ data: { ...fields, club: event.club, sourceUid: event.sourceUid } });
+        created.push(row);
         result.imported++;
       }
     } catch (err) {
@@ -199,6 +202,7 @@ export async function importEvents(events) {
       result.errors.push(event.title);
     }
   }
+  notifyNewEvents(created);
   return result;
 }
 

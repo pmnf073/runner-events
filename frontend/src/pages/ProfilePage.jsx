@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api, { openApiFile } from "../services/api";
 import MyTrainings from "../components/MyTrainings";
+import PushNotifications from "../components/PushNotifications";
 import { formatCurrency, formatDate, MEMBERSHIP_STATUS } from "../utils/format";
 import DateInput from "../components/DateInput";
 
@@ -139,6 +140,8 @@ export default function ProfilePage({ user, setUser }) {
           {error && <span style={{ fontSize: 14, color: "var(--c-danger)" }}>{error}</span>}
         </div>
       </form>
+
+      <PushNotifications card={card} h2={h2} button={button} secondaryButton={secondaryButton} />
 
       <section style={card}>
         <h2 style={h2}>Sócio</h2>

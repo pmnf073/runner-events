@@ -5,6 +5,7 @@ import { listEvents } from "../services/events.js";
 import extractImageFromUrl from "../services/imageExtractor.js";
 import { findPortugalRunningImage } from "../services/portugalRunning.js";
 import { goingToEvents, notifyCancelled } from "../services/reminders.js";
+import { notifyNewEvents } from "../services/push.js";
 import { ALLOWED, isAllowed, serverError } from "../utils/http.js";
 import { eventMatchesSearch } from "../utils/search.js";
 import {
@@ -283,6 +284,7 @@ router.post("/", requireStaff, async (req, res) => {
         createdBy: req.user?.id || "system",
       },
     });
+    notifyNewEvents([event]);
     res.status(201).json(event);
   } catch (err) {
     serverError(res, err);
