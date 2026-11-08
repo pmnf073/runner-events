@@ -39,3 +39,7 @@ Em Actions → Android APK → Run workflow, marca "Publicar o APK numa GitHub R
 O `versionCode` é o número da execução do workflow, por isso cada APK novo instala por cima do anterior (desde que assinado com a mesma chave).
 
 Sem os secrets, o workflow assina com uma chave de teste descartável: o APK instala, mas abre com a barra de endereço e não pode ser atualizado por um APK oficial (é preciso desinstalar primeiro).
+
+## Aviso de nova versão
+
+Cada APK abre o site com `?app=<versionCode>` (o workflow acrescenta-o ao `startUrl`). O site guarda esse número e compara-o com a última Release do repositório. Se a Release for mais recente, mostra uma faixa "Há uma nova versão da app disponível", com um botão que descarrega o APK. O Android pede sempre confirmação para instalar: fora da Play Store não há atualização silenciosa. O código está em `frontend/src/components/AppUpdateBanner.jsx`.

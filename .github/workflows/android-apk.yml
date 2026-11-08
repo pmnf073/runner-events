@@ -107,6 +107,7 @@ jobs:
             | .webManifestUrl = ($l + "/manifest.webmanifest")
             | .appVersionCode = $code
             | .appVersionName = (.appVersionName + "." + ($code | tostring))
+            | .startUrl = (.startUrl + "?app=" + ($code | tostring))
             | .signingKey.path = "./android.keystore"' android/twa-manifest.json > build/twa-manifest.json
           cd build
           bubblewrap update --skipVersionUpgrade --manifest=./twa-manifest.json

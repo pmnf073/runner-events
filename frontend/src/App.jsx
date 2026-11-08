@@ -22,6 +22,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AuditPage from "./pages/AuditPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import api from "./services/api";
+import AppUpdateBanner from "./components/AppUpdateBanner";
 
 /* ── Theme Toggle Button ── */
 function ThemeToggle() {
@@ -297,6 +298,8 @@ function AppInner() {
           </div>
         </nav>
       </header>
+
+      <AppUpdateBanner />
 
       {/* Main */}
       <main style={{ margin: "0 32px", padding: "24px 0", flex: 1 }}>
