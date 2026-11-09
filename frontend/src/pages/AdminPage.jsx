@@ -446,6 +446,17 @@ function useEvents() {
   return { events, loading, fetchEvents };
 }
 
+const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
+
+// Imported events sometimes carry a URL as their location: show only the site name.
+const displayLocation = (loc) => {
+  if (!loc) return "Sem local";
+  if (/^https?:\/\//i.test(loc)) {
+    try { return "🔗 " + new URL(loc).hostname.replace(/^www\./, ""); } catch { return loc; }
+  }
+  return loc;
+};
+
 // Format DB UTC date for list display (Lisbon wall-clock)
 const formatEventDate = (isoStr) => {
   const d = new Date(isoStr);
@@ -467,6 +478,14 @@ export default function AdminPage({ user }) {
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (id && events.length > 0) {
@@ -587,32 +606,36 @@ export default function AdminPage({ user }) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">⚙️ Admin - Gerir Eventos</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: isMobile ? 12 : 24 }}>
+        <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>
+          {isMobile ? "⚙️ Gerir eventos" : "⚙️ Admin - Gerir Eventos"}
+        </h1>
         <button onClick={() => { setEditing(null); setShowForm(true); }}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff" }}
+          className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff", whiteSpace: "nowrap" }}
           onMouseEnter={e => e.target.style.background = "#16a34a"}
           onMouseLeave={e => e.target.style.background = "#22c55e"}>
-          + Novo Evento
+          {isMobile ? "+ Novo" : "+ Novo Evento"}
         </button>
       </div>
 
-      {/* Search bar */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
+      {/* Search bar: no telemóvel a pesquisa ocupa a linha e o tipo (+ limpar) fica por baixo. */}
+      <div style={isMobile
+        ? { display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 12 }
+        : { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={isMobile ? { gridColumn: "1 / -1" } : { flex: 1, minWidth: 200 }}>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔍 Pesquisar por título, local, descrição..."
-            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+            placeholder={isMobile ? "🔍 Pesquisar eventos..." : "🔍 Pesquisar por título, local, descrição..."}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: isMobile ? 16 : 14, outline: "none", boxSizing: "border-box" }}
           />
         </div>
-        <div style={{ minWidth: 160 }}>
+        <div style={isMobile ? { minWidth: 0, gridColumn: (search || filterType) ? "auto" : "1 / -1" } : { minWidth: 160 }}>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: 14, outline: "none" }}
+            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border-input)", background: "var(--bg-input)", color: "var(--text-primary)", fontSize: isMobile ? 16 : 14, outline: "none" }}
           >
             <option value="">Todos os tipos</option>
             {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -620,7 +643,7 @@ export default function AdminPage({ user }) {
         </div>
         {(search || filterType) && (
           <button onClick={clearFilters}
-            style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>
+            style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border-subtle)", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>
             ✕ Limpar
           </button>
         )}
@@ -631,30 +654,44 @@ export default function AdminPage({ user }) {
         </p>
       )}
 
-      {loading && <div className="text-center py-12 text-gray-400">Carregando...</div>}
+      {loading && <div className="text-center py-12" style={{ color: "var(--text-secondary)" }}>A carregar...</div>}
 
-      <div className="mt-6 space-y-3">
+      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 8 : 12, marginTop: isMobile ? 12 : 24 }}>
         {filtered.map((ev) => (
-          <div key={ev.id} className="bg-gray-900 rounded-lg border border-gray-800 p-4 flex justify-between items-center flex-wrap gap-3">
-            <div>
-              <h3 className="font-medium">{ev.title}</h3>
-              <p className="text-sm text-gray-400">{formatEventDate(ev.date)} • {ev.location || "Sem local"} • {ev.type}</p>
+          <div key={ev.id} style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: 10, padding: isMobile ? "10px 12px" : 16,
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: isMobile ? "nowrap" : "wrap", gap: isMobile ? 10 : 12 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 style={{ fontWeight: 600, margin: 0, color: "var(--text-heading)", fontSize: isMobile ? 15 : 16 }}>{ev.title}</h3>
+              {isMobile ? (
+                <>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {formatEventDate(ev.date)} • {TYPE_LABEL[ev.type] || ev.type}
+                  </p>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "1px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {displayLocation(ev.location)}
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: "2px 0 0" }}>
+                  {formatEventDate(ev.date)} • {TYPE_LABEL[ev.type] || ev.type} • {displayLocation(ev.location)}
+                </p>
+              )}
             </div>
-            <div className="flex gap-2">
+            <div style={{ display: "flex", gap: isMobile ? 6 : 8, flexShrink: 0 }}>
               <button onClick={() => { setEditing(ev); setShowForm(true); }}
-                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#1f2937", color: "#fff" }}
-                onMouseEnter={e => e.target.style.background = "#374151"}
-                onMouseLeave={e => e.target.style.background = "#1f2937"}>Editar</button>
-              <button onClick={() => handleDelete(ev)}
-                className="text-sm px-3 py-1.5 rounded transition" style={{ background: "#CC3333", color: "#fff" }}
-                onMouseEnter={e => e.target.style.background = "#be0000"}
-                onMouseLeave={e => e.target.style.background = "#CC3333"}>Eliminar</button>
+                style={{ fontSize: 14, padding: isMobile ? "6px 12px" : "6px 12px", minHeight: isMobile ? 36 : undefined, borderRadius: 6, border: "1px solid var(--border-subtle)", background: "var(--bg-input)", color: "var(--text-primary)", cursor: "pointer" }}>
+                Editar
+              </button>
+              <button onClick={() => handleDelete(ev)} aria-label="Eliminar evento" title="Eliminar"
+                style={{ fontSize: 14, padding: "6px 12px", minHeight: isMobile ? 36 : undefined, borderRadius: 6, border: "none", background: "#CC3333", color: "#fff", cursor: "pointer" }}>
+                {isMobile ? "🗑️" : "Eliminar"}
+              </button>
             </div>
           </div>
         ))}
         {filtered.length > 0 || loading || null}
         {!loading && filtered.length === 0 && (
-          <p className="text-gray-500 text-center py-8">
+          <p className="text-center py-8" style={{ color: "var(--text-muted)" }}>
             {events.length === 0 ? "Nenhum evento criado." : "Nenhum evento corresponde à pesquisa."}
           </p>
         )}
