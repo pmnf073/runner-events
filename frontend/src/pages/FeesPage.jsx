@@ -29,6 +29,15 @@ export default function FeesPage({ user }) {
   // Members list for display
   const [members, setMembers] = useState([]);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
   useEffect(() => {
     if (!user || !["admin", "organizer"].includes(user.role)) {
       navigate("/");
@@ -119,6 +128,16 @@ export default function FeesPage({ user }) {
     }
   }
 
+  function cancelEdit() {
+    setEditYear("");
+    setEditAmount("15.00");
+    setEditDueDate("");
+    setEditEarlyDiscount("");
+    setEditEarlyDeadline("");
+    setEditError("");
+    setEditingYear(null);
+  }
+
   function fillConfigForEdit(cfg) {
     setEditYear(String(cfg.year));
     setEditAmount(String(parseFloat(cfg.amount)));
@@ -128,6 +147,13 @@ export default function FeesPage({ user }) {
     setEditingYear(cfg.year);
     requestAnimationFrame(() => configFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
+
+  // 16px on phones so iOS does not zoom into the field.
+  const inputStyle = { ...baseInputStyle, fontSize: isMobile ? 16 : 14 };
+  const cardStyle = { background: "var(--bg-card)", borderRadius: isMobile ? 12 : 16, border: "1px solid var(--border-subtle)", padding: isMobile ? 16 : 24, marginBottom: isMobile ? 12 : 24 };
+  const h2Style = { fontSize: isMobile ? 16 : 18, fontWeight: 600, marginBottom: isMobile ? 12 : 16, color: "var(--text-heading)" };
+  const labelText = { fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 };
+  const fullOnMobile = isMobile ? { width: "100%" } : null;
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [];
@@ -142,8 +168,9 @@ export default function FeesPage({ user }) {
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text-heading)", marginBottom: 24 }}>
+    // No telemóvel as configurações guardadas aparecem primeiro (é o que mais se consulta).
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, color: "var(--text-heading)", marginBottom: isMobile ? 12 : 24 }}>
         💶 Gestão de Anuidades
       </h1>
 
@@ -158,15 +185,15 @@ export default function FeesPage({ user }) {
       )}
 
       {/* Config Form */}
-      <div ref={configFormRef} style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", padding: 24, marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "var(--text-heading)" }}>
+      <div ref={configFormRef} style={{ ...cardStyle, order: isMobile ? 2 : 0, scrollMarginTop: 80 }}>
+        <h2 style={h2Style}>
           {editingYear ? `Editar Anuidade ${editingYear}` : "Configurar Anuidade"}
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
           <label>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Ano</span>
+            <span style={labelText}>Ano</span>
             <select value={editYear} onChange={(e) => setEditYear(e.target.value)} style={inputStyle}>
-              <option value="">-- Selecione ano --</option>
+              <option value="">{isMobile ? "Escolher" : "-- Selecione ano --"}</option>
               {yearOptions.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -177,40 +204,48 @@ export default function FeesPage({ user }) {
             <input type="number" step="0.01" value={editAmount} onChange={(e) => setEditAmount(e.target.value)}
               placeholder="30.00" style={inputStyle} />
           </label>
-          <label>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Data Limite</span>
+          <label style={isMobile ? { gridColumn: "1 / -1" } : undefined}>
+            <span style={labelText}>Data Limite</span>
             <DateInput value={editDueDate} onChange={setEditDueDate}
               style={inputStyle} />
           </label>
           <label>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Desconto Early-bird (€)</span>
+            <span style={labelText}>{isMobile ? "Desconto early-bird (€)" : "Desconto Early-bird (€)"}</span>
             <input type="number" step="0.01" value={editEarlyDiscount} onChange={(e) => setEditEarlyDiscount(e.target.value)}
               placeholder="5.00" style={inputStyle} />
           </label>
           <label>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Prazo Early-bird</span>
+            <span style={labelText}>{isMobile ? "Prazo early-bird" : "Prazo Early-bird"}</span>
             <DateInput value={editEarlyDeadline} onChange={setEditEarlyDeadline}
               style={inputStyle} />
           </label>
         </div>
         {editError && <p style={{ color: "var(--c-danger)", fontSize: 13, marginBottom: 8 }}>{editError}</p>}
-        <button onClick={handleSaveConfig}
-          style={{ padding: "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
-          {editingYear ? "Guardar Alterações" : "Guardar Configuração"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {editingYear && (
+            <button type="button" onClick={cancelEdit}
+              style={{ padding: "10px 20px", background: "var(--bg-card)", color: "var(--text-secondary)", border: "1px solid var(--border-subtle)", borderRadius: 10, cursor: "pointer", fontSize: 14 }}>
+              Cancelar
+            </button>
+          )}
+          <button onClick={handleSaveConfig}
+            style={{ padding: "10px 20px", background: "#CC3333", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 14, ...(isMobile ? { flex: 1 } : null) }}>
+            {editingYear ? "Guardar Alterações" : "Guardar Configuração"}
+          </button>
+        </div>
       </div>
 
       {/* Generate Memberships */}
-      <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", padding: 24, marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "var(--text-heading)" }}>
+      <div style={{ ...cardStyle, order: isMobile ? 3 : 0 }}>
+        <h2 style={h2Style}>
           Gerar Quotas do Ano
         </h2>
         <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
           Cria entradas de anuidade pendentes para todos os sócios ativos. Já existentes são ignoradas.
         </p>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <label>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>Ano</span>
+          <label style={fullOnMobile}>
+            <span style={labelText}>Ano</span>
             {configurations && configurations.length > 0 ? (
               <select value={generateYear} onChange={(e) => setGenerateYear(e.target.value)} style={inputStyle}>
                 <option value="">-- Selecione uma configuração --</option>
@@ -224,7 +259,7 @@ export default function FeesPage({ user }) {
             )}
           </label>
           <button onClick={handleGenerateMemberships} disabled={generating}
-            style={{ padding: "10px 20px", background: generating ? "#999" : "#3b82f6", color: "#fff", border: "none", borderRadius: 10, cursor: generating ? "wait" : "pointer", fontWeight: 600, fontSize: 14 }}>
+            style={{ padding: "10px 20px", background: generating ? "#999" : "#3b82f6", color: "#fff", border: "none", borderRadius: 10, cursor: generating ? "wait" : "pointer", fontWeight: 600, fontSize: 14, ...fullOnMobile }}>
             {generating ? "A gerar..." : "Gerar Quotas"}
           </button>
         </div>
@@ -242,11 +277,33 @@ export default function FeesPage({ user }) {
       </div>
 
       {/* Configuration History */}
-      <div style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", overflow: "hidden" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, padding: "16px 20px 12px", color: "var(--text-heading)", margin: 0 }}>
+      <div style={{ background: "var(--bg-card)", borderRadius: isMobile ? 12 : 16, border: "1px solid var(--border-subtle)", overflow: "hidden", order: isMobile ? 1 : 0, marginBottom: isMobile ? 12 : 0 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, padding: isMobile ? "14px 16px 10px" : "16px 20px 12px", color: "var(--text-heading)", margin: 0 }}>
           Configurações Guardadas
         </h2>
         {configurations.map((cfg) => (
+          isMobile ? (
+            // Telemóvel: ano e valor à esquerda, prazo e early-bird por baixo, botão Editar com área de toque.
+            <div key={cfg.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid var(--border-subtle)",
+              background: editingYear === cfg.year ? "var(--hover-bg)" : "transparent" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
+                  <span style={{ fontWeight: 700, marginRight: 10 }}>{cfg.year}</span>
+                  <span style={{ color: "var(--text-secondary)" }}>{parseFloat(cfg.amount).toFixed(2)} €</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                  Até {formatDate(cfg.dueDate)}
+                  {cfg.earlybirdDiscount && (
+                    <span style={{ color: "var(--c-success)" }}> · Early-bird −{parseFloat(cfg.earlybirdDiscount).toFixed(2)} €{cfg.earlybirdDeadline ? ` até ${formatDate(cfg.earlybirdDeadline)}` : ""}</span>
+                  )}
+                </div>
+              </div>
+              <button type="button" onClick={() => fillConfigForEdit(cfg)}
+                style={{ padding: "6px 14px", minHeight: 34, borderRadius: 8, border: "1px solid var(--border-subtle)", background: "transparent", color: "var(--c-brand-text)", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+                Editar
+              </button>
+            </div>
+          ) : (
           <div key={cfg.id} style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
             padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)"
@@ -266,6 +323,7 @@ export default function FeesPage({ user }) {
               </button>
             </div>
           </div>
+          )
         ))}
         {configurations.length === 0 && (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
@@ -277,7 +335,7 @@ export default function FeesPage({ user }) {
   );
 }
 
-const inputStyle = {
+const baseInputStyle = {
   width: "100%", padding: "8px 12px", borderRadius: 8,
   border: "1px solid var(--border-subtle)", background: "var(--bg-card)",
   color: "var(--text-primary)", fontSize: 14, boxSizing: "border-box",
