@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/form
 import DatePicker from "react-datepicker";
 import { format } from "date-fns";
 import DateInput, { CalendarIcon } from "../components/DateInput";
+import useBackToClose from "../hooks/useBackToClose";
 
 // Payment date/time strings are "YYYY-MM-DDTHH:mm"; the picker works on a Date with the same wall-clock fields.
 const strToDate = (s) => {
@@ -72,6 +73,9 @@ export default function PaymentsPage({ user }) {
   const [stats, setStats] = useState({ total: 0, count: 0, avg: 0 });
 
   const [isMobile, setIsMobile] = useState(false);
+  // "back" no telemóvel fecha a edição/janela aberta em vez de sair da página
+  useBackToClose(showModal, () => setShowModal(false));
+  useBackToClose(editPayment !== null, () => setEditPayment(null));
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
     const update = () => setIsMobile(media.matches);

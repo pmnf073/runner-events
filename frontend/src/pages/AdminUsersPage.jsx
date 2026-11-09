@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import DateInput from "../components/DateInput";
+import useBackToClose from "../hooks/useBackToClose";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const V = (name) => `var(${name})`;
@@ -33,6 +34,9 @@ export default function AdminUsersPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  // "back" no telemóvel fecha a edição/janela aberta em vez de sair da página
+  useBackToClose(editId !== null, () => setEditId(null));
+  useBackToClose(rejectId !== null, () => { setRejectId(null); setRejectReason(""); });
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");

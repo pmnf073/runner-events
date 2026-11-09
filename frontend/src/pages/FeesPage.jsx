@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { formatDate } from "../utils/format";
 import DateInput from "../components/DateInput";
+import useBackToClose from "../hooks/useBackToClose";
 
 export default function FeesPage({ user }) {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function FeesPage({ user }) {
   const [members, setMembers] = useState([]);
 
   const [isMobile, setIsMobile] = useState(false);
+  // "back" no telemóvel fecha a edição/janela aberta em vez de sair da página
+  useBackToClose(editingYear !== null, () => cancelEdit());
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
     const update = () => setIsMobile(media.matches);
