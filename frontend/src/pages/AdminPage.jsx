@@ -117,7 +117,7 @@ async function localImageToDataUrl(file) {
   }
 }
 
-function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
+function AdminEventForm({ event, onSubmit, onCancel, initialDate, isMobile = false }) {
   // Blocks a second submit while the first is still being saved (double clicks created duplicate events).
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
@@ -243,13 +243,20 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
     }
   };
 
-  // Form input styles with theme-aware colors
-  const formInput = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", fontSize: 14, color: "var(--text-primary)", outline: "none", boxSizing: "border-box" };
-  const formLabel = { display: "block", fontSize: 14, color: "var(--text-secondary)", marginBottom: 4 };
+  // Form input styles with theme-aware colors (16px no telemóvel para o iOS não fazer zoom)
+  const fs = isMobile ? 16 : 14;
+  const formInput = { width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", fontSize: fs, color: "var(--text-primary)", outline: "none", boxSizing: "border-box" };
+  const formLabel = { display: "block", fontSize: isMobile ? 13 : 14, color: "var(--text-secondary)", marginBottom: 4 };
+  const smallBtn = { padding: "6px 10px", fontSize: 13, borderRadius: 6, border: "1px solid var(--border-input)", color: "var(--text-secondary)", background: "transparent", cursor: "pointer" };
+  const secondaryBtn = { background: "var(--bg-input)", color: "var(--text-primary)", border: "1px solid var(--border-input)", borderRadius: 8, padding: "8px 12px", fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" };
+  const pair = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+  const sectionTitle = { fontSize: 12, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: "var(--text-muted)", margin: 0 };
+  // Uma imagem escolhida no dispositivo fica guardada como data: URL; não a mostramos no campo de texto.
+  const isLocalImage = (form.imageUrl || "").startsWith("data:");
+  const datePickerCommon = { style: { cursor: "pointer" }, showIcon: true, icon: <CalendarIcon size={16} />, toggleCalendarOnIconClick: true, popperClassName: "z-50" };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, background: "var(--bg-card)", borderRadius: 12, border: `1px solid var(--border-subtle)`, padding: 24 }}>
-      <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>{event ? "Editar Evento" : "Novo Evento"}</h3>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 20, background: "var(--bg-card)", borderRadius: 12, border: "1px solid var(--border-subtle)", padding: isMobile ? 14 : 24 }}>
       {event?.isRecurrenceInstance && (
         <div>
           <label style={formLabel}>Aplicar alterações a</label>
@@ -260,155 +267,165 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
           </select>
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-        <div>
-          <label style={formLabel}>Título *</label>
-          <input type="text" value={form.title} onChange={(e) => handleChange("title", e.target.value)} required style={formInput} />
-        </div>
-        <div>
-          <label style={formLabel}>Tipo</label>
-          <select value={form.type} onChange={(e) => handleChange("type", e.target.value)} style={formInput}>
-            {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={formLabel}>Recorrência</label>
-          <select value={form.recurrenceType} onChange={(e) => handleChange("recurrenceType", e.target.value)} style={formInput}>
-            <option value="">Não recorrente</option>
-            <option value="weekly">Semanal</option>
-            <option value="biweekly">Quinzenal</option>
-            <option value="monthly">Mensal</option>
-          </select>
-        </div>
-        {(form.recurrenceType === "weekly" || form.recurrenceType === "biweekly") && (
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)", gap: isMobile ? 14 : 28, alignItems: "start" }}>
+        {/* Detalhes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <p style={sectionTitle}>Detalhes</p>
           <div>
-            <label style={formLabel}>Dias da semana</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {WEEK_DAYS.map((day) => (
-                <label key={day.value} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14 }}>
-                  <input
-                    type="checkbox"
-                    checked={form.recurrenceDaysOfWeek.includes(day.value)}
-                    onChange={(e) => {
-                      const days = e.target.checked
-                        ? [...form.recurrenceDaysOfWeek, day.value]
-                        : form.recurrenceDaysOfWeek.filter(d => d !== day.value);
-                      handleChange("recurrenceDaysOfWeek", days);
-                    }}
-                  />
-                  {day.label}
-                </label>
-              ))}
+            <label style={formLabel}>Título *</label>
+            <input type="text" value={form.title} onChange={(e) => handleChange("title", e.target.value)} required style={formInput} />
+          </div>
+          <div style={pair}>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Tipo</label>
+              <select value={form.type} onChange={(e) => handleChange("type", e.target.value)} style={formInput}>
+                {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Recorrência</label>
+              <select value={form.recurrenceType} onChange={(e) => handleChange("recurrenceType", e.target.value)} style={formInput}>
+                <option value="">Não repete</option>
+                <option value="weekly">Semanal</option>
+                <option value="biweekly">Quinzenal</option>
+                <option value="monthly">Mensal</option>
+              </select>
             </div>
           </div>
-        )}
-        {form.recurrenceType && (
-          <div>
-            <label style={formLabel}>Data fim da recorrência</label>
-            <DatePicker
-              selected={formToDate(form.recurrenceEndDate)}
-              onChange={(d) => handleChange("recurrenceEndDate", d ? dateToForm(d) : "")}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="dd/mm/aaaa"
-              isClearable
-              style={{ cursor: "pointer" }}
-              showIcon
-              icon={<CalendarIcon size={16} />}
-              toggleCalendarOnIconClick
-              calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
-              popperClassName="z-50"
-            />
+          <div style={isMobile ? { display: "flex", flexDirection: "column", gap: 14 } : pair}>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Data e hora *</label>
+              <DatePicker
+                {...datePickerCommon}
+                selected={formToDate(form.date)}
+                onChange={(d) => handleChange("date", dateToForm(d))}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeCaption="Hora"
+                timeIntervals={5}
+                dateFormat="dd/MM/yyyy HH:mm"
+                placeholderText="dd/mm/aaaa hh:mm"
+                required
+              />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Data fim (opcional)</label>
+              <DatePicker
+                {...datePickerCommon}
+                selected={formToDate(form.endDate)}
+                onChange={(d) => handleChange("endDate", d ? dateToForm(d) : "")}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeCaption="Hora"
+                timeIntervals={5}
+                dateFormat="dd/MM/yyyy HH:mm"
+                placeholderText="dd/mm/aaaa hh:mm"
+                isClearable
+              />
+            </div>
           </div>
-        )}
-        <div>
-          <label style={formLabel}>Data e hora *</label>
-          <DatePicker
-            selected={formToDate(form.date)}
-            onChange={(d) => handleChange("date", dateToForm(d))}
-            showTimeSelect
-            timeFormat="HH:mm"
-            timeCaption="Hora"
-            timeIntervals={5}
-            dateFormat="dd/MM/yyyy HH:mm"
-            placeholderText="dd/mm/aaaa hh:mm"
-            required
-            style={{ cursor: "pointer" }}
-            showIcon
-            icon={<CalendarIcon size={16} />}
-            toggleCalendarOnIconClick
-            calendarClassName="bg-gray-900 border border-gray-700 rounded-lg"
-            popperClassName="z-50"
-          />
-        </div>
-        <div>
-          <label style={formLabel}>Data fim (opcional)</label>
-          <DatePicker
-            selected={formToDate(form.endDate)}
-            onChange={(d) => handleChange("endDate", d ? dateToForm(d) : "")}
-            showTimeSelect
-            timeFormat="HH:mm"
-            timeCaption="Hora"
-            timeIntervals={5}
-            dateFormat="dd/MM/yyyy HH:mm"
-            placeholderText="dd/mm/aaaa hh:mm"
-            isClearable
-            style={{ cursor: "pointer" }}
-            showIcon
-            icon={<CalendarIcon size={16} />}
-            toggleCalendarOnIconClick
-            calendarClassName="bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
-            popperClassName="z-50"
-          />
-        </div>
-        <div>
-          <label style={formLabel}>Localização</label>
-          <input type="text" value={form.location} onChange={(e) => handleChange("location", e.target.value)} style={formInput} />
-        </div>
-        <div>
-          <label style={formLabel}>URL do Evento</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input type="url" value={form.url || ""} onChange={(e) => handleChange("url", e.target.value)}
-              placeholder="https://example.com/event" style={{ ...formInput, flex: 1 }} />
-            <button type="button" onClick={handleUrlExtract} disabled={extracting || !form.url}
-              style={{ background: "#374151", color: "#fff", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 14, cursor: extracting || !form.url ? "not-allowed" : "pointer", opacity: extracting || !form.url ? 0.5 : 1, whiteSpace: "nowrap", transition: "background 0.2s" }}
-              onMouseEnter={e => { if (!extracting && form.url) e.target.style.background = "#4b5563"; }}
-              onMouseLeave={e => e.target.style.background = "#374151" }>
-              {extracting ? "⏳..." : "📷 Extrair"}
-            </button>
-          </div>
-        </div>
-        <div>
-          <label style={formLabel}>Imagem do Evento</label>
-          <input type="url" value={form.imageUrl || ""} onChange={(e) => handleChange("imageUrl", e.target.value)}
-            placeholder="https://example.com/image.jpg" style={formInput} />
-          <button type="button" onClick={handlePortugalRunning} disabled={searchingPR || !form.title}
-            style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, borderRadius: 6, border: "1px solid var(--border-input)", color: "var(--text-secondary)", background: "transparent", cursor: searchingPR || !form.title ? "not-allowed" : "pointer", opacity: searchingPR || !form.title ? 0.5 : 1 }}>
-            {searchingPR ? "⏳ A procurar..." : "🔎 Procurar no Portugal Running pelo nome"}
-          </button>
-          <label style={{ ...formLabel, marginTop: 10 }}>Ou escolhe uma imagem do computador</label>
-          <input type="file" accept="image/*" onChange={handleLocalImage} disabled={processingImage}
-            style={{ ...formInput, padding: "6px 8px", cursor: processingImage ? "wait" : "pointer" }} />
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-            {processingImage ? "A preparar imagem..." : localImageName ? `Imagem selecionada: ${localImageName}` : "A imagem será otimizada antes de guardar (máx. 2 MB)."}
-          </div>
-          {form.imageUrl && (
-            <div style={{ marginTop: 8 }}>
-              <img src={form.imageUrl} alt="Preview" style={{ width: "100%", height: 128, objectFit: "cover", borderRadius: 8 }} onError={(e) => e.target.style.display = "none"} />
-              <button type="button" onClick={() => { handleChange("imageUrl", ""); setLocalImageName(""); }}
-                style={{ marginTop: 6, padding: "4px 8px", fontSize: 12, borderRadius: 6, border: "1px solid var(--border-input)", color: "var(--text-secondary)", background: "transparent", cursor: "pointer" }}>
-                Remover imagem
-              </button>
+          {form.recurrenceType && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 12, borderRadius: 8, border: "1px dashed var(--border-input)" }}>
+              {(form.recurrenceType === "weekly" || form.recurrenceType === "biweekly") && (
+                <div>
+                  <label style={formLabel}>Dias da semana</label>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {WEEK_DAYS.map((day) => {
+                      const on = form.recurrenceDaysOfWeek.includes(day.value);
+                      return (
+                        <label key={day.value} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
+                          border: `1px solid ${on ? "var(--c-accent)" : "var(--border-input)"}`, color: on ? "var(--text-heading)" : "var(--text-secondary)" }}>
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={(e) => {
+                              const days = e.target.checked
+                                ? [...form.recurrenceDaysOfWeek, day.value]
+                                : form.recurrenceDaysOfWeek.filter(d => d !== day.value);
+                              handleChange("recurrenceDaysOfWeek", days);
+                            }}
+                          />
+                          {day.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div>
+                <label style={formLabel}>Data fim da recorrência</label>
+                <DatePicker
+                  {...datePickerCommon}
+                  selected={formToDate(form.recurrenceEndDate)}
+                  onChange={(d) => handleChange("recurrenceEndDate", d ? dateToForm(d) : "")}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="dd/mm/aaaa"
+                  isClearable
+                />
+              </div>
             </div>
           )}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <label style={formLabel}>Distância (km)</label>
-            <input type="number" step="0.1" value={form.distance || ""} onChange={(e) => handleChange("distance", e.target.value || null)} style={formInput} />
+            <label style={formLabel}>Localização</label>
+            <input type="text" value={form.location} onChange={(e) => handleChange("location", e.target.value)} placeholder="Morada, local ou link" style={formInput} />
+          </div>
+          <div style={pair}>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Distância (km)</label>
+              <input type="number" inputMode="decimal" step="0.1" value={form.distance || ""} onChange={(e) => handleChange("distance", e.target.value || null)} style={formInput} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <label style={formLabel}>Elevação (m)</label>
+              <input type="number" inputMode="numeric" value={form.elevation || ""} onChange={(e) => handleChange("elevation", e.target.value || null)} style={formInput} />
+            </div>
           </div>
           <div>
-            <label style={formLabel}>Elevação (m)</label>
-            <input type="number" value={form.elevation || ""} onChange={(e) => handleChange("elevation", e.target.value || null)} style={formInput} />
+            <label style={formLabel}>Descrição</label>
+            <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={isMobile ? 5 : 6}
+              style={{ ...formInput, minHeight: 100, resize: "vertical", lineHeight: 1.45 }} />
+          </div>
+        </div>
+
+        {/* Ligações e imagem */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <p style={sectionTitle}>Ligação e imagem</p>
+          <div>
+            <label style={formLabel}>URL do evento</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input type="url" value={form.url || ""} onChange={(e) => handleChange("url", e.target.value)}
+                placeholder="https://..." style={{ ...formInput, flex: 1, minWidth: 0 }} />
+              <button type="button" onClick={handleUrlExtract} disabled={extracting || !form.url} title="Extrair a imagem desta página"
+                style={{ ...secondaryBtn, cursor: extracting || !form.url ? "not-allowed" : "pointer", opacity: extracting || !form.url ? 0.5 : 1 }}>
+                {extracting ? "⏳..." : "📷 Extrair"}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label style={formLabel}>Imagem</label>
+            {form.imageUrl && (
+              <img src={form.imageUrl} alt="Pré-visualização" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", maxHeight: 220, objectFit: "cover", borderRadius: 8, marginBottom: 8, background: "var(--bg-input)" }}
+                onError={(e) => e.target.style.display = "none"} />
+            )}
+            <input type="url" value={isLocalImage ? "" : (form.imageUrl || "")} onChange={(e) => { handleChange("imageUrl", e.target.value); setLocalImageName(""); }}
+              placeholder={isLocalImage ? `Imagem do dispositivo${localImageName ? `: ${localImageName}` : ""}` : "Link da imagem (https://...)"} style={formInput} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              <button type="button" onClick={handlePortugalRunning} disabled={searchingPR || !form.title}
+                style={{ ...smallBtn, cursor: searchingPR || !form.title ? "not-allowed" : "pointer", opacity: searchingPR || !form.title ? 0.5 : 1 }}>
+                {searchingPR ? "⏳ A procurar..." : "🔎 Portugal Running"}
+              </button>
+              <label style={{ ...smallBtn, cursor: processingImage ? "wait" : "pointer", opacity: processingImage ? 0.5 : 1 }}>
+                {processingImage ? "⏳ A preparar..." : isMobile ? "📁 Do telemóvel" : "📁 Do computador"}
+                <input type="file" accept="image/*" onChange={handleLocalImage} disabled={processingImage} style={{ display: "none" }} />
+              </label>
+              {form.imageUrl && (
+                <button type="button" onClick={() => { handleChange("imageUrl", ""); setLocalImageName(""); }} style={smallBtn}>
+                  ✕ Remover
+                </button>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+              Imagens do dispositivo são otimizadas antes de guardar (máx. 2 MB).
+            </div>
           </div>
         </div>
       </div>
@@ -416,22 +433,18 @@ function AdminEventForm({ event, onSubmit, onCancel, initialDate }) {
       <style>{`
         .react-datepicker-wrapper { width: 100%; display: block; }
         .react-datepicker__input-container input { width: 100%; background: var(--bg-input) !important; border: 1px solid var(--border-input) !important; border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--text-primary) !important; outline: none; box-sizing: border-box; cursor: pointer; }
+        @media (max-width: 768px) { .react-datepicker__input-container input { font-size: 16px; } }
       `}
       </style>
 
-      <div>
-        <label style={formLabel}>Descrição</label>
-        <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)} rows={2}
-          style={{ ...formInput, minHeight: 60, resize: "vertical" }} />
-      </div>
-      <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-        <button type="button" onClick={onCancel} style={{ padding: "8px 16px", fontSize: 14, borderRadius: 8, color: "#e8ecef", background: "#1f2937", border: "none", cursor: "pointer", transition: "background 0.2s" }}
-          onMouseEnter={e => e.target.style.background = "#374151"}
-          onMouseLeave={e => e.target.style.background = "#1f2937"}>Cancelar</button>
-        <button type="submit" disabled={saving} style={{ padding: "8px 24px", fontSize: 14, borderRadius: 8, fontWeight: 500, background: "#CC3333", color: "#fff", border: "none", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1, transition: "background 0.2s" }}
+      <div style={isMobile
+        ? { position: "sticky", bottom: 0, display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, margin: "0 -14px -14px", padding: "10px 14px", background: "var(--bg-card)", borderTop: "1px solid var(--border-subtle)", borderRadius: "0 0 12px 12px", zIndex: 5 }
+        : { display: "flex", gap: 12, justifyContent: "flex-end" }}>
+        <button type="button" onClick={onCancel} style={{ ...secondaryBtn, padding: isMobile ? "10px 12px" : "8px 16px" }}>Cancelar</button>
+        <button type="submit" disabled={saving} style={{ padding: isMobile ? "10px 12px" : "8px 24px", fontSize: isMobile ? 15 : 14, borderRadius: 8, fontWeight: 600, background: "#CC3333", color: "#fff", border: "none", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1, transition: "background 0.2s" }}
           onMouseEnter={e => e.target.style.background = "#be0000"}
           onMouseLeave={e => e.target.style.background = "#CC3333"}>
-          {saving ? "A guardar..." : event ? "Guardar" : "Criar Evento"}
+          {saving ? "A guardar..." : event ? "Guardar" : "Criar evento"}
         </button>
       </div>
     </form>
@@ -562,8 +575,8 @@ export default function AdminPage({ user }) {
   if (showForm) {
     return (
       <div>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">{editing ? "Editar Evento" : "Novo Evento"}</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: isMobile ? 12 : 24 }}>
+          <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>{editing ? "Editar evento" : "Novo evento"}</h1>
           <button onClick={() => {
             if (id) {
               navigate(`/event/${id}`);
@@ -572,9 +585,7 @@ export default function AdminPage({ user }) {
               setEditing(null);
             }
           }}
-            className="text-sm rounded transition" style={{ color: "#9ca3af" }}
-            onMouseEnter={e => e.target.style.color = "#e8ecef"}
-            onMouseLeave={e => e.target.style.color = "#9ca3af"}>
+            style={{ fontSize: 14, color: "var(--text-secondary)", background: "none", border: "none", cursor: "pointer", padding: "6px 0", whiteSpace: "nowrap" }}>
             ← Voltar
           </button>
         </div>
@@ -587,7 +598,7 @@ export default function AdminPage({ user }) {
             setShowForm(false);
             setEditing(null);
           }
-        }} initialDate={dateParam} />
+        }} initialDate={dateParam} isMobile={isMobile} />
       </div>
     );
   }
