@@ -6,7 +6,7 @@ import pt from "date-fns/locale/pt";
 import "react-datepicker/dist/react-datepicker.css";
 import "../datepicker.css";
 import { CalendarIcon } from "../components/DateInput";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 
 registerLocale("pt", pt);
 setDefaultLocale("pt");
@@ -484,8 +484,13 @@ const formatEventDate = (isoStr) => {
 export default function AdminPage({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const dateParam = searchParams.get("date");
+  // O formulário aberto a partir da lista fica no endereço (?editar=<id> ou ?novo=1),
+  // para o "back" do telemóvel fechar o formulário em vez de sair da página.
+  const editParam = searchParams.get("editar");
+  const newParam = searchParams.has("novo");
   const { events, loading, fetchEvents } = useEvents();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -501,18 +506,30 @@ export default function AdminPage({ user }) {
   }, []);
 
   useEffect(() => {
-    if (id && events.length > 0) {
-      const eventToEdit = events.find(ev => ev.id === id);
+    const targetId = id || editParam;
+    if (targetId) {
+      const eventToEdit = events.find(ev => ev.id === targetId);
       if (eventToEdit) {
         setEditing(eventToEdit);
         setShowForm(true);
       }
-    } else if (dateParam && !id) {
-      // New event with pre-filled date
+    } else if (dateParam || newParam) {
+      // New event (with pre-filled date when it comes from the calendar)
       setEditing(null);
       setShowForm(true);
+    } else {
+      setEditing(null);
+      setShowForm(false);
     }
-  }, [id, events, dateParam]);
+  }, [id, editParam, newParam, events, dateParam]);
+
+  // Fecha o formulário voltando à entrada anterior do histórico (lista, página do evento ou
+  // calendário), para não acumular entradas. Sem histórico na app (link aberto diretamente),
+  // vai para o destino por omissão.
+  const closeForm = () => {
+    if (location.key !== "default") navigate(-1);
+    else navigate(id ? `/event/${id}` : dateParam ? "/" : "/admin", { replace: true });
+  };
 
   const handleDelete = async (event) => {
     let scope = "all";
@@ -546,18 +563,9 @@ export default function AdminPage({ user }) {
       const url = editing ? `/api/events/${editing.id}` : "/api/events";
       const res = await api(url, { method, body: JSON.stringify(payload) });
       if (res.ok) {
-        if (id) {
-          // Came from event page, redirect back to event
-          navigate(`/event/${id}`);
-        } else if (dateParam) {
-          // Came from calendar, redirect back to calendar
-          navigate("/");
-        } else {
-          // Came from admin list, stay in admin
-          setShowForm(false);
-          setEditing(null);
-          fetchEvents();
-        }
+        // Back to where the form was opened from (event page, calendar or admin list)
+        closeForm();
+        if (!id && !dateParam) fetchEvents();
       } else {
         const error = await res.json();
         alert("Erro ao guardar: " + (error.error || "Erro desconhecido"));
@@ -577,28 +585,12 @@ export default function AdminPage({ user }) {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: isMobile ? 12 : 24 }}>
           <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>{editing ? "Editar evento" : "Novo evento"}</h1>
-          <button onClick={() => {
-            if (id) {
-              navigate(`/event/${id}`);
-            } else {
-              setShowForm(false);
-              setEditing(null);
-            }
-          }}
+          <button onClick={closeForm}
             style={{ fontSize: 14, color: "var(--text-secondary)", background: "none", border: "none", cursor: "pointer", padding: "6px 0", whiteSpace: "nowrap" }}>
             ← Voltar
           </button>
         </div>
-        <AdminEventForm event={editing} onSubmit={handleSubmit} onCancel={() => {
-          if (id) {
-            navigate(`/event/${id}`);
-          } else if (dateParam) {
-            navigate("/");
-          } else {
-            setShowForm(false);
-            setEditing(null);
-          }
-        }} initialDate={dateParam} isMobile={isMobile} />
+        <AdminEventForm key={editing?.id || "novo"} event={editing} onSubmit={handleSubmit} onCancel={closeForm} initialDate={dateParam} isMobile={isMobile} />
       </div>
     );
   }
@@ -621,7 +613,7 @@ export default function AdminPage({ user }) {
         <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, margin: 0, color: "var(--text-heading)" }}>
           {isMobile ? "⚙️ Gerir eventos" : "⚙️ Admin - Gerir Eventos"}
         </h1>
-        <button onClick={() => { setEditing(null); setShowForm(true); }}
+        <button onClick={() => navigate("/admin?novo=1")}
           className="px-4 py-2 rounded-lg text-sm font-medium transition" style={{ background: "#22c55e", color: "#fff", whiteSpace: "nowrap" }}
           onMouseEnter={e => e.target.style.background = "#16a34a"}
           onMouseLeave={e => e.target.style.background = "#22c55e"}>
@@ -689,7 +681,7 @@ export default function AdminPage({ user }) {
               )}
             </div>
             <div style={{ display: "flex", gap: isMobile ? 6 : 8, flexShrink: 0 }}>
-              <button onClick={() => { setEditing(ev); setShowForm(true); }}
+              <button onClick={() => navigate(`/admin?editar=${encodeURIComponent(ev.id)}`)}
                 style={{ fontSize: 14, padding: isMobile ? "6px 12px" : "6px 12px", minHeight: isMobile ? 36 : undefined, borderRadius: 6, border: "1px solid var(--border-subtle)", background: "var(--bg-input)", color: "var(--text-primary)", cursor: "pointer" }}>
                 Editar
               </button>

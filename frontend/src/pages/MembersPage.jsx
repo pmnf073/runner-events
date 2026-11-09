@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { formatCurrency, formatDate, membershipStatusLabel } from "../utils/format";
+import useBackToClose from "../hooks/useBackToClose";
 
 const STATUS_LABELS = {
   active: "Ativo",
@@ -56,6 +57,10 @@ export default function MembersPage({ user }) {
   const [detailData, setDetailData] = useState(null);
 
   const [isMobile, setIsMobile] = useState(false);
+  // "back" no telemóvel fecha a edição/janela aberta em vez de sair da página
+  useBackToClose(showConvertModal, () => setShowConvertModal(false));
+  useBackToClose(editMember !== null, () => setEditMember(null));
+  useBackToClose(detailId !== null, () => { setDetailId(null); setDetailData(null); });
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");
     const update = () => setIsMobile(media.matches);

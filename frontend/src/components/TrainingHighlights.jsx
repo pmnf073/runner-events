@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import useBackToClose from "../hooks/useBackToClose";
 
 const V = (name) => `var(${name})`;
 const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -14,6 +15,8 @@ export default function TrainingHighlights({ user }) {
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState("");
   const [error, setError] = useState("");
+  // "back" no telemóvel fecha a edição/janela aberta em vez de sair da página
+  useBackToClose(editing, () => setEditing(false));
 
   useEffect(() => {
     api("/api/attendance/goal").then((r) => r.json()).then((data) => data.month && setGoal(data)).catch(() => {});
