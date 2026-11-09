@@ -21,6 +21,15 @@ export default function ImportPage({ user }) {
 
   const [imagesResult, setImagesResult] = useState(null);
   const [imagesLoading, setImagesLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("teamup_feed_url");
@@ -129,12 +138,14 @@ export default function ImportPage({ user }) {
     }
   };
 
+  const cardStyle = { background: V("--bg-card"), border: `1px solid ${V("--border-subtle")}`, borderRadius: 12, padding: isMobile ? 16 : 20, marginBottom: isMobile ? 12 : 32 };
+
   return (
     <div style={{ maxWidth: 672, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: V("--text-heading") }}>📥 Importar Eventos</h1>
+      <h1 style={{ fontSize: isMobile ? 22 : 24, fontWeight: 700, marginBottom: isMobile ? 12 : 24, color: V("--text-heading") }}>📥 Importar Eventos</h1>
 
       {/* TeamUp Feed */}
-      <div style={{ background: V("--card-bg"), border: `1px solid ${V("--border")}`, borderRadius: 12, padding: 20, marginBottom: 32 }}>
+      <div style={cardStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12, color: V("--text-heading") }}>🔄 Sincronização TeamUp</h2>
 
         <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: V("--text-secondary"), marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>URL do Feed ICS</label>
@@ -144,11 +155,11 @@ export default function ImportPage({ user }) {
             value={feedUrl}
             onChange={(e) => setFeedUrl(e.target.value)}
             placeholder={DEFAULT_FEED_URL}
-            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${V("--border-input")}`, background: V("--bg-input"), color: V("--text-primary"), fontSize: 13, outline: "none", boxSizing: "border-box" }}
+            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${V("--border-input")}`, background: V("--bg-input"), color: V("--text-primary"), fontSize: isMobile ? 16 : 13, outline: "none", boxSizing: "border-box", minWidth: 0 }}
           />
           <button
             onClick={handleFeedUrlSave}
-            style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${V("--border")}`, background: V("--card-bg"), color: V("--text-primary"), cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}
+            style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${V("--border-subtle")}`, background: V("--bg-card"), color: V("--text-primary"), cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}
           >Guardar</button>
         </div>
 
@@ -176,7 +187,7 @@ export default function ImportPage({ user }) {
         </button>
 
         {feedResult && (
-          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
+          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}` }}>
             {feedResult.error ? (
               <p style={{ margin: 0, color: "var(--c-danger)" }}>❌ {feedResult.error}</p>
             ) : (
@@ -194,7 +205,7 @@ export default function ImportPage({ user }) {
         <SyncStatus status={syncStatus} />
       </div>
 
-      <div style={{ background: V("--card-bg"), border: `1px solid ${V("--border")}`, borderRadius: 12, padding: 20, marginBottom: 32 }}>
+      <div style={cardStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: V("--text-heading") }}>🖼️ Imagens do Portugal Running</h2>
         <p style={{ fontSize: 13, color: V("--text-secondary"), margin: "0 0 12px" }}>
           Procura em portugalrunning.com as próximas provas sem imagem. Só é usada a imagem quando o nome da prova coincide; também corre automaticamente depois de cada sincronização.
@@ -210,7 +221,7 @@ export default function ImportPage({ user }) {
           {imagesLoading ? "A procurar..." : "🔎 Procurar imagens agora"}
         </button>
         {imagesResult && (
-          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
+          <div style={{ marginTop: 12, padding: 12, background: V("--bg-input"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}` }}>
             {imagesResult.error ? (
               <p style={{ margin: 0, color: "var(--c-danger)" }}>❌ {imagesResult.error}</p>
             ) : (
@@ -218,8 +229,8 @@ export default function ImportPage({ user }) {
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Provas verificadas:</strong> {imagesResult.checked}</p>
                 <p style={{ margin: "2px 0", color: V("--text-primary") }}><strong>Imagens encontradas:</strong> {imagesResult.found}</p>
                 {imagesResult.events?.map((e) => (
-                  <p key={e.id} style={{ margin: "2px 0", fontSize: 13, color: V("--text-secondary") }}>
-                    {e.title} → <a href={e.pageUrl} target="_blank" rel="noreferrer" style={{ color: V("--accent") }}>{e.pageUrl}</a>
+                  <p key={e.id} style={{ margin: "2px 0", fontSize: 13, color: V("--text-secondary"), overflowWrap: "anywhere" }}>
+                    {e.title} → <a href={e.pageUrl} target="_blank" rel="noreferrer" style={{ color: "var(--c-accent)" }}>{e.pageUrl}</a>
                   </p>
                 ))}
               </>
@@ -230,29 +241,36 @@ export default function ImportPage({ user }) {
 
       <div
         style={{
-          border: `2px dashed ${dragOver ? V("--accent") : V("--border")}`,
+          border: `2px dashed ${dragOver ? "var(--c-accent)" : V("--border-subtle")}`,
           borderRadius: 12,
-          padding: 32,
+          padding: isMobile ? 20 : 32,
           textAlign: "center",
-          background: dragOver ? `${V("--accent")}15` : V("--card-bg"),
+          background: dragOver ? V("--hover-bg") : V("--bg-card"),
           cursor: "pointer",
-          marginBottom: 20,
+          marginBottom: isMobile ? 12 : 20,
         }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
       >
-        <p style={{ fontSize: 18, margin: 0, color: V("--text-heading") }}>Arrasta ficheiros .ics aqui</p>
-        <p style={{ color: V("--text-secondary"), margin: "8px 0 0" }}>ou clica para selecionar</p>
+        {isMobile ? (
+          // No telemóvel não há arrastar: um toque abre o seletor de ficheiros.
+          <p style={{ fontSize: 16, margin: 0, color: V("--text-heading") }}>📄 Toca para escolher ficheiros .ics</p>
+        ) : (
+          <>
+            <p style={{ fontSize: 18, margin: 0, color: V("--text-heading") }}>Arrasta ficheiros .ics aqui</p>
+            <p style={{ color: V("--text-secondary"), margin: "8px 0 0" }}>ou clica para selecionar</p>
+          </>
+        )}
         <input ref={inputRef} type="file" multiple accept=".ics,.ical" style={{ display: "none" }} onChange={(e) => e.target.files && addFiles(e.target.files)} />
       </div>
 
       {files.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           {files.map((f, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: V("--card-bg"), borderRadius: 8, marginBottom: 6, border: `1px solid ${V("--border")}` }}>
-              <span style={{ fontWeight: 600, color: V("--text-heading") }}>{f.name}</span>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: V("--bg-card"), borderRadius: 8, marginBottom: 6, border: `1px solid ${V("--border-subtle")}` }}>
+              <span style={{ fontWeight: 600, color: V("--text-heading"), minWidth: 0, overflowWrap: "anywhere" }}>{f.name}</span>
               <button onClick={() => removeFile(i)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: V("--text-secondary") }}>✕</button>
             </div>
           ))}
@@ -267,7 +285,7 @@ export default function ImportPage({ user }) {
       </button>
 
       {result && (
-        <div style={{ marginTop: 24, padding: 16, background: V("--card-bg"), borderRadius: 8, border: `1px solid ${V("--border")}` }}>
+        <div style={{ marginTop: isMobile ? 12 : 24, padding: 16, background: V("--bg-card"), borderRadius: 8, border: `1px solid ${V("--border-subtle")}` }}>
           <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: V("--text-heading") }}>Resultado</h2>
           <p style={{ margin: "4px 0", color: V("--text-primary") }}><strong>Importados:</strong> {result.imported} / {result.total} eventos</p>
           {result.skipped != null && <p style={{ margin: "4px 0", color: V("--text-secondary") }}><strong>Ignorados (duplicados):</strong> {result.skipped}</p>}
