@@ -23,6 +23,7 @@ import AuditPage from "./pages/AuditPage";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import api from "./services/api";
 import AppUpdateBanner, { installedAppVersion } from "./components/AppUpdateBanner";
+import SplashScreen from "./components/SplashScreen";
 
 /* ── Theme Toggle Button ── */
 function ThemeToggle() {
@@ -157,11 +158,7 @@ function AppInner() {
   }, [userMenuOpen]);
 
   if (!loaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-page)" }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2" style={{ borderColor: "#CC3333" }}></div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   const navStyle = { color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" };
