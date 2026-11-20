@@ -609,9 +609,17 @@ body.has-action-bar {
     height: 40px;
   }
 
+  /* Name in two lines ("Alverca" / "Urban Runners") instead of being cut. */
   .site-brand-title {
-    max-width: 150px;
     font-size: 13px;
+    line-height: 1.15;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .site-brand-line {
+    display: block;
+    white-space: nowrap;
   }
 
   .site-brand-subtitle {
@@ -748,7 +756,6 @@ body.has-action-bar {
   }
 
   .site-brand-title {
-    max-width: 92px;
     font-size: 12px;
   }
 
@@ -781,7 +788,29 @@ body.has-action-bar {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 380px) {
+  .site-brand {
+    gap: 6px;
+  }
+
+  .site-brand-logo {
+    height: 34px;
+  }
+
+  .site-brand-title {
+    font-size: 11px;
+  }
+
+  .site-login-link {
+    padding: 5px 8px;
+  }
+
+  .site-nav-actions {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 330px) {
   .site-brand-copy {
     display: none;
   }
