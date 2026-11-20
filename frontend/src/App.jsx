@@ -129,6 +129,10 @@ function AppInner() {
   const [user, setUser] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+  // Menu: hide the link to the page we are already on (Sobre is also the home page).
+  const onAbout = pathname === "/" || pathname === "/about";
+  const onCalendar = pathname === "/calendar";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -183,19 +187,25 @@ function AppInner() {
           <Link to="/" className="site-brand">
             <img className="site-brand-logo" src={theme === "light" ? "/logo-light.png" : "/logo.png"} alt="AUR" />
             <div className="site-brand-copy">
-              <div className="site-brand-title" style={{ color: "var(--text-heading)" }}>Alverca Urban Runners</div>
+              <div className="site-brand-title" style={{ color: "var(--text-heading)" }}>
+                <span className="site-brand-line">Alverca</span> <span className="site-brand-line">Urban Runners</span>
+              </div>
               <div className="site-brand-subtitle" style={{ color: "var(--text-secondary)" }}>
                 Vamos descobrir a cidade
               </div>
             </div>
           </Link>
           <div className="site-nav-actions">
-            <Link to="/calendar" className="site-nav-link" style={navStyle}
-              onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-              onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Calendário</Link>
-            <Link to="/about" className="site-nav-link" style={navStyle}
-              onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
-              onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Sobre</Link>
+            {!onCalendar && (
+              <Link to="/calendar" className="site-nav-link" style={navStyle}
+                onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
+                onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Calendário</Link>
+            )}
+            {!onAbout && (
+              <Link to="/about" className="site-nav-link" style={navStyle}
+                onMouseEnter={(e) => (e.target.style.color = "var(--hover-text)")}
+                onMouseLeave={(e) => (e.target.style.color = "var(--text-secondary)")}>Sobre</Link>
+            )}
 
             {/* Theme toggle */}
             <ThemeToggle />
